@@ -1,0 +1,80 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\tothink{full discussion prose; outline below covers four sub-themes,
+of which the first --- the RLHF calibration finding --- is the
+substantive methodological contribution and deserves the most space.}
+
+\subsection{The RLHF-degrades-judge-calibration finding}
+
+\tothink{the headline empirical finding from \cref{sec:eval}, traced
+to the literature ancestor. Kadavath et al.\ \cite{kadavath2022language}
+documented this on multiple-choice / Q\&A tasks across the Anthropic
+model line; we reproduce on judge tasks specifically. Mechanism (per
+the InstructGPT line): RLHF rewards models for confident, declarative
+answers, which decouples reported probability from correctness.
+Implication for any team adopting LLM-as-judge: the dominant deployed
+configuration --- forced-tool-use on an instruction-tuned model with
+log-probs read directly --- is the configuration the literature
+already documents as miscalibrated. Temperature scaling is the
+cheap fix; not shipping it is the unforced error.}
+
+\subsection{Why three axes do not collapse to one}
+
+\tothink{the case for three axes vs a single composite. The
+landscape doc Section D's per-cell axis assignment shows that
+collapsing forfeits the operationally-distinguishable failure modes:
+heuristic scorers fail on dataset bias (Goodhart) which is
+upstream-of-scorer; rubric scorers fail on self-inconsistency
+(\emph{agreement} stable, \emph{calibration} broken); verbosity-biased
+judges fail on bias-bound while calibration on length-controlled
+subsets looks fine. Each requires a different fix. A composite
+average obscures the fix.}
+
+\subsection{The Bruch-style open question for aggregators}
+
+\tothink{the eval-suite analogue to the retriever paper's RRF-vs-CC
+open question is whether mean-of-means, geometric-mean, or
+inverse-variance weighting should be the default aggregator. The
+algorithm survey scores them comparably (28 / 26 / 26 in Section B);
+the decision turns on per-suite scorer-variance heterogeneity.
+\cref{sec:eval} reports per-scorer $\sigma_i$ on stable suites
+and the MSE gap of weighted vs flat. Geometric-mean is the right
+default if the gating semantics are "must pass most scorers";
+inverse-variance is the right default if scorer reliability genuinely
+varies; flat mean is the right default if the suite is
+hand-curated to homogeneous scorer reliability. Most operators run
+heterogeneous suites and don't know it.}
+
+\subsection{When this won't work}
+
+\tothink{three regimes break the architecture as currently described:
+(i) \emph{very small calibration sets} ($N < 50$) where ECE is
+itself badly estimated (binning noise dominates) --- temperature
+scaling becomes unstable; the right move at small $N$ is to use
+Brier directly (no binning) and refresh more aggressively.
+(ii) \emph{judge model drift} --- if the judge model is updated
+silently (Anthropic ships a new haiku build), the previously-fit
+$T$ is wrong; OQ-E7 governs the refresh cadence but the underlying
+problem is that judges should be pinned by hash, not by model name.
+(iii) \emph{rubric drift} --- if the rubric is hand-edited between
+runs without re-fitting $T$, the calibration set's coverage is
+invalidated; defensive move is to derive a rubric-content hash
+and invalidate the calibration table on hash change.}
+
+\subsection{Lessons from deployment}
+
+\tothink{three deployment lessons cross-applicable beyond this paper:
+(i) probability-weighted scoring is a free upgrade that no published
+eval-tool ships by default --- the API exposes the log-probs and
+none of OpenAI Evals, Promptfoo, Inspect, DeepEval, or Confident-AI's
+G-Eval implementation reads them. Surface this as a one-paragraph
+"if you ship one thing from this paper" recommendation. (ii) The
+three-axis frame's bias-bound axis is the load-bearing one
+operationally --- a cell that fails calibration can be fixed by
+scaling; a cell that fails agreement can be fixed by rubric
+sharpening; a cell that fails bias-bound is unfixable downstream.
+(iii) Per-judge calibration sets are a versioned artefact like the
+suites themselves. Treat them as first-class. Cite the analogous
+artefact-versioning lesson from the model-advisor paper
+\cite{blackrim_moa1c}.}

@@ -1,0 +1,64 @@
+\section{Introduction}
+\label{sec:intro}
+
+\tothink{full introduction prose; sequenced after model-advisor and
+retriever papers.}
+
+This section will develop:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{The eval-suite as a gating surface.} The Blackrim eval-suite
+        (\texttt{internal/eval/}, \texttt{internal/scorer/}, \texttt{evals/})
+        runs on every PR touching agent prompts, scoring updates, or judge
+        templates; gate failures block release. A judge that mis-scores by
+        even 5\% on a 30-case suite either lets regressions through or
+        rejects valid changes, so the reliability of the judge surface is
+        load-bearing for the framework's quality story.
+  \item \textbf{The three-axis problem.} The eval literature publishes most
+        results under a single-axis frame --- \emph{judge agreement with
+        humans} (the MT-Bench / Chatbot Arena tradition;
+        \cite{zheng2023judging}) or \emph{calibration error} (the
+        Kadavath / Guo tradition; \cite{kadavath2022language,guo2017calibration}).
+        These are not interchangeable. Empirically (\cref{sec:related}) we
+        show that they fail \emph{differently} across the (scorer-class
+        $\times$ task-shape) grid: heuristic scorers have no meaningful
+        calibration axis; embedding scorers have no meaningful agreement-
+        with-experts axis; LLM rubric scorers fail bias-bound checks even
+        when calibration looks fine. A single-axis frame quietly aggregates
+        away these distinctions.
+  \item \textbf{The three-axis frame.} \emph{Calibration-no-regression} where
+        a confidence-vs-correctness signal exists (LLM classifier, pairwise
+        rubric); \emph{agreement-no-regression} where the only stable signal
+        is inter-rater (rubric scorers on subjective shapes,
+        trajectory-rubric); \emph{bias-bound precondition} for every
+        LLM-judge cell. \cref{sec:problem} states each axis formally.
+  \item \textbf{The headline finding: RLHF degrades judge calibration.}
+        Kadavath et al.\ \cite{kadavath2022language} showed that base
+        models calibrate well on multiple-choice, then degrade after
+        instruction-tuning / RLHF. The Overconfidence-in-LLM-as-a-Judge
+        paper \cite{overconfidence2025} reproduced this on judge tasks
+        directly: ECE 0.13--0.25 on instruction-tuned judges across
+        pairwise and rubric judging. The implication is operational:
+        every shipping eval-tool that defaults to instruction-tuned
+        judges (Promptfoo, OpenAI Evals, Inspect, this work) is
+        running on a configuration the calibration literature already
+        documents as miscalibrated. Temperature scaling
+        \cite{guo2017calibration} is the cheap fix; this paper makes
+        the case for shipping it as default.
+  \item \textbf{The headline implementation: probability-weighted
+        scoring.} Liu et al.'s G-Eval \cite{liu2023geval} swaps argmax
+        decoding for $\score = \sum_t p(t) \cdot \mathrm{choice\_scores}[t]$
+        over the judge's choice set. This is a 30-line change that lifted
+        Spearman correlation with human ratings by 22\% on SummEval and
+        is essentially free given the API already exposes log-probs.
+        \cref{sec:algorithm} states it as Algorithm 1.
+  \item \textbf{Contributions.} (i) The three-axis methodology
+        (\cref{sec:problem}); (ii) a per-(scorer-class $\times$
+        task-shape) priors matrix anchoring per-axis tolerances to the
+        ML evaluation literature (\cref{sec:related}); (iii) the
+        eval-suite architecture and paper-stream telemetry
+        (\cref{sec:system}); (iv) v1 algorithmic upgrades shipped
+        and motivated against published baselines (\cref{sec:algorithm});
+        (v) an empirical evaluation pipeline (\cref{sec:eval}) backed
+        by labelled calibration sets per judge.
+\end{itemize}

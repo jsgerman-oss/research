@@ -1,0 +1,84 @@
+\section{Future Work}
+\label{sec:future}
+
+\tothink{full future-work prose; outline below covers Tier-2 (next
+quarter), Tier-3 (parking lot), and the cross-cutting OQs from the
+algorithm survey.}
+
+\paragraph{Tier 2: post-deployment refinement.}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Inverse-variance weighted aggregation (E7.3).}
+        \tothink{bootstrap $\sigma_i$ per scorer from
+        \texttt{eval-runs.jsonl} history; replace
+        \texttt{MeanOverall} with $\sum (\mu_i / \sigma_i^2) /
+        \sum (1 / \sigma_i^2)$. Lower-MSE at zero extra cost.
+        Surfaces $\sigma_i$ in \texttt{gt eval show}. OQ-E3 is the
+        empirical promotion gate.}
+  \item \textbf{Gate-aware (asymmetric-loss) aggregation (E7.8).}
+        \tothink{couples eval-suite to MOA-1c. Replace
+        $\mathrm{if\ MeanOverall} < \tau\ \mathrm{then\ BLOCK}$
+        with $\mathrm{if\ E}[\loss(\mathrm{BLOCK}, q) | \mathrm{scores}]
+        < \mathrm{E}[\loss(\mathrm{PASS}, q) | \mathrm{scores}]
+        \mathrm{then\ BLOCK}$. Same posterior, same loss matrix as
+        the model-advisor's tier-routing decision rule. Extract
+        \texttt{internal/loss/} as a shared package.}
+  \item \textbf{Geometric-mean alternate gate (E7.6).}
+        \tothink{for operators using \texttt{min\_pct\_correct}
+        semantics: ship \texttt{gates: \{ min\_geo\_mean: 0.7 \}}
+        alongside \texttt{min\_mean}. OQ-E4 governs the
+        promotion-vs-noise question.}
+  \item \textbf{Uncertainty sampling for delta-runs (E5.1).}
+        \tothink{re-run an unstable suite, prioritise ambiguous
+        mid-rubric cases first. Highest bang-for-buck on a fixed
+        re-judge budget.}
+  \item \textbf{Length-controlled rubric variants.}
+        \tothink{ship \texttt{length\_controlled\_*} variants when
+        long-form rubrics enter the suite; OQ-E10 governs the
+        promotion-vs-noise question.}
+\end{itemize}
+
+\paragraph{Tier 3: multi-judge stack (parking lot).}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Cross-family dual-judge for STABLE\_SUITES.txt (E6.3).}
+        \tothink{Anthropic-judges-Anthropic is the dominant Blackrim
+        config. Self-preference probe per OQ-E5 quantifies the
+        cost; if $\Delta_{\mathrm{self-pref}} > 0.05$ on stable
+        suites, ship cross-family default for high-stakes cells
+        (C.10, C.14).}
+  \item \textbf{Glicko / TrueSkill judge skill ratings (E4.4).}
+        \tothink{per (judge, scorer) Beta posterior on
+        $P(\mathrm{judge\ agrees\ with\ operator\ override})$;
+        each operator override updates the posterior. After
+        50--100 overrides, $\mu \pm \sigma$ is meaningful. Surface
+        as \texttt{gt eval judges} leaderboard.}
+  \item \textbf{Dawid-Skene EM aggregation (E4.3).}
+        \tothink{when $k \geq 3$ judges grade each case, combine via
+        D-S EM rather than majority-vote or mean. Closed-form EM in
+        Go is $\sim 150$ LOC.}
+  \item \textbf{Query-by-committee for review queue (E5.3).}
+        \tothink{cases where judges disagree are exactly where
+        operator review extracts most information. Surface in
+        \texttt{gt eval review-queue} ranked by judge-disagreement.}
+  \item \textbf{Pairwise (Bradley-Terry) rubric scoring.}
+        \tothink{ship pairwise judging for cell C.23 with mandatory
+        swap-mitigation; cited literature's strongest case for LLM
+        judging is currently un-served by the Blackrim suite.}
+\end{itemize}
+
+\paragraph{Cross-cutting: judge model pinning.}
+\tothink{the calibration story assumes the judge model is stable
+between calibration-set fitting and gate evaluation. Today
+\texttt{anthropic\_judge.go} routes to a model name (\texttt{claude-haiku-4-5}),
+which Anthropic can update silently. Pinning by content hash --- if
+the API ever exposes one --- closes the loop; until then the
+defensive move is to refresh per OQ-E7 plus run a calibration drift
+diagnostic on every gate evaluation that uses cached temperature
+values older than a configured threshold.}
+
+\paragraph{Cross-cutting: trajectory-judging benchmark (OQ-1 in
+landscape doc).}
+\tothink{the literature has essentially no agreement-with-human
+numbers for agent-trajectory judging. The Blackrim suite's
+\texttt{goal\_achieved} scorer (cells C.19--C.22) is operating
+without a strong prior. First-of-its-kind public benchmark would
+underwrite the cells the framework's own gate quietly relies on.}

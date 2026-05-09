@@ -1,0 +1,107 @@
+\section{Notation Reference}
+\label{app:notation}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$\scorerclasses$, $\scorerclass$ & Set of scorer classes; a scorer class \\
+$\taskshapes$, $\taskshape$      & Set of task shapes; a task shape \\
+$\cellset$, $\evalcell$          & Set of (scorer-class, task-shape) cells; a cell \\
+$\judgemodel$                    & Judge model identifier \\
+$\rubric$                        & Rubric / scorer template \\
+$\groundtruth(x)$                & Ground-truth label for case $x$ \\
+$\score$                         & Scorer output (continuous after Layer 1) \\
+$\confidence$                    & Judge-reported confidence (logit-derived) \\
+$\ECE$, $\MCE$                   & Expected / maximum calibration error \\
+$\Brier$                         & Brier score \\
+$\kappastat$, $\alphakr$         & Cohen's / Krippendorff agreement \\
+$\biasbound$                     & Bias-bound axis (worst of position/verbosity/self-pref) \\
+$\caliblimit(\evalcell)$         & Per-cell ECE drift tolerance \\
+$\agreelimit(\evalcell)$         & Per-cell $\kappastat$ drift tolerance \\
+$\posterior_{\judgemodel, \scorerclass}$ & Posterior on judge skill at scorer (v3) \\
+$T$                              & Calibration temperature scalar \\
+$M$                              & Number of bins in ECE estimator (default 10) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Per-cell axis assignment}
+\label{app:axis-assignment}
+
+\tothink{mirror landscape doc Section C.1--C.24. The 24 meaningful
+cells map to one of $\{\text{calibration}, \text{agreement},
+\text{neither (heuristic)}\}$ as the primary axis; every LLM-judge
+cell additionally carries the bias-bound precondition. The full
+mapping table is the substantive content of \cref{sec:problem}'s
+axis-assignment table; this appendix provides the per-cell rationale
+(literature anchor + confidence percentage from the landscape doc).}
+
+\section{Probability-weighted scoring derivation}
+\label{app:probweight-derivation}
+
+\tothink{Liu et al.\ \cite{liu2023geval} state the rule informally;
+this appendix derives it as the expectation of the choice-score map
+under the judge's implied posterior over the choice set. Properties:
+(i) reduces to argmax in the zero-temperature limit; (ii) is strictly
+proper on the choice set under log-loss; (iii) is monotonic in the
+choice scores. The derivation also clarifies that the API need only
+expose the top-$k$ log-probs --- the tail contributes
+$\mathcal{O}(\epsilon)$ when truncated at the choice set.}
+
+\section{Temperature-scaling fit}
+\label{app:tempscale-fit}
+
+\tothink{state the golden-section search algorithm on $T \in [0.1, 10]$
+minimising negative log-likelihood on the labelled calibration set;
+convergence in $\mathcal{O}(\log(1/\epsilon))$ iterations; per-(judge,
+template) cache at \texttt{evals/\_calibration/<judge>/temperature.yaml}.
+Cite Guo et al.\ \cite{guo2017calibration} for the canonical recipe.}
+
+\section{Bias diagnostics}
+\label{app:bias-diagnostics}
+
+\tothink{state the three diagnostics formally. Position-bias flip-rate:
+fraction of (A,B) vs (B,A) pairs whose verdict flipped, averaged over
+the calibration set. Verbosity-bias correlation:
+$\rho(\mathrm{length}(x), \score(x))$ over a held-out diagnostic set
+where length is a confounder. Self-preference advantage:
+$\mathbb{E}[\score | \text{candidate from same family as judge}] -
+\mathbb{E}[\score | \text{candidate from cross-family}]$, computed
+on a paired probe set where the candidate quality is held constant
+across families. Cite Zheng et al.\ \cite{zheng2023judging},
+Dubois et al.\ \cite{dubois2024lcalpaca}, and Panickssery et al.\
+\cite{panickssery2024selfbias}.}
+
+\section{Selected hyperparameters}
+\label{app:hyperparams}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Hyperparameter & Value & Rationale \\
+\midrule
+ECE bins $M$                & $10$    & Naeini et al.\ default \\
+Calibration set size        & \tothink{200--500} & per OQ-E1 \\
+Temperature search range    & $[0.1, 10]$ & Guo et al.\ default \\
+Position-bias threshold     & $0.05$  & Zheng et al.\ post-mitigation \\
+Verbosity-bias threshold    & $|\rho| \leq 0.20$ & landscape-doc default \\
+Self-preference threshold   & $\Delta \leq 0.05$ & landscape-doc default \\
+$\caliblimit$ default       & $0.02$  & ECE drift tolerance per axis \\
+$\agreelimit$ default       & $0.05$  & $\kappastat$ drift tolerance per axis \\
+Calibration refresh cadence & \tothink{30 days} & per OQ-E7 \\
+Stratified sampler seed     & $0$ (overridable) & deterministic replay \\
+Bootstrap resamples         & $1000$  & paired-bootstrap CIs \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Reproducibility checklist}
+\label{app:repro}
+
+\tothink{following Pineau et al.\ \cite{pineau2021improving}: code,
+data, hyperparameters, RNG seeds, compute, hardware. Calibration
+sets are versioned alongside the suites under
+\texttt{evals/\_calibration/<judge>/cases.jsonl}. Same shape as
+the model-advisor and retriever papers.}

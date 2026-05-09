@@ -1,0 +1,38 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+*.nav
+*.snm
+*.vrb
+*.dvi
+*.ps
+
+# Editor
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
+
+# The compiled PDF — keep main.pdf out of source control until release tag.
+main.pdf
+
+# Eval intermediates — keep raw + final CSVs in data/, drop scratch.
+data/scratch/
+data/raw/*.jsonl
+
+# Python eval-harness venv
+.venv/
+__pycache__/
+*.pyc

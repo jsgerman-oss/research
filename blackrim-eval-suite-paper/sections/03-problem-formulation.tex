@@ -1,0 +1,117 @@
+\section{Problem Formulation}
+\label{sec:problem}
+
+\tothink{full problem-formulation prose; the three-axis decision rule
+must be stated precisely, with the per-cell axis assignment derived
+from the landscape doc.}
+
+\subsection{Setting}
+
+Let $\scorerclasses = \{\scorerclass_1, \ldots, \scorerclass_5\}$
+be the set of \emph{scorer classes} the suite ships:
+heuristic ($\scorerclass_1$), embedding similarity ($\scorerclass_2$),
+LLM classifier ($\scorerclass_3$), LLM rubric ($\scorerclass_4$), and
+trajectory ($\scorerclass_5$). Let
+$\taskshapes = \{\taskshape_1, \ldots, \taskshape_8\}$ be the eight
+canonical \emph{task shapes} catalogued in the landscape doc
+\cite{blackrim_evalsuite_landscape}: single-file edit, lookup / Q\&A,
+rubric writing, ADR judgment, P0 debug triage, long-form docs,
+code review, threat modelling.
+
+A \emph{cell} $\evalcell = (\scorerclass, \taskshape) \in
+\scorerclasses \times \taskshapes$ is a (scorer-class, task-shape) pair.
+Of the $5 \times 8 = 40$ raw cells, only the 24 catalogued in the
+landscape doc Section C are meaningful intersections; the rest are
+inappropriate combinations (e.g., heuristic exact-match on long-form
+docs).
+
+\subsection{Per-cell reliability axes}
+
+The substantive deviation from prior eval-suite work is that we
+\emph{do not} collapse cell reliability to a single number. Instead
+each meaningful cell $\evalcell$ is assigned a primary reliability
+axis from $\{\text{calibration}, \text{agreement}\}$ and is subject
+to a bias-bound precondition:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Calibration axis} (cells C.5--C.7, C.23). Where the
+        scorer emits a confidence-vs-correctness signal, the load-bearing
+        constraint is $\ECE \leq \tau_{\ECE}$ (and equivalently
+        a Brier-score floor). Per-cell tolerances $\caliblimit$ are
+        anchored to literature priors --- ECE 0.05--0.15 for
+        forced-choice classifier on Q\&A, ECE 0.05--0.10 for
+        Bradley-Terry pairwise.
+  \item \textbf{Agreement axis} (cells C.4, C.8--C.14, C.19--C.22).
+        Where the scorer's output is intrinsically continuous /
+        ordinal but no calibration baseline exists, the load-bearing
+        constraint is $\kappastat \geq \tau_{\kappastat}$ (or
+        Krippendorff $\alphakr$ for the multi-rater future).
+        Per-cell tolerances $\agreelimit$ are anchored to
+        Landis-Koch interpretation bands plus task-specific priors
+        from the landscape doc.
+  \item \textbf{Bias-bound precondition} ($\biasbound$, all LLM-judge
+        cells). Position-bias flip-rate $\leq 0.05$ (mitigated via
+        swap test); verbosity-bias correlation $|\rho(\mathrm{length},
+        \score)| \leq 0.20$ on a held-out diagnostic set; self-preference
+        advantage $\leq 0.05$ score-points on a cross-family probe.
+        \tothink{Self-preference probe details: cite Panickssery et al.\ /
+        Wataoka et al.\ for the cross-family construction.}
+\end{itemize}
+
+\tothink{enumerate the per-cell axis assignment as a table; this
+crystallises the substantive content of \cref{sec:related} and feeds
+\cref{sec:eval}'s gates table.}
+
+\subsection{Three-axis no-regression}
+
+For each cell $\evalcell$ on the calibration axis, define the
+\emph{calibration-no-regression} constraint as
+\begin{equation}
+  \ECE_{\evalcell}(\policy_{\mathrm{new}}) - \ECE_{\evalcell}(\policy_{\mathrm{base}})
+  \;\leq\; \caliblimit(\evalcell),
+  \label{eq:cal-noreg}
+\end{equation}
+where $\policy_{\mathrm{base}}$ is the previously-shipped configuration
+on the same cell and $\caliblimit(\evalcell)$ is the per-cell drift
+tolerance from \cref{sec:related}. The Brier-score equivalent is
+$\Brier_{\evalcell}(\policy_{\mathrm{new}}) -
+\Brier_{\evalcell}(\policy_{\mathrm{base}}) \leq \caliblimit'$.
+
+For each cell $\evalcell$ on the agreement axis, define the
+\emph{agreement-no-regression} constraint as
+\begin{equation}
+  \kappastat_{\evalcell}(\policy_{\mathrm{new}}) -
+  \kappastat_{\evalcell}(\policy_{\mathrm{base}})
+  \;\geq\; -\agreelimit(\evalcell).
+  \label{eq:agree-noreg}
+\end{equation}
+
+The bias-bound precondition is asymmetric: a violation \emph{disqualifies}
+$\policy_{\mathrm{new}}$ regardless of \cref{eq:cal-noreg,eq:agree-noreg}
+holding. \tothink{state this precisely as: $\biasbound_{\evalcell}
+(\policy_{\mathrm{new}}) \leq \tau_{\biasbound}$ where $\biasbound$
+is the worst-of-three (position, verbosity, self-preference) bias
+diagnostic.}
+
+\subsection{Why three axes do not collapse}
+
+\tothink{The case for non-collapsibility, with the failure-mode
+catalogue from the landscape doc Section D. (i) Heuristic scorers
+are perfectly calibrated against the oracle but can have
+$\kappastat < 1$ against humans (Goodhart). (ii) Rubric scorers
+can have stable $\kappastat$ across runs while $\ECE$ blows up
+(self-inconsistency dominates). (iii) Verbosity-biased judges can
+have $\ECE$ near zero on length-controlled subsets and arbitrarily
+large on the full distribution. The frame must allow all three
+to fire independently --- collapsing to a single composite hides
+the failure mode operators most need to see.}
+
+\subsection{What the eval-suite must produce}
+
+Operationally the suite emits, per (run, cell), a triple
+$(\ECE, \kappastat, \biasbound)$ plus the per-axis no-regression
+verdict against $\policy_{\mathrm{base}}$. The gate is the conjunction:
+ship $\policy_{\mathrm{new}}$ iff every cell's relevant axes pass
+\emph{and} the bias-bound precondition holds on every LLM-judge cell.
+\tothink{state the gate as a Boolean expression over per-cell
+predicates; this is the core operational artefact.}

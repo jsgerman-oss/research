@@ -1,0 +1,33 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+\tothink{full conclusion prose; outline below.}
+
+\noindent We presented a three-axis methodology for LLM-as-judge eval-suite
+scoring. The methodology partitions the (scorer-class $\times$
+task-shape) grid into cells whose primary reliability axis is
+\emph{calibration} (LLM classifier, pairwise rubric), \emph{agreement}
+(LLM rubric, trajectory rubric on subjective shapes), or \emph{neither
+applies} (heuristic scorers, where dataset quality is upstream of the
+scorer). Every LLM-judge cell additionally satisfies a \emph{bias-bound
+precondition} on position, verbosity, and self-preference biases. The
+three-axis frame is structurally distinct from the prevailing
+single-axis framing in the eval literature, which collapses
+operationally-distinguishable failure modes that need different fixes.
+
+\noindent The paper's central methodological claim is that
+\emph{eval-suite reliability is a three-axis problem with non-collapsible
+axes}, structurally distinct from the tier-cost-ratio framing of the
+companion model-advisor paper. The paper's central empirical claim,
+following Kadavath et al.\ \cite{kadavath2022language} and reproduced
+on judge tasks specifically, is that \emph{RLHF-tuned LLM judges are
+systematically worse-calibrated than their pretrained ancestors at
+the same scale}, with operational implications for any team running
+forced-tool-use LLM judging on instruction-tuned models. Probability-weighted
+scoring \cite{liu2023geval} and temperature scaling
+\cite{guo2017calibration} are the cheap fixes; the eval-suite ships
+both as v1 defaults.
+
+\paragraph{Acknowledgements.}
+\tothink{contributors, operators, and the open-source artefacts. Same
+shape as the model-advisor and retriever papers.}

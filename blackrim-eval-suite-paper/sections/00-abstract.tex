@@ -1,0 +1,65 @@
+\begin{abstract}
+\noindent
+\tothink{abstract}
+
+The abstract will compress the paper into a single dense paragraph; outline
+of the five mandatory bullet points it must hit:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Problem.} A multi-agent eval-suite mixes heterogeneous
+        scorer kinds (heuristic, embedding, LLM classifier, LLM rubric,
+        trajectory) over heterogeneous task shapes (single-file edits,
+        Q\&A lookups, ADR judgments, threat models, long-form docs,
+        debug triage, code review, rubric writing). The dominant single-axis
+        framing in the eval literature --- "judge agreement with humans"
+        or "calibration error" --- collapses three distinct reliability
+        axes that fail in different cells of the (scorer-class $\times$
+        task-shape) grid for different reasons.
+  \item \textbf{Framing.} We propose a \emph{three-axis} methodology for
+        eval-suite scoring: (i) \emph{calibration-no-regression} for
+        scorers with a meaningful confidence-vs-correctness baseline
+        (LLM classifier, pairwise rubric); (ii) \emph{agreement-no-regression}
+        for scorers with no calibration baseline but a stable inter-rater
+        signal (LLM rubric, trajectory rubric on subjective shapes);
+        (iii) a \emph{bias-bound precondition} on all LLM-judge cells
+        (position-bias flip-rate $\leq 5\%$, verbosity-bias correlation
+        $|\rho| \leq 0.20$, self-preference advantage $\leq 0.05$).
+        This frame is structurally distinct from the model-advisor
+        paper's tier-cost-ratio framing.
+  \item \textbf{Algorithm.} v1 ships four surgical upgrades anchored
+        to the algorithm survey: \emph{probability-weighted scoring}
+        (G-Eval; Liu et al.\ EMNLP 2023), \emph{position-bias swap test}
+        (Zheng et al.\ NeurIPS 2023), \emph{ECE + reliability
+        diagnostics} (Naeini et al.\ AAAI 2015) with temperature
+        scaling (Guo et al.\ ICML 2017), and \emph{stratified
+        sampling} for production-trace suites. Probability-weighted
+        scoring is the headline implementation finding: a $\sim$30-LoC
+        change that recovers a 22\% Spearman correlation gain
+        already paid for in the judge's log-probs.
+  \item \textbf{Evaluation.} Empirical evaluation uses paper-stream
+        telemetry (planned: \texttt{internal/eval/paper\_stream.go})
+        flowing to \texttt{data/raw/cases.jsonl}, with a held-out
+        labelled calibration set per judge model. Baselines: argmax
+        decoding (current default), majority-vote, and a flat
+        mean-of-means aggregator. Diagnostic experiments isolate
+        each axis.
+  \item \textbf{Finding.} Our headline empirical claim, drawn from
+        the calibration literature and reproduced on Blackrim's
+        judge fleet, is that \emph{RLHF-tuned LLM judges are
+        systematically worse-calibrated than their pretrained
+        ancestors of the same scale} (Kadavath et al.\ 2022;
+        \tothink{cite the InstructGPT line + the Overconfidence-in-LLM-as-Judge
+        paper, arXiv:2508.06225}). The implication is that
+        the dominant deployed judge configuration in the open-source
+        eval-tool ecosystem --- forced-tool-use LLM-as-judge on an
+        instruction-tuned model --- is precisely the configuration
+        that needs explicit calibration correction (temperature
+        scaling) before its confidence numbers can be used to gate
+        anything. \tothink{populate ECE-haiku, ECE-sonnet, ECE-opus
+        once data accumulates from the calibration set.}
+\end{itemize}
+
+\textbf{Keywords:} LLM-as-judge, calibration, expected calibration error,
+inter-rater agreement, bias bounds, agent eval, probability-weighted scoring,
+G-Eval, RLHF calibration, Bradley-Terry pairwise judging.
+\end{abstract}

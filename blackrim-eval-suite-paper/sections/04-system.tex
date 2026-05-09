@@ -1,0 +1,99 @@
+\section{System: \blackrim \evalsuite Architecture}
+\label{sec:system}
+
+\tothink{full system prose; the in-tree architecture is well-documented
+already in \texttt{internal/eval/} and \texttt{evals/model-tier-validation/}
+and the section is largely a faithful description.}
+
+\subsection{\blackrim and \evalsuite in one paragraph}
+
+\blackrim \cite{german2026blackrim} is an open-source multi-agent
+framework on top of Claude Code \cite{anthropic2024claudecode}. It
+ships a registry of 17 agents, a coordination layer (\texttt{bd},
+Dolt-backed), and a hierarchical eval-suite at
+\texttt{internal/eval/} + \texttt{internal/scorer/} + \texttt{evals/}.
+Suites are declared in YAML (\texttt{evals/<suite>/suite.yaml}),
+runs persist to \texttt{.beads/telemetry/eval-runs.jsonl}, and the
+gate runs as a release-blocking pre-commit / CI check on the suites
+listed in \texttt{evals/STABLE\_SUITES.txt}.
+
+\subsection{The five-scorer registry}
+
+\tothink{describe the five scorer classes per the landscape doc
+Section A: heuristic / embedding / LLM classifier / LLM rubric /
+trajectory. Per-class pointers below.}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Heuristic scorers} (\texttt{internal/scorer/heuristic/})
+        --- \texttt{levenshtein}, \texttt{numeric}, \texttt{json}.
+        Deterministic against ground-truth, zero LLM cost,
+        binomial-with-Wilson-CI statistical interpretation.
+  \item \textbf{Embedding scorers}
+        (\texttt{internal/scorer/embedding/}) ---
+        \texttt{embedding\_similarity}. Cosine-similarity in $[0, 1]$
+        on a fixed embedding model; uncalibrated by default.
+  \item \textbf{LLM classifier scorers}
+        (\texttt{internal/scorer/llm/\{closed\_qa,factuality,classifier\}.go}).
+        \tothink{forced tool-use via \texttt{submit\_choice}; configured
+        through embedded YAML templates; the five-way A/B/C/D/E
+        \texttt{factuality} verdict adapted from OpenAI Evals' fact.yaml.}
+  \item \textbf{LLM rubric scorers}
+        (\texttt{internal/scorer/llm/classifier.go} with \texttt{Kind: rubric}).
+        Per-suite custom rubric, same forced-tool-use machinery.
+        Highest variance / lowest baseline reliability; CoT prompting
+        \cite{liu2023geval} default-on.
+  \item \textbf{Trajectory scorers}
+        (\texttt{internal/scorer/trajectory/}) ---
+        \texttt{route\_match}, \texttt{goal\_achieved},
+        \texttt{tool\_budget}, \texttt{forbidden}, \texttt{termination}.
+        Score the audit-log tree of agent calls, not the final string.
+        Mixed determinism: most are heuristic, \texttt{goal\_achieved}
+        is rubric-based and inherits the rubric concerns.
+\end{itemize}
+
+\subsection{Suite, runner, gate}
+
+\tothink{describe the suite YAML schema (the v2 spec at
+\texttt{docs/specs/eval-suite-v2.md} is the source of truth);
+\texttt{internal/eval/runner.go} as the orchestrator; the
+\texttt{evaluateGates} flat-mean-of-means gate at \texttt{runner.go}
+and the per-cell three-axis gate proposed in \cref{sec:problem}.}
+
+\subsection{Judge cache and paper-stream telemetry}
+
+\tothink{the judge cache at \texttt{.beads/eval-judge-cache.db} (bbolt;
+bd blackrim-csw); the planned \texttt{internal/eval/paper\_stream.go}
+mirroring the retriever's \texttt{internal/bdmemory/paper\_stream.go}.
+Per-case envelope: case ID, judge model, rubric ID, judge log-probs
+over the choice set, judge rationale, ground-truth label, scorer-class,
+task-shape. Records JSONL-appended to
+\texttt{\$BLACKRIM\_EVALSUITE\_PAPER\_STREAM} (typically
+\texttt{\textasciitilde/research/blackrim-eval-suite-paper/data/raw/cases.jsonl}).
+This is the data backing every quantitative claim in
+\cref{sec:eval}, including the headline RLHF-degrades-calibration
+finding.}
+
+\subsection{Operator-facing surface}
+
+\tothink{describe \texttt{gt eval run}, \texttt{gt eval show}
+(per-cell three-axis breakdown), \texttt{gt eval show --calibration}
+(reliability diagrams), \texttt{gt eval calibrate <judge>}
+(temperature-scaling fit on the per-judge calibration set at
+\texttt{evals/\_calibration/<judge>/cases.jsonl}); the dashboard
+"Eval" card showing per-cell ECE / $\kappastat$ / bias gauges and
+no-regression budget consumption.}
+
+\Cref{fig:eval-flow} sketches the eval-suite flow with the three-axis
+gate in place.
+
+\begin{figure}[ht]
+\centering
+% Placeholder TikZ figure --- the real version lives in figures/eval-flow.tex
+\input{figures/eval-flow}
+\caption{\tothink{eval-suite flow figure --- suite YAML loaded;
+runner dispatches per-case to the registered scorers; LLM judges
+emit log-probs (probability-weighted scoring); per-cell aggregator
+produces (ECE, $\kappastat$, bias); gate evaluates the three-axis
+no-regression conjunction; paper-stream telemetry write-back.}}
+\label{fig:eval-flow}
+\end{figure}

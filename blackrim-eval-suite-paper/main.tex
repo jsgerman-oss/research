@@ -1,0 +1,135 @@
+% !TEX program = pdflatex
+% !TEX bibtex  = biber
+%
+% main.tex — master document
+%
+% Compile:
+%   make            # latexmk -pdf -bibtex
+%   make clean      # remove build artifacts
+%
+% Style: arxiv-friendly. Single-column for review-readability; switch to
+% acmart or IEEEtran via the class line below for venue-specific submission.
+
+\documentclass[11pt,letterpaper]{article}
+
+% --- Layout -----------------------------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{parskip}
+
+% --- Math + theorems --------------------------------------------------------
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{thmtools}
+\declaretheorem[name=Theorem,numberwithin=section]{theorem}
+\declaretheorem[name=Lemma,sibling=theorem]{lemma}
+\declaretheorem[name=Proposition,sibling=theorem]{proposition}
+\declaretheorem[name=Corollary,sibling=theorem]{corollary}
+\declaretheorem[name=Definition,sibling=theorem,style=definition]{definition}
+\declaretheorem[name=Assumption,sibling=theorem,style=definition]{assumption}
+\declaretheorem[name=Remark,sibling=theorem,style=remark]{remark}
+
+% --- Code + algorithms ------------------------------------------------------
+\usepackage[ruled,linesnumbered]{algorithm2e}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible,
+}
+
+% --- Figures + tables -------------------------------------------------------
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes,fit,backgrounds,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{array}
+\usepackage{longtable}
+
+% --- References + links -----------------------------------------------------
+\usepackage[backend=biber,style=numeric-comp,sorting=none,maxbibnames=99,giveninits=true]{biblatex}
+\addbibresource{bib/refs.bib}
+\addbibresource{../_shared/refs-base.bib}
+
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% --- Misc -------------------------------------------------------------------
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{etoolbox}
+
+% Notation macros — kept tight; introduce in problem-formulation, then reuse.
+% Eval-suite-specific glyphs: scorer classes, task shapes, calibration /
+% agreement / bias axes, judge skill posteriors.
+\newcommand{\scorerclasses}{\mathcal{S}}           % set of scorer classes
+\newcommand{\scorerclass}{s}                       % a scorer class
+\newcommand{\taskshapes}{\mathcal{T}}              % set of task shapes
+\newcommand{\taskshape}{t}                         % a task shape
+\newcommand{\cellset}{\mathcal{C}}                 % set of (s,t) cells
+\newcommand{\evalcell}{c}                          % a (scorer-class, task-shape) cell
+\newcommand{\judgemodel}{j}                        % a judge model
+\newcommand{\rubric}{r}                            % a rubric / template
+\newcommand{\groundtruth}{y}                       % ground-truth label
+\newcommand{\score}{\sigma}                        % scorer output
+\newcommand{\confidence}{q}                        % judge-reported confidence (logit-derived)
+\newcommand{\ECE}{\mathrm{ECE}}                    % expected calibration error
+\newcommand{\MCE}{\mathrm{MCE}}                    % maximum calibration error
+\newcommand{\Brier}{\mathrm{Brier}}                % Brier score
+\newcommand{\kappastat}{\kappa}                    % Cohen's / weighted κ
+\newcommand{\alphakr}{\alpha_K}                    % Krippendorff α
+\newcommand{\biasbound}{\beta}                     % bias-bound axis
+\newcommand{\caliblimit}{\delta_{\ECE}}            % per-cell ECE drift tolerance
+\newcommand{\agreelimit}{\delta_{\kappastat}}      % per-cell κ drift tolerance
+\newcommand{\posterior}{\rho}                      % posterior on judge skill
+\newcommand{\loss}{\ell}
+\newcommand{\tothink}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\blackrim}{Blackrim\xspace}
+\newcommand{\evalsuite}{\texttt{eval-suite}\xspace}
+\newcommand{\bdmemory}{\texttt{bdmemory}\xspace}
+
+% --- Title ------------------------------------------------------------------
+\title{
+  \textbf{Three-Axis Judge Reliability for Multi-Agent Eval Suites: \\
+  Calibration, Agreement, and Bias Bounds for LLM-as-Judge Scoring}
+}
+
+\author{%
+  Jay German\thanks{Independent. \href{mailto:camber.estate_6j@icloud.com}{camber.estate_6j@icloud.com}.}
+}
+
+\date{Draft --- \today}
+
+% ----------------------------------------------------------------------------
+\begin{document}
+\maketitle
+
+\input{sections/00-abstract}
+
+\input{sections/01-introduction}
+\input{sections/02-related-work}
+\input{sections/03-problem-formulation}
+\input{sections/04-system}
+\input{sections/05-algorithm}
+\input{sections/06-evaluation}
+\input{sections/07-discussion}
+\input{sections/08-future-work}
+\input{sections/09-conclusion}
+
+\printbibliography
+
+\appendix
+\input{sections/A-appendix}
+
+\end{document}

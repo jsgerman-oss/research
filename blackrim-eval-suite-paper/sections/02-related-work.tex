@@ -1,0 +1,87 @@
+\section{Related Work}
+\label{sec:related}
+
+\tothink{related-work prose; outline below maps to seven sub-families that
+need to be cited and contextualised.}
+
+\subsection{LLM-as-judge methodology}
+
+\tothink{MT-Bench / Chatbot Arena \cite{zheng2023judging,chiang2024chatbot};
+G-Eval and probability-weighted scoring \cite{liu2023geval}; pairwise vs
+scalar tradeoffs; PandaLM \cite{wang2023pandalm}; position bias
+\cite{wang2023position}; verbosity bias and length-controlled AlpacaEval
+\cite{dubois2024lcalpaca}. Position the Blackrim suite's forced-tool-use
+classifier shape against this body of work --- single-output classifier
+avoids position bias by construction but inherits verbosity, self-preference,
+and authority biases.}
+
+\subsection{Inter-rater agreement}
+
+\tothink{Cohen's $\kappastat$ \cite{cohen1960kappa}; weighted
+$\kappastat$ \cite{cohen1968weightedkappa}; Landis \& Koch interpretation
+bands \cite{landis1977measurement}; the prevalence / bias paradoxes
+\cite{feinstein1990paradoxes}; Fleiss' $\kappastat$
+\cite{fleiss1971kappa}; Krippendorff's $\alphakr$
+\cite{krippendorff2018content} as the "right default" for mixed-rater /
+mixed-level scenarios; intraclass correlation
+\cite{mcgraw1996forming}. The eval-suite ships single-judge today;
+agreement metrics are forward-looking but the algorithmic spec must
+choose its measurement now to avoid migrating later.}
+
+\subsection{Calibration of LLMs and LLM judges}
+
+\tothink{Expected Calibration Error \cite{naeini2015obtaining}; temperature
+scaling \cite{guo2017calibration}; Brier score \cite{brier1950verification};
+reliability diagrams \cite{degroot1983comparison}; Kadavath et al.'s
+multi-scale reproduction across Anthropic's model line and the headline
+RLHF-degradation finding \cite{kadavath2022language}; recent direct
+reproduction on judge tasks via the Overconfidence / TH-Score paper
+\cite{overconfidence2025}. The frame for this paper's headline empirical
+contribution. Cross-reference Kadavath et al.\ Section 4 for the
+RLHF-degrades-calibration result; this is the load-bearing prior we
+build on.}
+
+\subsection{Bayesian rater models and Item Response Theory}
+
+\tothink{IRT / Rasch \cite{rasch1960probabilistic}; graded-response IRT
+\cite{samejima1969estimation}; Dawid-Skene EM as the simplest model that
+beats majority-vote on noisy crowdsourcing \cite{dawid1979maximum};
+Glicko / TrueSkill for player skill ratings \cite{glickman1999glicko,
+herbrich2006trueskill}; the Chatbot Arena Elo / Bradley-Terry methodology
+\cite{chiang2024chatbot}; Gao et al.\ on Bayesian crowd-LLM rater models
+\cite{gao2024bayesian}. Position the v3 multi-judge stack here. v1 ships
+single-judge; IRT becomes useful at $k \geq 2$.}
+
+\subsection{Active sample selection}
+
+\tothink{Settles' active-learning survey \cite{settles2009active};
+expected loss reduction \cite{roy2001toward}; calibrated uncertainty
+sampling \cite{mukherjee2025calibrated}; query-by-committee
+\cite{seung1992query}; diversity-aware AL \cite{huang2010active};
+stratified sampling as survey-statistics canon. Stratified sampling
+is the v1 ship for production-trace suites (slice 8 in the eval-suite
+v2 schema); uncertainty sampling is the v2 fit for delta-runs.}
+
+\subsection{Bias detection in LLM judges}
+
+\tothink{position bias --- Zheng et al.\ 30\% flip-rate, Wang et al.\ on
+mitigations \cite{wang2023position}; verbosity / length bias and the
+length-controlled AlpacaEval prescription \cite{dubois2024lcalpaca};
+self-preference bias \cite{panickssery2024selfbias,wataoka2024selfpreference};
+sycophancy \cite{sharma2023towards}; anchoring / refusal bias
+\cite{thakur2024judging}; the CALM 12-bias taxonomy
+\cite{justice2024calm}; safety-judge perturbation FNR shifts of $\pm 0.24$
+\cite{ge2025badjudge,knowthyjudge2025}. Position bias and self-preference
+are the dominant risks for the Blackrim default (Anthropic-judges-Anthropic
+on a forced-choice classifier).}
+
+\subsection{Score aggregation}
+
+\tothink{mean-of-means as Blackrim's current default; trimmed mean
+caveats at $n=20$; inverse-variance weighting; Bayesian-IRT aggregation
+under the rater models in Section 2.4; outlier-robust hierarchical
+Bayes \cite{lange1989robust}; geometric mean as the natural
+"must-pass-most-scorers" gate; Borda / rank aggregation for
+across-system comparisons; gate-aware (asymmetric-loss) aggregation
+\cite{geifman2017selective} as the natural coupling between the
+eval-suite and the model-advisor's tier-routing decision rule.}

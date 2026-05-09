@@ -1,0 +1,193 @@
+\section{Empirical Evaluation}
+\label{sec:eval}
+
+\tothink{full empirical-evaluation prose; every quantitative claim
+deferred until paper-stream telemetry has accumulated and per-judge
+labelled calibration sets are built. The headline finding, when the
+data lands, is the RLHF-degrades-judge-calibration result --- compare
+ECE-base-model vs ECE-RLHF-model on the same scorer template across
+$\geq 200$ cases per judge.}
+
+\subsection{Setup}
+
+\paragraph{Trace.}
+Per-case telemetry from the planned
+\texttt{internal/eval/paper\_stream.go} flowing to
+\texttt{data/raw/cases.jsonl}: case ID, suite ID, judge model,
+rubric ID, judge log-probs over the choice set, judge rationale,
+ground-truth label (where applicable), inferred (scorer-class,
+task-shape) cell, latency. Trace window: \tothink{30}-day rolling.
+Total cases: \tothink{N}; per-cell breakdown
+\tothink{$N_{c_1}, \ldots, N_{c_{24}}$}.
+
+\paragraph{Calibration sets.}
+Per-judge-model labelled calibration sets at
+\texttt{evals/\_calibration/<judge>/cases.jsonl}: \tothink{200--500}
+cases per judge, human-labelled by domain experts, refreshed every
+\tothink{30} days per OQ-E7. Used to fit per-(judge, template)
+temperature scalars and as the held-out reference for the headline
+calibration finding.
+
+\paragraph{Baselines.}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Argmax-decoded LLM classifier} --- the current Blackrim
+        default; the literature's typical "LLM-as-judge" baseline.
+  \item \textbf{No-temperature LLM classifier} --- probability-weighted
+        but $T = 1$ (no calibration correction). Isolates the
+        Layer-1 contribution from Layer-3.
+  \item \textbf{Probability-weighted + temperature-scaled} (ours,
+        Layers 1+3). The proposed v1 calibration-axis configuration.
+  \item \textbf{Mean-of-means aggregator} --- the current gate.
+  \item \textbf{Three-axis gate} (ours) --- per-cell calibration /
+        agreement / bias-bound triple per \cref{sec:problem}.
+\end{itemize}
+
+\subsection{Headline finding: RLHF degrades judge calibration}
+
+\Cref{tab:rlhf-calibration} reports ECE per judge on the same template
+across the available Anthropic model line --- pretrained-base if
+exposed, post-RLHF instruction-tuned. The headline claim from the
+landscape doc \cite{blackrim_evalsuite_landscape} is that RLHF-tuned
+judges have $\ECE \approx 0.13$--$0.25$ even on tasks where their
+pretrained ancestors were near-zero. \tothink{this is the load-bearing
+empirical claim of the paper; populate from
+\texttt{data/aggregated/rlhf-calibration.csv} once the calibration
+sets land. If the gap is below 0.05 the claim weakens to "RLHF-tuned
+judges need explicit calibration correction (not free)" rather than
+"are systematically worse"; the data decides.}
+
+\begin{table}[h]
+\centering
+\caption{ECE per judge model on the \texttt{factuality} template,
+labelled calibration set $N \geq 200$. Lower is better. The headline
+gap is between same-scale pretrained and RLHF-tuned variants where
+the API exposes both. \tothink{populate from
+data/aggregated/rlhf-calibration.csv}.}
+\label{tab:rlhf-calibration}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Judge} & \textbf{$\ECE$ (argmax)} & \textbf{$\ECE$ (prob-weighted)}
+& \textbf{$\ECE$ (prob-weighted + temp-scaled)} \\
+\midrule
+\tothink{base-pretrained-X} & \tothink{x} & \tothink{x} & \tothink{x} \\
+\tothink{RLHF-X (haiku-class)} & \tothink{x} & \tothink{x} & \tothink{x} \\
+\tothink{RLHF-Y (sonnet-class)} & \tothink{x} & \tothink{x} & \tothink{x} \\
+\tothink{RLHF-Z (opus-class)} & \tothink{x} & \tothink{x} & \tothink{x} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Per-cell three-axis breakdown}
+
+\Cref{tab:percell-axes} reports, for each of the 24 meaningful cells,
+the primary reliability axis, the headline metric value, and whether
+the three-axis no-regression check passes against
+$\policy_{\mathrm{base}}$.
+
+\begin{table}[h]
+\centering
+\caption{Per-cell three-axis breakdown. Axis $\in
+\{\text{cal}, \text{agr}\}$; metric is ECE for cal, $\kappastat$ for
+agr; bias-bound is the worst-of-three. \tothink{populate from
+data/aggregated/percell-axes.csv}.}
+\label{tab:percell-axes}
+\begin{tabular}{llccc}
+\toprule
+\textbf{Cell} & \textbf{Axis} & \textbf{Metric} & \textbf{Bias-bound} & \textbf{No-reg pass?} \\
+\midrule
+C.1  (heur $\times$ T1)         & --      & --        & --      & --  \\
+C.5  (LLM-cls $\times$ T2)      & cal     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.6  (LLM-cls$^{closedQA}$ $\times$ T2) & cal & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.7  (LLM-cls $\times$ T1)      & cal     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.9  (LLM-rub $\times$ T3)      & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.10 (LLM-rub $\times$ T4)      & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.11 (LLM-rub $\times$ T5)      & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.12 (LLM-rub $\times$ T6)      & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.13 (LLM-rub $\times$ T7)      & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.14 (LLM-rub $\times$ T8)      & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.19 (traj-rub $\times$ T4)     & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.20 (traj-rub $\times$ T5)     & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.21 (traj-rub $\times$ T7)     & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.22 (traj-rub $\times$ T8)     & agr     & \tothink{x} & \tothink{x} & \tothink{x} \\
+C.23 (pairwise $\times$ T4/T6)  & cal     & \tothink{x} & \tothink{x} & \tothink{x} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Probability-weighted vs argmax: gate-decision flips}
+
+\Cref{fig:flip-rate} replays history with both decoders and counts
+gate-decision flips per OQ-E6. \tothink{predicted: $<5\%$ flip rate
+(transparent upgrade) or 5--15\% (surfaceable behaviour change).
+Either outcome is publishable; the high-flip-rate outcome motivates
+versioning the gate semantics by score-method.}
+
+\begin{figure}[ht]
+\centering
+\input{figures/flip-rate}
+\caption{\tothink{argmax vs prob-weighted gate-decision flips on
+replayed history. Bars: per-suite flip rate. Annotation: aggregate
+flip rate $\pm$ paired-bootstrap 95\% CI.}}
+\label{fig:flip-rate}
+\end{figure}
+
+\subsection{Bias-bound diagnostics}
+
+\tothink{plot the three bias diagnostics on the LLM-judge cells:
+(i) position-bias flip-rate before / after swap test (expected
+$\sim 30\% \to \sim 5\%$ per Zheng et al.); (ii) $|\rho(\mathrm{length},
+\score)|$ on the long-form cells (T6, T8) before / after length-control;
+(iii) self-preference advantage $\Delta_{\mathrm{self-pref}}$ on a
+cross-family probe (Anthropic-judge vs OpenAI-judge vs Mistral-judge).
+The bias-bound precondition fails closed: any cell that exceeds the
+threshold disqualifies the configuration regardless of cal/agr
+no-regression.}
+
+\begin{figure}[ht]
+\centering
+\input{figures/bias-diagnostics}
+\caption{\tothink{three bias diagnostics per LLM-judge cell;
+horizontal lines mark the bias-bound thresholds.}}
+\label{fig:bias-diagnostics}
+\end{figure}
+
+\subsection{Ablation: removing temperature scaling}
+
+\tothink{ablate Layer 3. Expected finding: ECE on RLHF-tuned judge
+cells (C.5--C.7) reverts from $\sim 0.05$ to $\sim 0.15$, breaking
+calibration-no-regression on every cell that had been brought into
+compliance by the scaling. Quantifies the load-bearing role of
+temperature scaling --- not a "nice-to-have," a "necessary-for-the-frame."}
+
+\subsection{Ablation: argmax fallback}
+
+\tothink{ablate Layer 1. Expected finding: per-cell ECE rises by
+\tothink{X\%} on average, Spearman-with-human correlation falls by
+$\sim 0.05$ on the cells with continuous human ratings. Quantifies
+the headline implementation finding's contribution.}
+
+\subsection{Reproducibility}
+\label{sec:repro}
+
+Every quantitative claim is backed by a CSV in \texttt{data/} produced
+by a script in \texttt{scripts/}. The pipeline:
+
+\begin{lstlisting}[language=bash]
+python scripts/pull-telemetry.py --since=30d > data/raw/cases.jsonl
+python scripts/aggregate-by-cell.py < data/raw/cases.jsonl \
+    > data/aggregated/by-cell.csv
+python scripts/run-calibration.py --judge=haiku-4-5 \
+    > data/aggregated/calibration-haiku.csv
+python scripts/run-calibration.py --judge=sonnet-4-6 \
+    > data/aggregated/calibration-sonnet.csv
+python scripts/run-bias-diagnostic.py     > data/aggregated/bias.csv
+python scripts/run-three-axis-gate.py     > data/aggregated/three-axis-gate.csv
+make            # latex picks up new data/*.csv automatically via pgfplots
+\end{lstlisting}
+
+The pipeline is deterministic given fixed RNG seeds and a snapshot of
+the production telemetry plus per-judge calibration sets; we anchor
+the published version to a tagged commit. The companion artefacts
+repository \cite{blackrim_evalsuite_paper_repo} hosts the data and
+scripts; the calibration sets themselves are versioned alongside the
+suites under \texttt{evals/\_calibration/}.

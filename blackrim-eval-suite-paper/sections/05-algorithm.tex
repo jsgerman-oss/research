@@ -1,0 +1,186 @@
+\section{Algorithm: v1 Surgical Upgrades for the Three-Axis Frame}
+\label{sec:algorithm}
+
+\tothink{full algorithm prose; the four v1 ship-now upgrades from the
+algorithm survey Section C.1 are the load-bearing content. v2 / v3
+spelled out briefly with forward-pointers.}
+
+\subsection{Layered architecture}
+
+The proposed v1 stack adds four surgical upgrades on top of the
+existing five-scorer registry, each anchored to one of the three
+reliability axes. None changes existing operator semantics; each is
+a pure addition or a backward-compatible refinement.
+
+\begin{description}
+  \item[Layer 1: Probability-weighted scoring (calibration axis).]
+        Replace argmax decoding in \texttt{internal/scorer/llm/classifier.go}
+        with $\score = \sum_t p(t) \cdot \mathrm{choice\_scores}[t]$
+        over the judge's choice set. \emph{Recovers calibration signal
+        already paid for in the API's log-probs.}
+  \item[Layer 2: Position-bias swap test (bias-bound precondition).]
+        For pairwise scorers (currently none ship; v2 will), evaluate
+        both $(A, B)$ and $(B, A)$ orderings; count only consistent
+        verdicts; flag inconsistent verdicts in the rationale.
+  \item[Layer 3: ECE + reliability diagnostics with temperature
+        scaling (calibration axis).] Add \texttt{gt eval show
+        --calibration} reading
+        \texttt{evals/\_calibration/<judge>/cases.jsonl}; compute ECE
+        per (judge, template); fit a single scalar temperature $T$
+        per (judge, template) by golden-section search minimising NLL;
+        persist at \texttt{evals/\_calibration/<judge>/temperature.yaml}.
+  \item[Layer 4: Stratified sampling for production-trace suites
+        (sample-selection / variance reduction).]
+        Extend the v2 schema with \texttt{dataset.sampling: stratified}
+        and \texttt{strata: [<key>, ...]}. When \texttt{source: sampled}
+        reads production traces (slice 8), the sampler maintains
+        balanced strata; lower-variance suite-level estimates at the
+        same $K$.
+\end{description}
+
+\subsection{Layer 1: Probability-weighted scoring}
+
+\tothink{justify probability-weighted scoring as the strongest single
+v1 change. G-Eval \cite{liu2023geval} reports Spearman-with-human
+correlation rising from 0.42 to 0.51 on SummEval coherence after this
+single change. Anthropic's API exposes log-probs; the existing argmax
+path discards them. \cref{alg:probweight} states the scoring rule.}
+
+\begin{algorithm}[h]
+\KwIn{Judge log-probs $\{(t_i, \log p_i)\}_{i=1..k}$ over the choice
+      set $\mathcal{V}$; choice-score map $\mathrm{cs} : \mathcal{V} \to [0, 1]$.}
+\KwOut{Continuous score $\score \in [0, 1]$.}
+
+\BlankLine
+$\mathrm{num} \leftarrow 0$;
+$\mathrm{denom} \leftarrow 0$\;
+\For{$(t_i, \log p_i)$ in input}{
+  \If{$t_i \in \mathrm{dom}(\mathrm{cs})$}{
+    $p_i \leftarrow \exp(\log p_i)$\;
+    $\mathrm{num} \leftarrow \mathrm{num} + p_i \cdot \mathrm{cs}(t_i)$\;
+    $\mathrm{denom} \leftarrow \mathrm{denom} + p_i$\;
+  }
+}
+\If{$\mathrm{denom} = 0$}{ \Return{$0$}\; }
+\Return{$\mathrm{num} / \mathrm{denom}$}\;
+
+\caption{ProbWeightedScore (G-Eval / E1.2).}
+\label{alg:probweight}
+\end{algorithm}
+
+\paragraph{Backward compatibility.}
+\tothink{argmax scores remain readable in the eval-runs.jsonl history;
+the suite YAML carries a \texttt{score\_method: argmax | prob\_weighted}
+field; default for new runs is \texttt{prob\_weighted}. Aggregate
+shifts (OQ-E6 in the algorithm survey) are surfaced as a one-time
+behaviour-change note in the gate's rationale on the run that flips
+the default.}
+
+\subsection{Layer 2: Position-bias swap test}
+
+\tothink{state the swap-test pseudocode; consistency definition; the
+inconsistent-verdict default ($\score = 0.5$, flagged) and its
+contribution to the bias-bound diagnostic. Cite Zheng et al.\ for the
+30\% baseline flip-rate and Wang et al.\ for the cross-judge
+reproduction \cite{zheng2023judging,wang2023position}.}
+
+\subsection{Layer 3: ECE + reliability + temperature scaling}
+
+\tothink{state the ECE formula with $M = 10$ default bins per
+\cite{naeini2015obtaining}; the reliability-diagram emission; the
+temperature-scaling fit as golden-section search on $T \in [0.1, 10]$
+minimising NLL on the labelled calibration set per
+\cite{guo2017calibration}; the persistence at
+\texttt{evals/\_calibration/<judge>/temperature.yaml}; the per-(judge,
+template) refresh cadence governed by OQ-E7.}
+
+\subsection{Layer 4: Stratified sampling}
+
+\tothink{state the stratified sampler: bucket by tuple(strata-keys);
+allocate $k$ cases proportional to bucket size, $\geq 1$ per bucket
+when $k \geq |\text{buckets}|$. Determinism via \texttt{task.seed}
+in suite YAML, default $0$. Justify versus i.i.d.\ sampling at
+$n = 30$ via the variance-reduction prior in the algorithm survey
+Section B; OQ-E2 governs the empirical promotion gate.}
+
+\subsection{The v1 \evalsuite scoring algorithm}
+
+\Cref{alg:eval-v1} states the per-case scoring path with all four
+layers in place.
+
+\begin{algorithm}[h]
+\KwIn{Case $x$ with task-shape $\taskshape(x) = \taskshape$;
+      registered scorers $\{\scorerclass_i\}$; judge model
+      $\judgemodel$; rubric / template $\rubric$; calibration table
+      $T(\judgemodel, \rubric)$; ground-truth label $\groundtruth(x)$
+      (where applicable).}
+\KwOut{Per-case score vector $(\score_i)_i$, per-cell triple
+       $(\ECE_{\evalcell}, \kappastat_{\evalcell}, \biasbound_{\evalcell})$
+       on aggregation.}
+
+\BlankLine
+\For{each registered scorer $\scorerclass_i$ applicable to $\taskshape$}{
+  \If{$\scorerclass_i$ is heuristic OR embedding}{
+    $\score_i \leftarrow \mathrm{ScoreDeterministic}(x, \groundtruth(x))$\;
+  }
+  \ElseIf{$\scorerclass_i$ is LLM classifier OR LLM rubric}{
+    $\{(t, \log p)\} \leftarrow \mathrm{Judge}(\judgemodel, \rubric, x)$
+      \tcp*{Layer 1 inputs}
+    $\log p \leftarrow \log p / T(\judgemodel, \rubric)$
+      \tcp*{Layer 3 temperature scaling}
+    $\score_i \leftarrow \mathrm{ProbWeightedScore}(\{(t, \log p)\}, \mathrm{cs})$
+      \tcp*{Layer 1}
+    \If{$\scorerclass_i$ is pairwise}{
+      $\score_i \leftarrow \mathrm{SwapTest}(\judgemodel, \rubric, x)$
+        \tcp*{Layer 2}
+    }
+  }
+  \ElseIf{$\scorerclass_i$ is trajectory}{
+    $\score_i \leftarrow \mathrm{ScoreTrajectory}(x.\mathrm{trace})$\;
+  }
+}
+\Return{$(\score_i)_i$, deferred per-cell aggregation}\;
+
+\caption{EvalV1 per-case scoring with three-axis instrumentation.}
+\label{alg:eval-v1}
+\end{algorithm}
+
+\subsection{Per-cell aggregation under the three-axis frame}
+
+\tothink{per-cell, the suite computes (i) ECE on the cells whose
+primary axis is calibration; (ii) $\kappastat$ on the cells whose
+primary axis is agreement (today, single-judge $\kappastat$ is
+self-vs-self under prompt perturbation; v3 with multi-judge gives
+the natural inter-rater); (iii) bias diagnostics
+$(\rho_{\mathrm{position}}, \rho_{\mathrm{length}}, \Delta_{\mathrm{self-pref}})$.
+The gate evaluates the three-axis no-regression conjunction
+\cref{eq:cal-noreg,eq:agree-noreg} plus the bias-bound precondition.}
+
+\subsection{Theoretical properties}
+
+\tothink{state two properties: (i) probability-weighted scoring is
+strictly proper under the implicit log-loss objective on the choice
+set, hence dominates argmax in expected calibration error
+\cite{guo2017calibration} \cite{liu2023geval}; (ii) the swap-test
+construction halves the position-bias flip-rate by averaging
+$(A, B)$ and $(B, A)$ verdicts and conditioning on consistency. Both
+follow directly from the cited literature; the contribution here is
+their composition into the three-axis frame.}
+
+\subsection{Implementation notes}
+
+\tothink{the policy lives in \texttt{internal/scorer/llm/classifier.go}
+(Layers 1, 2) and \texttt{cmd/gt/eval/calibrate.go} (Layer 3,
+planned), with the stratified sampler in \texttt{internal/eval/sampling.go}
+(planned). Determinism for tests: the temperature-scaling fit and
+the stratified sampler are seedable.}
+
+\subsection{v2 / v3 outlook}
+
+\tothink{v2 ships inverse-variance weighted aggregation (E7.3),
+gate-aware asymmetric-loss aggregation (E7.8) coupling to the
+model-advisor's loss matrix, and geometric-mean as an alternate gate
+(E7.6). v3 adds the multi-judge stack: cross-family dual judging
+(E6.3), Glicko-style judge skill ratings keyed by operator overrides
+(E4.4), Dawid-Skene EM aggregation at $k \geq 3$ judges (E4.3), and
+QBC for the operator-review queue (E5.3). \cref{sec:future} expands.}
