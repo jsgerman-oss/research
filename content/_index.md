@@ -65,7 +65,6 @@ sections:
     content:
       title: 'Code'
       text: |-
-        - **[Blackrim](https://github.com/jsgerman-oss/blackrim.dev)** — open-source multi-agent framework. Includes the CC-TS dispatch policy (`internal/dispatch/model.go`).
         - **[Research repo](https://github.com/jsgerman-oss/research)** — paper sources, eval harnesses, reproducibility scripts.
     design:
       columns: '1'
