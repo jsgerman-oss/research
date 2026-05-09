@@ -9,6 +9,9 @@ main:
   - name: Code
     url: /#code
     weight: 30
+  - name: CV
+    url: /cv/
+    weight: 40
   - name: Contact
     url: /#contact
-    weight: 40
+    weight: 50

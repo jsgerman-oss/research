@@ -14,7 +14,9 @@ sections:
       username: me
       text: ''
       button:
-        enable: false
+        enable: true
+        text: Read CV
+        url: /cv/
       headings:
         about: ''
         education: ''

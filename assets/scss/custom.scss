@@ -121,3 +121,84 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+// ── CV page ────────────────────────────────────────────────────────────────
+.cv-header {
+  margin-bottom: 2.5rem;
+
+  h1 {
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
+  }
+
+  p:first-of-type {
+    margin-top: 0;
+    font-size: 1.05rem;
+    color: var(--color-ink-muted);
+  }
+
+  .cv-contact {
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+  }
+}
+
+article h3.cv-role,
+.cv-role {
+  margin-top: 1.75rem;
+  margin-bottom: 0.15rem;
+  font-weight: 600;
+}
+
+article h3.cv-role + p {
+  margin-top: 0;
+  color: var(--color-ink-muted);
+  font-size: 0.95rem;
+}
+
+// ── @media print — clean ⌘P export of /cv/ ────────────────────────────────
+@media print {
+  // Hide chrome
+  header.site-header,
+  nav,
+  footer,
+  .pagefind-ui,
+  .theme-toggle,
+  .breadcrumb,
+  aside,
+  .toc {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+
+  article {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  a {
+    color: #111 !important;
+    text-decoration: none !important;
+  }
+
+  // Avoid orphaned section headings
+  h2, h3 {
+    break-after: avoid-page;
+  }
+
+  ul, p {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 0.6in 0.65in;
+  }
+}
