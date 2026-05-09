@@ -63,9 +63,9 @@ Set technical direction across four managed Azure environments (commercial and g
 ## Selected Work
 
 ### Flagship {.cv-role}
-*Go · Python · TypeScript · Svelte · Dolt · Claude Agent*  *·  Apr 2026 — Present*
+*Go · Python · TypeScript · Svelte · Dolt*  *·  Apr 2026 — Present*
 
-Multi-agent orchestration framework for Claude Code: specialized agents coordinated through a SQL-backed task graph and a human-in-the-loop approval gate, with audit-logged tool boundaries and STRIDE threat models per layer. Ships a deterministic eval suite (replay-mode invocation, heuristic and rubric scorers, regression detection) for catching agent quality regressions in CI. Polyglot codebase tracking toward 1.0 with >95% Python coverage.
+Multi-agent orchestration framework. Specialized agents coordinated through a SQL-backed task graph and a human-in-the-loop approval gate, with audit-logged tool boundaries and STRIDE threat models per layer. Ships a deterministic eval suite (replay-mode invocation, heuristic and rubric scorers, regression detection) for catching agent quality regressions in CI. Polyglot codebase tracking toward 1.0 with >95% Python coverage.
 
 ## Education
 
