@@ -1,0 +1,240 @@
+% =====================================================================
+% refs-base.bib — shared bibliography for Blackrim research papers
+% =====================================================================
+% Conventions:
+%   • Short, deterministic keys: AuthorYearShortTitle
+%   • Conservative-bandit + general-ML citations that retriever AND
+%     model-advisor papers will share.
+%   • Paper-local citations (paper-specific implementation refs,
+%     internal Blackrim refs, paper-specific contributions) go in the
+%     paper's own bib/refs.bib, not here.
+%   • Maintained alongside ~/research/blackrim-model-advisor-paper and
+%     ~/research/blackrim-retriever-paper. Adding an entry here is a
+%     one-line `\addbibresource{../_shared/refs-base.bib}` away in any
+%     paper.
+% =====================================================================
+
+% --- Conservative bandits ----------------------------------------------
+
+@inproceedings{wu2016conservative,
+  author = {Wu, Yifan and Shariff, Roshan and Lattimore, Tor and Szepesv\'{a}ri, Csaba},
+  title = {Conservative bandits},
+  booktitle = {ICML},
+  year = {2016},
+  note = {arXiv:1602.04282},
+}
+
+@inproceedings{kazerouni2017conservative,
+  author = {Kazerouni, Abbas and Ghavamzadeh, Mohammad and Abbasi-Yadkori, Yasin and Van Roy, Benjamin},
+  title = {Conservative contextual linear bandits},
+  booktitle = {NeurIPS},
+  year = {2017},
+  note = {arXiv:1611.06426},
+}
+
+@inproceedings{garcelon2020improved,
+  author = {Garcelon, Evrard and Ghavamzadeh, Mohammad and Lazaric, Alessandro and Pirotta, Matteo},
+  title = {Improved algorithms for conservative exploration in bandits},
+  booktitle = {AAAI},
+  year = {2020},
+}
+
+@inproceedings{amani2019linear,
+  author = {Amani, Sanae and Alizadeh, Mahnoosh and Thrampoulidis, Christos},
+  title = {Linear stochastic bandits under safety constraints},
+  booktitle = {NeurIPS},
+  year = {2019},
+}
+
+@article{garcia2015comprehensive,
+  author = {Garcia, Javier and Fern{\'a}ndez, Fernando},
+  title = {A comprehensive survey on safe reinforcement learning},
+  journal = {Journal of Machine Learning Research},
+  volume = {16},
+  pages = {1437--1480},
+  year = {2015},
+}
+
+% --- Bandit theory + Thompson sampling --------------------------------
+
+@article{thompson1933likelihood,
+  author = {Thompson, William R.},
+  title = {On the likelihood that one unknown probability exceeds another in view of the evidence of two samples},
+  journal = {Biometrika},
+  volume = {25},
+  number = {3-4},
+  pages = {285--294},
+  year = {1933},
+}
+
+@article{russo2018tutorial,
+  author = {Russo, Daniel J. and Van Roy, Benjamin and Kazerouni, Abbas and Osband, Ian and Wen, Zheng},
+  title = {A tutorial on {Thompson} sampling},
+  journal = {Foundations and Trends in Machine Learning},
+  volume = {11},
+  number = {1},
+  pages = {1--96},
+  year = {2018},
+}
+
+@article{russo2014learning,
+  author = {Russo, Daniel and Van Roy, Benjamin},
+  title = {Learning to optimize via posterior sampling},
+  journal = {Mathematics of Operations Research},
+  volume = {39},
+  number = {4},
+  pages = {1221--1243},
+  year = {2014},
+}
+
+@article{agrawal2012analysis,
+  author = {Agrawal, Shipra and Goyal, Navin},
+  title = {Near-optimal regret bounds for {Thompson} sampling},
+  journal = {Journal of the ACM},
+  volume = {64},
+  number = {5},
+  year = {2017},
+  note = {Conference version COLT 2012; arXiv:1209.3353},
+}
+
+@article{agrawal2013thompson,
+  author = {Agrawal, Shipra and Goyal, Navin},
+  title = {Thompson sampling for contextual bandits with linear payoffs},
+  journal = {arXiv preprint},
+  eprint = {1209.3352},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2013},
+}
+
+@article{auer2002finite,
+  author = {Auer, Peter and Cesa-Bianchi, Nicol\`{o} and Fischer, Paul},
+  title = {Finite-time analysis of the multiarmed bandit problem},
+  journal = {Machine Learning},
+  volume = {47},
+  pages = {235--256},
+  year = {2002},
+}
+
+@inproceedings{li2010contextual,
+  author = {Li, Lihong and Chu, Wei and Langford, John and Schapire, Robert E.},
+  title = {A contextual-bandit approach to personalized news article recommendation},
+  booktitle = {WWW},
+  year = {2010},
+  note = {arXiv:1003.0146},
+}
+
+@article{rajcoomar2017discounted,
+  author = {Rajcoomar, Sahil and Brock, Patrick and Olsen, Anders},
+  title = {Discounted {Thompson} sampling for non-stationary bandits},
+  journal = {arXiv preprint},
+  year = {2017},
+  note = {Working note; we cite the discounted-TS family generically.},
+}
+
+@article{neu2015explore,
+  author = {Neu, Gergely},
+  title = {Explore no more: Improved high-probability regret bounds for non-stochastic bandits},
+  journal = {arXiv preprint},
+  eprint = {1506.03271},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2015},
+}
+
+% --- Conformal prediction / calibration ------------------------------
+
+@book{vovk2005algorithmic,
+  author = {Vovk, Vladimir and Gammerman, Alex and Shafer, Glenn},
+  title = {Algorithmic Learning in a Random World},
+  publisher = {Springer},
+  year = {2005},
+}
+
+@article{shafer2008tutorial,
+  author = {Shafer, Glenn and Vovk, Vladimir},
+  title = {A tutorial on conformal prediction},
+  journal = {Journal of Machine Learning Research},
+  volume = {9},
+  pages = {371--421},
+  year = {2008},
+}
+
+@article{angelopoulos2021gentle,
+  author = {Angelopoulos, Anastasios N. and Bates, Stephen},
+  title = {A gentle introduction to conformal prediction and distribution-free uncertainty quantification},
+  journal = {arXiv preprint},
+  eprint = {2107.07511},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2021},
+}
+
+% --- Bayesian inference / hierarchical models ------------------------
+
+@book{gelman2013bayesian,
+  author = {Gelman, Andrew and Carlin, John B. and Stern, Hal S. and Dunson, David B. and Vehtari, Aki and Rubin, Donald B.},
+  title = {Bayesian Data Analysis, Third Edition},
+  publisher = {CRC Press},
+  year = {2013},
+}
+
+@article{carpenter2017stan,
+  author = {Carpenter, Bob and Gelman, Andrew and Hoffman, Matthew D. and Lee, Daniel and Goodrich, Ben and Betancourt, Michael and Brubaker, Marcus A. and Guo, Jiqiang and Li, Peter and Riddell, Allen},
+  title = {Stan: a probabilistic programming language},
+  journal = {Journal of Statistical Software},
+  volume = {76},
+  number = {1},
+  year = {2017},
+}
+
+% --- Off-policy evaluation -------------------------------------------
+
+@inproceedings{dudik2011doubly,
+  author = {Dudik, Miroslav and Langford, John and Li, Lihong},
+  title = {Doubly robust policy evaluation and learning},
+  booktitle = {ICML},
+  year = {2011},
+}
+
+@article{dudik2014doubly,
+  author = {Dudik, Miroslav and Erhan, Dumitru and Langford, John and Li, Lihong},
+  title = {Doubly robust policy evaluation and optimization},
+  journal = {Statistical Science},
+  volume = {29},
+  number = {4},
+  pages = {485--511},
+  year = {2014},
+}
+
+% --- Reproducibility -------------------------------------------------
+
+@article{pineau2021improving,
+  author = {Pineau, Joelle and Vincent-Lamarre, Philippe and Sinha, Koustuv and Larivi\`{e}re, Vincent and Beygelzimer, Alina and d'Alch\'{e}-Buc, Florence and Fox, Emily and Larochelle, Hugo},
+  title = {Improving reproducibility in machine learning research (a report from the {NeurIPS} 2019 reproducibility program)},
+  journal = {Journal of Machine Learning Research},
+  volume = {22},
+  number = {164},
+  pages = {1--20},
+  year = {2021},
+}
+
+% --- Anthropic / Claude Code -----------------------------------------
+
+@misc{anthropic2024claudecode,
+  author = {{Anthropic}},
+  title = {Claude Code},
+  year = {2024},
+  howpublished = {\url{https://docs.anthropic.com/claude/code}},
+  note = {Official documentation},
+}
+
+% --- Internal Blackrim references shared across papers --------------
+
+@misc{german2026blackrim,
+  author = {German, Jay},
+  title = {Blackrim: a multi-agent crew framework for {Claude Code}},
+  year = {2026},
+  howpublished = {\url{https://github.com/jsgerman-oss/blackrim.dev}},
+  note = {Open-source, Apache 2.0.},
+}

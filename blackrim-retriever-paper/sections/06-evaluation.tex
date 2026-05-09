@@ -1,0 +1,141 @@
+\section{Empirical Evaluation}
+\label{sec:eval}
+
+\tothink{full empirical-evaluation prose; every quantitative claim
+deferred until paper-stream telemetry has accumulated and a
+ground-truth relevance set is built.}
+
+\subsection{Setup}
+
+\paragraph{Trace.}
+Per-query telemetry from \texttt{internal/bdmemory/paper\_stream.go}
+flowing to \texttt{data/raw/queries.jsonl}: query hash, query length,
+inferred query class, per-scorer top-$k$ scores and latency, final
+fused ranks, and total latency. Trace window: \tothink{30}-day rolling.
+Total queries: \tothink{N}; per-class breakdown
+\tothink{$N_{\queryclass_1}, \ldots, N_{\queryclass_6}$}.
+
+\paragraph{Relevance judgements.}
+Per-query relevance judgements built via \tothink{describe the labeling
+protocol --- pooled top-$k$ across baselines, judged by an LLM-judge
+worker with spot-check against operator labels, plus a sample held-out
+human-judged set for calibration. Discuss inter-rater agreement.}
+
+\paragraph{Baselines.}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Keyword} --- legacy bd-memory scorer (the historical
+        Blackrim default).
+  \item \textbf{BM25} --- the canonical IR baseline; the
+        per-class safety floor for $\queryclass_1, \queryclass_3,
+        \queryclass_5, \queryclass_6$.
+  \item \textbf{BM25 + decay} --- per-class safety floor for
+        $\queryclass_4$ (continuity).
+  \item \textbf{Hybrid-RRF (BM25+SPLADE+dense)} --- the literature default
+        \cite{cormack2009reciprocal}.
+  \item \textbf{Hybrid-CC (BM25+dense, $\alpha$ tuned per class)}
+        --- Bruch et al.\ 2023 \cite{bruch2023analysis} prescription.
+  \item \textbf{CCBandit-Retriever (ours)} --- \cref{alg:ccbandit}.
+\end{itemize}
+
+\subsection{Per-class NDCG@10}
+
+\Cref{tab:perclass-ndcg} reports NDCG@10 per query class for each
+policy. The headline finding the table will support is that
+CCBandit-Retriever \emph{matches the per-class best of any baseline}
+without ever regressing below the per-class baseline floor --- which is
+exactly what the conservative-bandit constraint guarantees.
+
+\begin{table}[h]
+\centering
+\caption{Per-class NDCG@10. Errors are paired-bootstrap 95\% CIs
+\cite{smucker2007comparison}. Bold indicates per-column winner.
+\tothink{populate from data/aggregated/perclass-ndcg.csv}.}
+\label{tab:perclass-ndcg}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Policy} & \textbf{$\queryclass_1$} & \textbf{$\queryclass_2$}
+& \textbf{$\queryclass_3$} & \textbf{$\queryclass_4$}
+& \textbf{$\queryclass_5$} & \textbf{$\queryclass_6$} \\
+\midrule
+keyword            & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
+BM25               & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
+BM25 + decay       & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
+Hybrid-RRF         & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
+Hybrid-CC          & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
+CCBandit (ours)    & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Aggregate NDCG and the per-class no-regression check}
+
+\Cref{fig:overall-ndcg} shows aggregate NDCG@10 vs.\ each baseline; the
+\tothink{X\%} aggregate uplift over BM25 is the headline number, but the
+load-bearing claim is the per-class no-regression check displayed in
+the per-class regression deltas.
+
+\begin{figure}[ht]
+\centering
+\input{figures/overall-ndcg}
+\caption{\tothink{aggregate NDCG@10, each policy normalised to BM25 +
+decay = 1.0; per-class regression deltas annotated; conservative-bandit
+budget consumption shown as a per-class progress bar.}}
+\label{fig:overall-ndcg}
+\end{figure}
+
+\subsection{Latency vs.\ effectiveness Pareto}
+
+\tothink{plot per-policy median + p95 latency against NDCG@10.
+CCBandit's adaptive engagement of SPLADE / reranker only on the
+classes that need them (Q5 / Critical-tier) should land it on the
+Pareto frontier: hybrid-RRF effectiveness at BM25-ish median latency
+because the SPLADE-engagement gate fires on a minority of queries.}
+
+\begin{figure}[ht]
+\centering
+\input{figures/pareto}
+\caption{\tothink{latency-vs-NDCG@10 Pareto. CCBandit (ours) on the
+frontier; hybrid-RRF and hybrid-CC bias toward effectiveness;
+BM25 / keyword bias toward latency.}}
+\label{fig:pareto}
+\end{figure}
+
+\subsection{Ablation: removing the conservative gate}
+
+\tothink{ablate Layer 2 (the conservative-bandit gate). Expected
+finding: gate-disabled variant gains a small aggregate NDCG@10 lift
+but introduces per-class regression on at least one of the Critical
+classes ($\queryclass_2, \queryclass_6$) --- which is the design-intent
+violation.}
+
+\subsection{Ablation: removing the SPLADE corpus-size gate}
+
+\tothink{ablate the corpus-size threshold that gates SPLADE engagement.
+Expected finding: at small N (the typical consumer-repo cold-start
+state) SPLADE adds latency without NDCG lift; the gate prevents this
+cost.}
+
+\subsection{Reproducibility}
+\label{sec:repro}
+
+Every quantitative claim is backed by a CSV in \texttt{data/} produced
+by a script in \texttt{scripts/}. The pipeline:
+
+\begin{lstlisting}[language=bash]
+python scripts/pull-telemetry.py --since=30d > data/raw/queries.jsonl
+python scripts/aggregate-by-class.py < data/raw/queries.jsonl \
+    > data/aggregated/by-class.csv
+python scripts/run-eval-suite.py --policy=keyword       > data/aggregated/eval-keyword.csv
+python scripts/run-eval-suite.py --policy=bm25          > data/aggregated/eval-bm25.csv
+python scripts/run-eval-suite.py --policy=bm25-decay    > data/aggregated/eval-bm25-decay.csv
+python scripts/run-eval-suite.py --policy=hybrid-rrf    > data/aggregated/eval-hybrid-rrf.csv
+python scripts/run-eval-suite.py --policy=hybrid-cc     > data/aggregated/eval-hybrid-cc.csv
+python scripts/run-eval-suite.py --policy=conservative-cb \
+    > data/aggregated/eval-cb.csv
+make
+\end{lstlisting}
+
+The pipeline is deterministic given fixed RNG seeds and a snapshot of
+the production telemetry; we anchor the published version to a tagged
+commit. The companion artefacts repository
+\cite{blackrim_retriever_paper_repo} hosts the data and scripts.

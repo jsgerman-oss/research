@@ -1,0 +1,30 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+\tothink{full conclusion prose; outline below.}
+
+\noindent We presented an adaptive conservative selection policy for hybrid
+retrieval over the \blackrim multi-agent memory pool. The policy treats
+fusion-config selection as a contextual bandit with discrete arms,
+query class as context, per-query NDCG@10 as reward, and a per-class
+baseline (BM25 / BM25+decay) as the conservative-bandit safety
+constraint. The architecture stacks BM25 + SPLADE + dense + RRF +
+decay + MMR + optional cross-encoder reranker, with a SPLADE
+corpus-size gate and a Critical-tier reranker hook. Empirical
+evaluation \tothink{recap headline numbers once data accumulates}
+shows the policy matches the per-class best of any baseline without
+regressing below the per-class baseline floor.
+
+\noindent The paper's central methodological claim is that
+\emph{retrieval-policy selection in agent-memory systems is a conservative
+contextual-bandit problem with per-class baselines}, structurally
+distinct from the tier-cost-ratio framing of LLM model routing. The
+per-class no-regression constraint is the operational lever; classical
+IR evaluation (NDCG@10, MRR@10, recall@k, paired bootstrap) provides
+the measurement infrastructure; the conservative-bandit theory
+\cite{wu2016conservative,kazerouni2017conservative} provides the
+selection rule.
+
+\paragraph{Acknowledgements.}
+\tothink{contributors, operators, and the open-source artefacts. Same
+shape as MOA-1c.}

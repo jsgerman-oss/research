@@ -1,0 +1,48 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\tothink{full discussion prose; outline below covers four sub-themes.}
+
+\subsection{Where the conservative gate pays its conservatism}
+
+\tothink{the gate forgoes aggregate NDCG@10 on cells where the
+posterior on a candidate-arm-vs-baseline gap has not yet tightened
+enough to admit. Bites hardest on novel query distributions
+(consumer repos with traffic profiles unlike Blackrim's) where the
+prior matrix is least informative.}
+
+\subsection{The Bruch et al.\ open question: RRF vs.\ convex combination}
+
+The fusion-functions analysis in Bruch et al.\ 2023
+\cite{bruch2023analysis} found that convex combination of normalised
+scores beats RRF on every BEIR dataset they tested when $\alpha$ is
+tuned per-domain --- but RRF's calibration-free robustness wins on
+out-of-domain data and under score-distribution shift. Our policy
+treats this directly: hybrid-RRF and hybrid-CC are both arms in the
+$\armset$, and the contextual-bandit policy can prefer one over the
+other per query class. \tothink{report empirically which class
+preferred RRF vs.\ CC, with what gap, and whether the CC preference
+held across the trace or drifted.}
+
+\subsection{When this won't work}
+
+\tothink{three regimes break the architecture as currently described:
+(i) \emph{very small corpora} ($< 50$ docs) where IDF is too noisy
+even for BM25 --- the keyword fallback is the right default;
+(ii) \emph{large-corpus consumer repos} where SPLADE's true value
+emerges --- the gate threshold needs operator-tuning per consumer;
+(iii) \emph{non-stationary corpora} where the optimal arm per class
+drifts faster than the posterior can update --- discounted Thompson
+sampling \cite{rajcoomar2017discounted} is the standard answer,
+parking-lotted in \cref{sec:future}.}
+
+\subsection{Lessons from deployment}
+
+\tothink{three deployment lessons cross-applicable beyond this paper:
+(i) per-class baselines as the safety constraint surface (not aggregate
+"don't regress on average") --- this is the substantive methodological
+point; (ii) corpus-size gates on neural components matter for
+cold-start consumer repos; (iii) paper-stream telemetry is the
+load-bearing observability surface --- without per-query records of
+both per-scorer and final-fused ranks, the off-line evaluation pipeline
+is impossible.}

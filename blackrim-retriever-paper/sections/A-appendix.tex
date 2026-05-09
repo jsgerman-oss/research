@@ -1,0 +1,64 @@
+\section{Notation Reference}
+\label{app:notation}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$\queryclasses$, $\queryclass$ & Set of query classes; a query class \\
+$\armset$, $\arm$, $\baseline$ & Set of fusion-config arms; an arm; per-class baseline arm \\
+$\reward(x, \arm)$ & Per-query NDCG@10 of arm $\arm$ on query $x$ \\
+$\policy$ & Policy mapping query class to arm \\
+$\posterior_{\queryclass, \arm}$ & Posterior on $\reward$ for $(\queryclass, \arm)$ \\
+$\budget(\queryclass)$ & Conservative-bandit budget per class \\
+$G(\queryclass, \arm)$ & Cumulative regret of $\arm$ vs.\ $\baseline(\queryclass)$ \\
+$\alpha$ & Posterior-credibility level (we use $0.05$) \\
+$\theta_\mathrm{eval}$ & Posterior-width threshold for eval probe trigger \\
+$k$ (RRF) & Reciprocal-rank-fusion smoothing constant ($60$) \\
+$\lambda$ (MMR) & Maximal-marginal-relevance tradeoff ($0.7$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Per-(class, arm) prior pseudocount derivation}
+\label{app:prior}
+
+\tothink{mirror MOA-1c app:prior. The mapping
+$c \mapsto (\alpha_\mathrm{prior}, \beta_\mathrm{prior})$ from per-cell
+confidence to Beta pseudocounts is identical to MOA-1c
+eq:prior-from-confidence: $\alpha_\mathrm{prior} = \max(1, \round(c/5))$,
+$\beta_\mathrm{prior} = \max(1, \round((100-c)/5))$. The substantive
+difference here: $c$ is per-(query-class $\times$ scorer-family $\times$
+fusion-config) rather than per-(agent, shape, tier). The matrix in the
+landscape doc \cite{blackrim_ijl0_landscape} Section C provides $c$ for
+every $(\queryclass, \arm)$ cell.}
+
+\section{Selected hyperparameters}
+\label{app:hyperparams}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Hyperparameter & Value & Rationale \\
+\midrule
+$\alpha$ (conformal)        & $0.05$  & 95\% credibility, conventional \\
+$\theta_\mathrm{eval}$      & \tothink{0.10} & posterior CI half-width threshold \\
+$\budget(\queryclass_2)$    & $0$     & failure-recall is Critical \\
+$\budget(\queryclass_6)$    & $0$     & exact-ID is Critical \\
+$\budget(\text{others})$    & \tothink{small positive} & exploration headroom \\
+RRF $k$                     & $60$    & Cormack et al.\ 2009 default \\
+MMR $\lambda$               & $0.7$   & Carbonell \& Goldstein 1998 default \\
+Decay half-life             & \tothink{30 days} & landscape-doc default \\
+SPLADE corpus-size gate     & \tothink{10{,}000 docs} & landscape-doc default \\
+Bootstrap resamples         & $1000$  & paired-bootstrap CIs \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Reproducibility checklist}
+\label{app:repro}
+
+\tothink{following Pineau et al.\ 2021 \cite{pineau2021improving}:
+code, data, hyperparameters, RNG seeds, compute, hardware. Same shape as
+MOA-1c app:repro.}

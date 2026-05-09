@@ -1,0 +1,53 @@
+\section{Future Work}
+\label{sec:future}
+
+\tothink{full future-work prose; outline below covers Tier-2 refinement,
+Tier-3 parking lot, and cross-cutting questions.}
+
+\paragraph{Tier 2: post-deployment refinement.}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Per-class $\alpha$ tuning for hybrid-CC.}
+        \tothink{Bruch et al.\ 2023 \cite{bruch2023analysis} show CC beats
+        RRF when $\alpha$ is per-domain-tuned; we ship a single $\alpha$
+        per class but a \emph{per-(class, corpus-size)} surface is the
+        natural extension. OQ-RET-5 in the landscape doc.}
+  \item \textbf{Recency half-life sweep on $\queryclass_4$.}
+        \tothink{30-day default has no IR-literature anchor for bd-memory;
+        sweep $\{7, 14, 30, 60, 90\}$. OQ-RET-3.}
+  \item \textbf{Failure-tag multiplier sweep.}
+        \tothink{the $1.5\times$ constant in the keyword scorer is
+        unjustified; sweep on held-out failure-recall queries.
+        OQ-RET-1.}
+\end{itemize}
+
+\paragraph{Tier 3: parking lot.}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Real cross-encoder reranker.}
+        \tothink{the Ollama LLM-shim is not a real cross-encoder.
+        Replace with \texttt{ms-marco-MiniLM-L-6-v2}; re-validate the
+        cross-encoder rows of the landscape doc Section C5. OQ-RET-9.}
+  \item \textbf{Real SPLADE endpoint.}
+        \tothink{Ollama doesn't ship a SPLADE-shaped endpoint; the
+        in-tree adapter falls back to TF-IDF approximation. When a real
+        SPLADE serving path lands, re-validate the SPLADE rows of
+        Section C and the corpus-size gate threshold. OQ-RET-7.}
+  \item \textbf{Discounted Thompson sampling for non-stationarity.}
+        \tothink{the Beta-Bernoulli IID assumption fails when
+        Anthropic's underlying models or the bd-memory corpus
+        distribution shift; discounted-TS \cite{rajcoomar2017discounted}
+        or change-point detection is the standard fix.}
+  \item \textbf{Federated multi-tenant CCBandit-Retriever.}
+        \tothink{consumer repos onboarded via \texttt{blackrim-project on}
+        could pool per-class posteriors across tenants without sharing
+        raw telemetry. Bandwidth-vs-noise tradeoff and privacy-trust
+        story are the open questions; same shape as MOA-1c's federated
+        extension.}
+\end{itemize}
+
+\paragraph{Cross-cutting: query-class classifier.}
+\tothink{the policy assumes the query class $\queryclass(x)$ is
+observable. In v1 we use a deterministic classifier (length thresholds,
+slug-detection regex, agent-prefix detection). A learned classifier
+\cite{liu2025dat} would lift accuracy on the boundary cases between
+$\queryclass_1$ and $\queryclass_5$. The classifier-error sensitivity
+analysis is the cleanest follow-on experiment.}
