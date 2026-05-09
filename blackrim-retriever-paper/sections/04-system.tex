@@ -1,0 +1,83 @@
+\section{System: \blackrim Retriever Architecture}
+\label{sec:system}
+
+\tothink{full system prose; the in-tree architecture is well-documented
+already and the section is largely a faithful description.}
+
+\subsection{\blackrim and \bdmemory in one paragraph}
+
+\blackrim \cite{german2026blackrim} is an open-source multi-agent
+framework on top of Claude Code \cite{anthropic2024claudecode}. It
+exposes 17 agents and a coordination layer (\texttt{bd}, Dolt-backed)
+that captures \emph{episodic memories} via \texttt{bd remember} on
+session close. The \bdmemory package
+(\texttt{internal/bdmemory/}) is the retrieval surface over those
+memories: every agent spawn calls \texttt{gt context recall} or
+\texttt{gt context budget}, and the retrieved memories enter the
+prompt prefix that determines cache-hit behaviour.
+
+\subsection{The four-scorer + fusion + post-process stack}
+
+\tothink{describe the architecture from the algorithms doc Section D
+recommended stack: BM25 + SPLADE + dense + RRF + decay + MMR +
+optional cross-encoder reranker. Per-component pointers below.}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{BM25} (\texttt{internal/bdmemory/bm25.go}) --- canonical
+        sparse first stage; $k_1 = 1.5$, $b = 0.75$ defaults; per-corpus
+        IDF cache. The lexical floor.
+  \item \textbf{SPLADE} (\texttt{internal/bdmemory/splade.go}) --- learned
+        sparse with explicit corpus-size gate. Today the Ollama adapter
+        falls back to a TF-IDF approximation when no SPLADE-shaped
+        endpoint is available; the gate ensures SPLADE is only engaged
+        when the corpus exceeds a threshold (\tothink{state threshold;
+        landscape doc suggests $\sim 10{,}000$ docs}).
+  \item \textbf{Dense retrieval} (\texttt{tinyembed.go} +
+        \texttt{ollamaDenseAdapter}) --- 128-d hash-based deterministic
+        for development; Ollama \texttt{nomic-embed-text} for
+        production. \tothink{HNSW vs flat-index threshold.}
+  \item \textbf{RRF fusion} (\texttt{rrf.go}) --- Cormack
+        $k = 60$ \cite{cormack2009reciprocal}.
+  \item \textbf{Recency decay} (\texttt{decay.go}) --- exponential decay
+        with 30-day half-life; multiplicative on the fused score.
+  \item \textbf{MMR} (\texttt{mmr.go}) --- $\lambda = 0.7$
+        \cite{carbonell1998mmr}; trims near-duplicates from the top-$K$.
+  \item \textbf{Cross-encoder reranker}
+        (\texttt{cmd/gt/contextrecall/reranker.go}) --- optional;
+        engaged for Critical-tier queries (\cref{sec:problem}).
+        Today an Ollama LLM-shim; planned replacement with
+        \texttt{ms-marco-MiniLM-L-6-v2}.
+\end{itemize}
+
+\subsection{Paper-stream telemetry}
+
+The paper-side measurement infrastructure is the
+\texttt{internal/bdmemory/paper\_stream.go} \emph{paper-stream} writer:
+on every recall, an envelope records the query hash, query length,
+inferred query class, per-scorer top-$k$ scores and latency, the final
+fused ranks, and total latency. Records are JSONL-appended to
+\texttt{\$BLACKRIM\_RETRIEVER\_PAPER\_STREAM} (typically
+\texttt{\textasciitilde/research/blackrim-retriever-paper/data/raw/queries.jsonl}).
+This is the data backing every quantitative claim in
+\cref{sec:eval}.
+
+\subsection{Operator-facing surface}
+
+\tothink{describe \texttt{gt context recall}, \texttt{gt context budget},
+\texttt{gt retriever inspect <query>}; \texttt{ship.toml [bdmemory]}
+configuration knobs; the dashboard "Retriever" card showing per-class
+NDCG and conservative-budget consumption.}
+
+\Cref{fig:retriever-flow} sketches the recall path with the
+adaptive policy in place.
+
+\begin{figure}[ht]
+\centering
+% Placeholder TikZ figure --- the real version lives in figures/retriever-flow.tex
+\input{figures/retriever-flow}
+\caption{\tothink{retriever flow figure --- query enters classifier;
+arm selected by conservative contextual bandit; per-scorer fan-out;
+RRF fusion; decay/MMR post-process; optional reranker; paper-stream
+telemetry write-back.}}
+\label{fig:retriever-flow}
+\end{figure}

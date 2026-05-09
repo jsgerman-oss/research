@@ -1,0 +1,158 @@
+\section{Problem Formulation}
+\label{sec:problem}
+
+\subsection{Setting}
+
+Let $\agentset = \{\agent_1, \ldots, \agent_{|\agentset|}\}$ be a finite set
+of \emph{agents}, $\shapeset = \{\shape_1, \ldots, \shape_{|\shapeset|}\}$ a
+finite set of \emph{task shapes}, and
+$\tierset = \{\tier_1 \prec \tier_2 \prec \cdots \prec \tier_{|\tierset|}\}$
+a totally ordered finite set of \emph{model tiers}, with $\prec$ denoting
+``cheaper than''. In \blackrim, $|\agentset| = 17$, $|\shapeset|$ varies
+per agent (typically $3$--$5$), and $|\tierset| = 3$ corresponding to haiku,
+sonnet, opus. The Cartesian product $\agentset \times \shapeset \times
+\tierset$ has $\approx 170$ \emph{cells} (we say $\approx$ because not every
+agent has the same number of canonical shapes).
+
+A \emph{dispatch} is a tuple $d = (\agent, \shape, \tier, \cost, q)$ where
+$\agent \in \agentset$, $\shape \in \shapeset$, $\tier \in \tierset$, and
+$\cost \in \mathbb{R}_{\geq 0}$ is the realised cost in dollars. The
+\emph{quality} $q \in \{0, 1\}$ is a Bernoulli indicator of task success
+(\cref{sec:eval} discusses how $q$ is observed in production: from explicit
+reviewer signals when available, from downstream task closure otherwise).
+
+\subsection{Cost and quality}
+
+Cost is a known deterministic function $\cost : \tierset \times \mathbb{R}^+
+\times \mathbb{R}^+ \to \mathbb{R}_{\geq 0}$ of the tier and the realised
+input/output token counts, derived from a published rate sheet.
+
+Quality is a stochastic function whose distribution depends on the agent,
+the shape, and the tier:
+\begin{equation}
+  q \mid (\agent, \shape, \tier) \sim \mathrm{Bernoulli}(\theta_{\agent,\shape,\tier}),
+  \label{eq:bernoulli}
+\end{equation}
+with $\theta_{\agent,\shape,\tier} \in [0,1]$ the unknown success
+probability for the cell. The advisor's job is to estimate
+$\theta_{\agent,\shape,\tier}$ for every cell and select tiers accordingly.
+
+\begin{assumption}[Tier ordering]
+\label{assumption:order}
+For every $(\agent, \shape)$, the success probabilities across tiers are
+weakly increasing in tier strength:
+\(
+  \theta_{\agent,\shape,\tier_1} \leq \theta_{\agent,\shape,\tier_2} \leq
+  \cdots \leq \theta_{\agent,\shape,\tier_{|\tierset|}}.
+\)
+\end{assumption}
+
+\Cref{assumption:order} is the formal statement of the empirical observation
+that more expensive tiers are at least as likely to succeed. It is supported
+by Anthropic's published benchmarks \cite{anthropic2024modelcards} and by the
+empirical landscape we present in \cref{sec:eval}. The advisor exploits this
+ordering to extrapolate: if sonnet's posterior at a cell credibly exceeds
+$\tolerance$, then opus's also does, so opus is feasible whenever sonnet is.
+
+\subsection{Quality-loss tolerance}
+
+A \emph{quality-loss tolerance} $\tolerance \in [0,1]$ is the maximum
+allowable degradation in expected quality versus a reference tier
+$\tier^* \in \tierset$ (in our deployment, $\tier^*$ is opus). The advisor's
+constraint at a cell is
+\begin{equation}
+  \theta_{\agent,\shape,\tier^*} - \theta_{\agent,\shape,\tier} \leq \tolerance,
+  \label{eq:tolerance-constraint}
+\end{equation}
+i.e.\ the candidate tier $\tier$ may not lose more than $\tolerance$
+absolute quality versus $\tier^*$. We partition $\tolerance$ into four
+operational tiers, summarised in \cref{tab:tolerance-tiers}.
+
+\begin{table}[h]
+\centering
+\caption{Quality-loss tolerance tiers used by the advisor. Critical-path
+tasks --- those whose downstream blast radius is large --- are pinned to
+$\tolerance = 0$ (no downgrade ever).}
+\label{tab:tolerance-tiers}
+\begin{tabular}{lll}
+\toprule
+\textbf{Class} & \textbf{$\tolerance$} & \textbf{Typical workload} \\
+\midrule
+Critical & $0$              & ADRs, threat modelling, IR orchestration \\
+Strict   & $< 0.02$         & Production code review, prompt review \\
+Moderate & $< 0.05$         & Multi-file edits, integration tests, judgment routing \\
+Lenient  & $< 0.10$         & Lookups, runbook drafting, single-file edits, doc rewrites \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Asymmetric loss}
+
+A successful downgrade saves $\Delta\cost(\tier^*, \tier) =
+\cost(\tier^*) - \cost(\tier) > 0$. A failed downgrade incurs $\Delta\cost$
+\emph{plus} an opaque downstream cost: the cost of detection, the cost of
+repair, the lost trust. Let $\kappa \geq 1$ scale this opaque cost relative
+to the saved API spend. The expected loss of choosing $\tier$ rather than
+$\tier^*$ at a cell with success probabilities $\theta^*, \theta$ is
+\begin{equation}
+  \loss(\tier; \theta^*, \theta)
+    = -\theta \, \Delta\cost(\tier^*, \tier)
+      + (\theta^* - \theta) \cdot \kappa \cdot \Delta\cost(\tier^*, \tier),
+  \label{eq:loss}
+\end{equation}
+where the first term is the expected savings (negative loss) and the second
+is the expected regret-of-failure. The decision rule that minimises
+\cref{eq:loss} subject to the tolerance constraint
+\cref{eq:tolerance-constraint} is
+\begin{equation}
+  \tier^\dagger
+    = \arg\min_{\tier \in \tierset(\tolerance)}
+      \cost(\tier),
+  \label{eq:decision}
+\end{equation}
+where
+\(
+  \tierset(\tolerance) = \{ \tier : \theta^* - \theta_{\agent,\shape,\tier} \leq \tolerance \}
+\)
+is the feasible set under tolerance $\tolerance$. The decision rule is thus
+``cheapest tier whose quality stays within tolerance.'' The advisor's job is
+to estimate $\tierset(\tolerance)$ from data with high credibility.
+
+\subsection{The Bayesian advisor problem}
+
+Each $\theta_{\agent,\shape,\tier}$ is unknown but admits a posterior
+distribution $\posterior_{\agent,\shape,\tier}$ given prior $\prior$ and
+observation history. The Bayesian decision rule, replacing
+\cref{eq:tolerance-constraint} with its posterior-credibility analogue, is
+\begin{equation}
+  \tier^\dagger
+    = \arg\min_{\tier \in \tierset_{\posterior, \tolerance, \alpha}}
+      \cost(\tier),
+  \label{eq:bayesian-decision}
+\end{equation}
+where
+\begin{equation}
+  \tierset_{\posterior, \tolerance, \alpha}
+    = \left\{ \tier : \Pr_{\theta \sim \posterior}\!\big[
+        \theta^* - \theta_{\agent,\shape,\tier} \leq \tolerance
+      \big] \geq 1 - \alpha
+    \right\}
+  \label{eq:credible-feasible}
+\end{equation}
+is the credibly-feasible set at confidence level $1 - \alpha$ (we use
+$\alpha = 0.05$ throughout, conventionally interpreted as ``95\%
+credibility''). \Cref{eq:bayesian-decision} is the decision rule CC-TS
+implements; \cref{sec:algorithm} develops the algorithm.
+
+\subsection{What the advisor must produce}
+
+Operationally, the advisor exposes a function
+\(
+  \mathrm{advise} : (\agent, \shape, \tolerance) \mapsto (\tier^\dagger,
+  \mathrm{rationale}, \mathrm{cost\_diff})
+\)
+returning the recommended tier, a human-readable rationale, and the cost
+differential versus each tier in $\tierset$. The rationale is non-optional:
+operators must be able to audit decisions, and the same surface drives the
+\texttt{gt dispatch \texttt{-{}-}advise} CLI integration described in
+\cref{sec:system}.

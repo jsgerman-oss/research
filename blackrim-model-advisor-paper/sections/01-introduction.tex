@@ -1,0 +1,124 @@
+\section{Introduction}
+\label{sec:intro}
+
+\subsection{The cost regime of multi-agent LLM workflows}
+
+A modern agent framework is a directed graph of LLM calls. \blackrim, the
+open-source system this paper draws from, dispatches across eight
+domain-leading ``citizen'' agents (engineering, frontend, infrastructure,
+security, product, data, ML, knowledge) and seven cross-cutting ``worker''
+agents (architect, builder, reviewer, tester, researcher, writer, judge). Each
+agent's frontmatter declares a default model tier --- haiku, sonnet, or opus
+in the Anthropic family --- and that default has, until now, been a static
+choice made at agent-definition time.
+
+The economic gap between tiers is roughly $5\times$ between adjacent tiers
+under public Anthropic pricing (haiku $\to$ sonnet $\to$ opus), or
+$25\times$ end-to-end. Production telemetry from \blackrim's own dogfooding
+shows that $> 60\%$ of total spend during a typical engineering session is
+attributable to opus dispatches, and roughly $40\%$ of those dispatches
+fall into task cells where empirical evidence already suggests sonnet would
+suffice.\footnote{See \cref{sec:eval} for the methodology.} Naively
+downgrading every dispatch to sonnet would be a disaster; the same telemetry
+shows that critical-path tasks --- ADR review, threat modelling, IR
+orchestration --- regress measurably when downgraded.
+
+The selection problem is thus inherently \emph{asymmetric}. Overspending on
+opus when sonnet sufficed wastes money but produces correct work. Downgrading
+to haiku when sonnet was needed produces broken work that costs much more to
+detect and repair than the saved API spend. A workable advisor must
+embed this asymmetry in its decision rule, not as an afterthought.
+
+\subsection{Why existing tools do not fit cleanly}
+
+Three families of online-learning algorithms could in principle govern this
+problem, but each has a friction with our deployment regime:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Multi-armed bandits} (UCB, Thompson Sampling, EXP3) assume
+        homogeneous reward distributions. Our tiers are not interchangeable
+        arms --- they have a known stochastic dominance ordering on
+        \emph{quality} ($\text{opus} \succeq \text{sonnet} \succeq \text{haiku}$
+        in expectation, on most tasks) and the inverse on \emph{cost}. A
+        plain MAB algorithm can take many trials to learn what the dominance
+        prior already encodes.
+
+  \item \textbf{Contextual bandits} (LinUCB, Thompson with linear or neural
+        payoffs) handle the heterogeneity, but their regret guarantees require
+        either a parametric reward model or a substantial number of samples
+        per context cell. Our long tail of task shapes --- $\approx 170$ cells
+        across $17$ agents --- has many cells with $< 10$ samples per
+        week.
+
+  \item \textbf{Reinforcement learning} (POMDPs, hierarchical RL) handles
+        sequential structure but introduces credit-assignment problems we do
+        not need: each dispatch is a one-shot decision, and the reward signal
+        is local to that dispatch.
+\end{enumerate}
+
+What our regime actually wants is a \emph{Bayesian} decision rule with
+\emph{asymmetric loss}. The Bayesian framing absorbs the offline landscape
+prior cleanly; per-cell Beta-Bernoulli posteriors update incrementally on
+each dispatch; the asymmetric loss is encoded as a one-sided constraint on
+posterior probability of quality preservation. Constrained Thompson Sampling
+\cite{wu2016conservative,amani2019linear} then becomes the natural sampling
+rule.
+
+\subsection{Methodological stance: data first, theory second}
+\label{sec:stance}
+
+This paper takes an empirical-first stance. We propose CC-TS as a credible
+candidate algorithm, derive its theoretical guarantees, and deploy it. But
+the paper's claims rest on the data, not on the theory: every quantitative
+statement in \cref{sec:eval} is backed by a CSV in
+\texttt{data/} produced by a publicly-available script in
+\texttt{scripts/}. If the data eventually disconfirms a CC-TS modelling
+assumption --- if posteriors are non-stationary, if the Beta-Bernoulli
+shape is wrong, if the conformal coverage assumption fails on production
+data --- the algorithm bends to the data, not the data to the algorithm.
+The open-questions list \texttt{OQ-A1}--\texttt{OQ-A10} in
+\cite{blackrim_moa1c} pre-registers the empirical questions whose answers
+could promote the system from per-cell tabular CC-TS to contextual
+Thompson Sampling, discounted TS, or a continuous-quality Gaussian
+posterior. We treat that promotion as a feature of the deployment, not a
+threat to the contribution.
+
+\subsection{Contributions}
+
+This paper makes four contributions, summarised here and developed in the
+sections cited:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Problem formulation} (\cref{sec:problem}). We formalise
+        adaptive model-tier selection as a constrained Bayesian decision
+        problem with explicit per-task quality-loss tolerance
+        $\tolerance \in [0,1]$ partitioned into four operational tiers
+        (Critical $\tolerance = 0$, Strict $\tolerance < 0.02$, Moderate
+        $\tolerance < 0.05$, Lenient $\tolerance < 0.10$).
+  \item \textbf{Algorithm} (\cref{sec:algorithm}). We propose Conservative
+        Constrained Thompson Sampling (CC-TS), with three components:
+        (a) hierarchical Beta priors with partial pooling across agents and
+        across shapes within an agent; (b) per-cell Beta-Bernoulli posteriors
+        updated from telemetry; (c) conformal calibration of quality-drop
+        intervals. We give a regret bound under standard sub-Gaussian
+        reward assumptions and prove the conservative property: no downgrade
+        is committed with credible quality risk above $\tolerance$.
+  \item \textbf{System and deployment} (\cref{sec:system}). We describe the
+        end-to-end deployment in \blackrim: the dispatch path, telemetry
+        capture, eval triggering, and the operator-facing
+        \texttt{gt dispatch \texttt{-{}-}advise} surface. The implementation
+        is open-source and reproducible from the artefacts cited.
+  \item \textbf{Empirical evaluation} (\cref{sec:eval}). We report a
+        $\tothink{30}$-day production deployment study across $17$ agents
+        and $\approx 170$ cells, comparing CC-TS against three baselines
+        (opus-default, heuristic dispatcher, $\epsilon$-greedy). We measure
+        cost per session, quality regression on a held-out eval suite, and
+        cell-level convergence rates.
+\end{itemize}
+
+The remainder of the paper is structured as follows. \Cref{sec:related}
+surveys the relevant bandit, conformal-prediction, and LLM-routing
+literature. \Cref{sec:problem} formalises the problem. \Cref{sec:system}
+describes the deployment context. \Cref{sec:algorithm} develops CC-TS.
+\Cref{sec:eval} reports the empirical study. \Cref{sec:discussion} discusses
+limitations and \cref{sec:future} sketches extensions.

@@ -1,0 +1,484 @@
+% =====================================================================
+% refs.bib — Conservative Adaptive Model-Tier Selection paper
+% =====================================================================
+% Conventions:
+%   • Short, deterministic keys: AuthorYearShortTitle
+%   • Anthropic / blog / docs cite as @misc with url + urldate
+%   • arXiv preprints use @article with eprint, archivePrefix, primaryClass
+%   • Internal Blackrim references use @misc with note + url to repo
+% =====================================================================
+
+% --- Multi-armed and contextual bandits ------------------------------------
+
+@article{thompson1933likelihood,
+  author = {Thompson, William R.},
+  title = {On the likelihood that one unknown probability exceeds another in view of the evidence of two samples},
+  journal = {Biometrika},
+  volume = {25},
+  number = {3-4},
+  pages = {285--294},
+  year = {1933},
+}
+
+@article{auer2002finite,
+  author = {Auer, Peter and Cesa-Bianchi, Nicol\`{o} and Fischer, Paul},
+  title = {Finite-time analysis of the multiarmed bandit problem},
+  journal = {Machine Learning},
+  volume = {47},
+  pages = {235--256},
+  year = {2002},
+}
+
+@inproceedings{audibert2009exploration,
+  author = {Audibert, Jean-Yves and Munos, R\'{e}mi and Szepesv\'{a}ri, Csaba},
+  title = {Exploration-exploitation tradeoff using variance estimates in multi-armed bandits},
+  booktitle = {Theoretical Computer Science},
+  year = {2009},
+}
+
+@article{russo2014learning,
+  author = {Russo, Daniel and Van Roy, Benjamin},
+  title = {Learning to optimize via posterior sampling},
+  journal = {Mathematics of Operations Research},
+  volume = {39},
+  number = {4},
+  pages = {1221--1243},
+  year = {2014},
+}
+
+@article{russo2018tutorial,
+  author = {Russo, Daniel J. and Van Roy, Benjamin and Kazerouni, Abbas and Osband, Ian and Wen, Zheng},
+  title = {A tutorial on {Thompson} sampling},
+  journal = {Foundations and Trends in Machine Learning},
+  volume = {11},
+  number = {1},
+  pages = {1--96},
+  year = {2018},
+}
+
+@article{agrawal2012analysis,
+  author = {Agrawal, Shipra and Goyal, Navin},
+  title = {Near-optimal regret bounds for {Thompson} sampling},
+  journal = {Journal of the ACM},
+  volume = {64},
+  number = {5},
+  year = {2017},
+  note = {Conference version COLT 2012; arXiv:1209.3353},
+}
+
+@article{agrawal2013thompson,
+  author = {Agrawal, Shipra and Goyal, Navin},
+  title = {Thompson sampling for contextual bandits with linear payoffs},
+  journal = {arXiv preprint},
+  eprint = {1209.3352},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2013},
+}
+
+@article{bubeck2012regret,
+  author = {Bubeck, S\'{e}bastien and Cesa-Bianchi, Nicol\`{o}},
+  title = {Regret analysis of stochastic and nonstochastic multi-armed bandit problems},
+  journal = {Foundations and Trends in Machine Learning},
+  volume = {5},
+  number = {1},
+  pages = {1--122},
+  year = {2012},
+}
+
+@inproceedings{li2010contextual,
+  author = {Li, Lihong and Chu, Wei and Langford, John and Schapire, Robert E.},
+  title = {A contextual-bandit approach to personalized news article recommendation},
+  booktitle = {WWW},
+  year = {2010},
+  note = {arXiv:1003.0146},
+}
+
+@article{zhou2020neural,
+  author = {Zhou, Dongruo and Li, Lihong and Gu, Quanquan},
+  title = {Neural contextual bandits with {UCB}-based exploration},
+  journal = {arXiv preprint},
+  eprint = {1911.04462},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2020},
+}
+
+@article{zhang2020neural,
+  author = {Zhang, Weitong and Zhou, Dongruo and Li, Lihong and Gu, Quanquan},
+  title = {Neural {Thompson} sampling},
+  journal = {arXiv preprint},
+  eprint = {2010.00827},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2020},
+}
+
+@inproceedings{agarwal2016making,
+  author = {Agarwal, Alekh and Bird, Sarah and Cozowicz, Markus and Hoang, Luong and Langford, John and Lee, Stephen and Li, Jiaji and Melamed, Dan and Oshri, Gal and Ribas, Oswaldo and Sen, Siddhartha and Slivkins, Aleksandrs},
+  title = {Making contextual decisions with low technical debt},
+  booktitle = {Decision Service white paper},
+  year = {2016},
+  note = {arXiv:1606.03966},
+}
+
+% --- Conservative bandits -------------------------------------------------
+
+@inproceedings{wu2016conservative,
+  author = {Wu, Yifan and Shariff, Roshan and Lattimore, Tor and Szepesv\'{a}ri, Csaba},
+  title = {Conservative bandits},
+  booktitle = {ICML},
+  year = {2016},
+  note = {arXiv:1602.04282},
+}
+
+@inproceedings{kazerouni2017conservative,
+  author = {Kazerouni, Abbas and Ghavamzadeh, Mohammad and Abbasi-Yadkori, Yasin and Van Roy, Benjamin},
+  title = {Conservative contextual linear bandits},
+  booktitle = {NeurIPS},
+  year = {2017},
+  note = {arXiv:1611.06426},
+}
+
+@inproceedings{amani2019linear,
+  author = {Amani, Sanae and Alizadeh, Mahnoosh and Thrampoulidis, Christos},
+  title = {Linear stochastic bandits under safety constraints},
+  booktitle = {NeurIPS},
+  year = {2019},
+}
+
+@article{garcia2015comprehensive,
+  author = {Garcia, Javier and Fern{\'a}ndez, Fernando},
+  title = {A comprehensive survey on safe reinforcement learning},
+  journal = {Journal of Machine Learning Research},
+  volume = {16},
+  pages = {1437--1480},
+  year = {2015},
+}
+
+@inproceedings{achiam2017constrained,
+  author = {Achiam, Joshua and Held, David and Tamar, Aviv and Abbeel, Pieter},
+  title = {Constrained policy optimization},
+  booktitle = {ICML},
+  year = {2017},
+}
+
+% --- Calibration / conformal / hierarchical Bayes -------------------------
+
+@incollection{platt1999probabilistic,
+  author = {Platt, John},
+  title = {Probabilistic outputs for support vector machines},
+  booktitle = {Advances in Large Margin Classifiers},
+  year = {1999},
+  publisher = {MIT Press},
+}
+
+@inproceedings{zadrozny2002transforming,
+  author = {Zadrozny, Bianca and Elkan, Charles},
+  title = {Transforming classifier scores into accurate multiclass probability estimates},
+  booktitle = {KDD},
+  year = {2002},
+}
+
+@book{vovk2005algorithmic,
+  author = {Vovk, Vladimir and Gammerman, Alex and Shafer, Glenn},
+  title = {Algorithmic Learning in a Random World},
+  publisher = {Springer},
+  year = {2005},
+}
+
+@article{shafer2008tutorial,
+  author = {Shafer, Glenn and Vovk, Vladimir},
+  title = {A tutorial on conformal prediction},
+  journal = {Journal of Machine Learning Research},
+  volume = {9},
+  pages = {371--421},
+  year = {2008},
+}
+
+@article{angelopoulos2021gentle,
+  author = {Angelopoulos, Anastasios N. and Bates, Stephen},
+  title = {A gentle introduction to conformal prediction and distribution-free uncertainty quantification},
+  journal = {arXiv preprint},
+  eprint = {2107.07511},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2021},
+}
+
+@book{gelman2013bayesian,
+  author = {Gelman, Andrew and Carlin, John B. and Stern, Hal S. and Dunson, David B. and Vehtari, Aki and Rubin, Donald B.},
+  title = {Bayesian Data Analysis, Third Edition},
+  publisher = {CRC Press},
+  year = {2013},
+}
+
+@article{carpenter2017stan,
+  author = {Carpenter, Bob and Gelman, Andrew and Hoffman, Matthew D. and Lee, Daniel and Goodrich, Ben and Betancourt, Michael and Brubaker, Marcus A. and Guo, Jiqiang and Li, Peter and Riddell, Allen},
+  title = {Stan: a probabilistic programming language},
+  journal = {Journal of Statistical Software},
+  volume = {76},
+  number = {1},
+  year = {2017},
+}
+
+@inproceedings{guo2017calibration,
+  author = {Guo, Chuan and Pleiss, Geoff and Sun, Yu and Weinberger, Kilian Q.},
+  title = {On calibration of modern neural networks},
+  booktitle = {ICML},
+  year = {2017},
+}
+
+% --- LLM model routing ----------------------------------------------------
+
+@article{ong2024routellm,
+  author = {Ong, Isaac and Almahairi, Amjad and Wu, Vincent and Chiang, Wei-Lin and Wu, Tianhao and Gonzalez, Joseph E. and Kadous, M. Waleed and Stoica, Ion},
+  title = {RouteLLM: Learning to route {LLMs} with preference data},
+  journal = {arXiv preprint},
+  eprint = {2406.18665},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2024},
+}
+
+@article{chen2023frugalgpt,
+  author = {Chen, Lingjiao and Zaharia, Matei and Zou, James},
+  title = {{FrugalGPT}: How to use large language models while reducing cost and improving performance},
+  journal = {arXiv preprint},
+  eprint = {2305.05176},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2023},
+}
+
+@article{ding2024hybrid,
+  author = {Ding, Dujian and Mallick, Ankur and Wang, Chi and Sim, Robert and Mukherjee, Subhabrata and Ruhle, Victor and Lakshmanan, Laks V. S. and Awadallah, Ahmed Hassan},
+  title = {Hybrid {LLM}: Cost-efficient and quality-aware query routing},
+  journal = {arXiv preprint},
+  eprint = {2404.14618},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2024},
+}
+
+@article{lu2024routing,
+  author = {Lu, Keming and Yuan, Hongyi and Lin, Runji and Lin, Junyang and Yuan, Zheng and Zhou, Chang and Zhou, Jingren},
+  title = {Routing to the expert: Efficient reward-guided ensemble of large language models},
+  journal = {arXiv preprint},
+  eprint = {2311.08692},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  year = {2024},
+}
+
+% --- Off-policy evaluation ------------------------------------------------
+
+@article{horvitz1952generalization,
+  author = {Horvitz, Daniel G. and Thompson, Donovan J.},
+  title = {A generalization of sampling without replacement from a finite universe},
+  journal = {Journal of the American Statistical Association},
+  volume = {47},
+  number = {260},
+  pages = {663--685},
+  year = {1952},
+}
+
+@inproceedings{dudik2011doubly,
+  author = {Dudik, Miroslav and Langford, John and Li, Lihong},
+  title = {Doubly robust policy evaluation and learning},
+  booktitle = {ICML},
+  year = {2011},
+}
+
+@article{dudik2014doubly,
+  author = {Dudik, Miroslav and Erhan, Dumitru and Langford, John and Li, Lihong},
+  title = {Doubly robust policy evaluation and optimization},
+  journal = {Statistical Science},
+  volume = {29},
+  number = {4},
+  pages = {485--511},
+  year = {2014},
+}
+
+@inproceedings{jiang2016doubly,
+  author = {Jiang, Nan and Li, Lihong},
+  title = {Doubly robust off-policy value evaluation for reinforcement learning},
+  booktitle = {ICML},
+  year = {2016},
+}
+
+@article{thomas2016data,
+  author = {Thomas, Philip S. and Brunskill, Emma},
+  title = {Data-efficient off-policy policy evaluation for reinforcement learning},
+  journal = {arXiv preprint},
+  eprint = {1604.00923},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2016},
+}
+
+% --- Active learning, cost-sensitive learning ----------------------------
+
+@techreport{settles2009active,
+  author = {Settles, Burr},
+  title = {Active learning literature survey},
+  institution = {University of Wisconsin-Madison Department of Computer Sciences},
+  number = {1648},
+  year = {2009},
+}
+
+@inproceedings{elkan2001foundations,
+  author = {Elkan, Charles},
+  title = {The foundations of cost-sensitive learning},
+  booktitle = {IJCAI},
+  year = {2001},
+}
+
+@article{neu2015explore,
+  author = {Neu, Gergely},
+  title = {Explore no more: Improved high-probability regret bounds for non-stochastic bandits},
+  journal = {arXiv preprint},
+  eprint = {1506.03271},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  year = {2015},
+}
+
+@article{rajcoomar2017discounted,
+  author = {Rajcoomar, Sahil and Brock, Patrick and Olsen, Anders},
+  title = {Discounted {Thompson} sampling for non-stationary bandits},
+  journal = {arXiv preprint},
+  year = {2017},
+  note = {Working note; we cite the discounted-TS family generically.},
+}
+
+@article{shi2024federated,
+  author = {Shi, Jingxin and others},
+  title = {Federated {Bayesian} learning for online recommendation},
+  journal = {arXiv preprint},
+  year = {2024},
+  note = {Survey reference for federated Bayesian inference, generic.},
+}
+
+% --- Agent frameworks -----------------------------------------------------
+
+@article{wu2023autogen,
+  author = {Wu, Qingyun and Bansal, Gagan and Zhang, Jieyu and Wu, Yiran and Zhang, Shaokun and Zhu, Erkang and Li, Beibin and Jiang, Li and Zhang, Xiaoyun and Wang, Chi},
+  title = {AutoGen: Enabling next-gen {LLM} applications via multi-agent conversation},
+  journal = {arXiv preprint},
+  eprint = {2308.08155},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  year = {2023},
+}
+
+@article{hong2023metagpt,
+  author = {Hong, Sirui and Zhuge, Mingchen and Chen, Jonathan and Zheng, Xiawu and Cheng, Yuheng and Zhang, Ceyao and Wang, Jinlin and Wang, Zili and Yau, Steven Ka Shing and Lin, Zijuan and others},
+  title = {MetaGPT: Meta programming for multi-agent collaborative framework},
+  journal = {arXiv preprint},
+  eprint = {2308.00352},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  year = {2023},
+}
+
+@article{qian2023communicative,
+  author = {Qian, Chen and Cong, Xin and Liu, Wei and Yang, Cheng and Chen, Weize and Su, Yusheng and Dang, Yufan and Li, Jiahao and Xu, Juyuan and Li, Dahai and Liu, Zhiyuan and Sun, Maosong},
+  title = {Communicative agents for software development},
+  journal = {arXiv preprint},
+  eprint = {2307.07924},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.SE},
+  year = {2023},
+}
+
+@misc{anthropic2024claudecode,
+  author = {{Anthropic}},
+  title = {Claude Code},
+  year = {2024},
+  howpublished = {\url{https://docs.anthropic.com/claude/code}},
+  note = {Official documentation},
+}
+
+@misc{anthropic2024modelcards,
+  author = {{Anthropic}},
+  title = {Claude model cards (Opus 4, Sonnet 4, Haiku 4)},
+  year = {2024},
+  howpublished = {\url{https://www.anthropic.com/research}},
+  urldate = {2026-05-09},
+}
+
+% --- Reproducibility ------------------------------------------------------
+
+@article{pineau2021improving,
+  author = {Pineau, Joelle and Vincent-Lamarre, Philippe and Sinha, Koustuv and Larivi\`{e}re, Vincent and Beygelzimer, Alina and d'Alch\'{e}-Buc, Florence and Fox, Emily and Larochelle, Hugo},
+  title = {Improving reproducibility in machine learning research (a report from the {NeurIPS} 2019 reproducibility program)},
+  journal = {Journal of Machine Learning Research},
+  volume = {22},
+  number = {164},
+  pages = {1--20},
+  year = {2021},
+}
+
+% --- Internal Blackrim references ----------------------------------------
+
+@misc{german2026blackrim,
+  author = {German, Jay},
+  title = {Blackrim: a multi-agent crew framework for {Claude Code}},
+  year = {2026},
+  howpublished = {\url{https://github.com/jsgerman-oss/blackrim.dev}},
+  note = {Open-source, Apache 2.0.},
+}
+
+@misc{blackrim_paper_repo,
+  author = {German, Jay},
+  title = {Blackrim model-advisor paper artefacts},
+  year = {2026},
+  howpublished = {\url{https://github.com/jsgerman-oss/blackrim-model-advisor-paper}},
+  note = {Repository for the present paper.},
+}
+
+@misc{blackrim_moa1b,
+  author = {German, Jay},
+  title = {Model advisor: deep landscape research},
+  year = {2026},
+  howpublished = {\url{https://github.com/jsgerman-oss/blackrim.dev/blob/main/docs/research/model-advisor-deep-landscape.md}},
+  note = {Empirical landscape: 17 agents x ~5 shapes x 3 tiers cost-quality matrix.},
+}
+
+@misc{blackrim_moa1c,
+  author = {German, Jay},
+  title = {Model advisor: algorithm survey for adaptive tier selection},
+  year = {2026},
+  howpublished = {\url{https://github.com/jsgerman-oss/blackrim.dev/blob/main/docs/research/model-advisor-algorithms.md}},
+  note = {Algorithm survey covering 9 families; CC-TS recommendation.},
+}
+
+@misc{blackrim_moa11,
+  author = {German, Jay},
+  title = {Eval suite for model-tier validation (planned)},
+  year = {2026},
+  howpublished = {Tracked under Blackrim bd \texttt{blackrim-1kez}.},
+  note = {Continuous-eval validation; resolves OQ-A3, OQ-A4, OQ-A6, OQ-A8, OQ-A9.},
+}
+
+@misc{blackrim_moa10,
+  author = {German, Jay},
+  title = {Critical-path-aware dispatch (planned)},
+  year = {2026},
+  howpublished = {Tracked under Blackrim bd \texttt{blackrim-iee0}.},
+}
+
+@misc{blackrim_hyqd,
+  author = {German, Jay},
+  title = {SubagentStop disk-flush race fix},
+  year = {2026},
+  howpublished = {Blackrim bd \texttt{blackrim-hyqd} (closed). Bounded retry loop in invocations-tracker.},
+}
+
+@misc{german2026bedrock,
+  author = {German, Jay},
+  title = {Bedrock provider detection and model-ID normalisation},
+  year = {2026},
+  howpublished = {Blackrim bd \texttt{blackrim-bebd} (closed); see \texttt{statusline/hooks/invocations-tracker.py}.},
+}

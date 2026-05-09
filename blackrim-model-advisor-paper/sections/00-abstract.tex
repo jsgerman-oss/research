@@ -1,0 +1,41 @@
+\begin{abstract}
+\noindent
+Multi-agent workflows built on large language models (LLMs) increasingly route
+work across heterogeneous model tiers --- a small fast model for lookups, a
+mid-sized model for routine implementation, a frontier model for judgment
+calls. Selecting the cheapest model that preserves task quality is the central
+cost-control problem in production agent systems, but it sits in a regime that
+existing online-learning theory addresses awkwardly: rewards are
+quality-vs-cost trade-offs that are asymmetric (a single poor decision in a
+critical-path task can erase weeks of cost savings), per-cell sample sizes are
+small (most agent--shape combinations see fewer than ten dispatches per day),
+and a meaningful Bayesian prior is available from offline evaluation but is
+itself imperfect.
+
+We formalise the problem as a constrained Bayesian decision problem: choose
+the cost-minimal tier whose posterior probability of preserving quality
+exceeds a per-task tolerance $\tolerance$. We instantiate this with
+\emph{Conservative Constrained Thompson Sampling} (CC-TS): hierarchical Beta
+priors seeded from an empirical landscape of $17 \times 5 \times 3$
+agent--shape--tier cells; per-cell Beta-Bernoulli posteriors updated from
+production telemetry; conformal-prediction wrappers that bound quality drop
+at a chosen confidence level; uncertainty-triggered eval to resolve
+underdetermined cells. The conservative property --- never downgrade unless
+the posterior credibly exceeds tolerance --- is preserved through a one-sided
+hypothesis-testing rule with explicit asymmetric loss.
+
+We deploy CC-TS in \blackrim, an open-source multi-agent framework for the
+Claude Code runtime, across $17$ agents and $\approx{170}$ task cells. Over
+$\tothink{N}$ production dispatches, CC-TS yields $\tothink{X\%}$ end-to-end
+cost reduction versus an opus-default policy and $\tothink{Y\%}$ versus a
+heuristic dispatcher, while empirical quality regression remains within
+$\tothink{Z\%}$ of the opus baseline measured on a held-out eval suite of
+$\tothink{M}$ tasks. We discuss limitations --- in particular, the off-policy
+evaluation gap when an agent's dispatch policy and reward distribution are
+both non-stationary --- and propose a hierarchical-bandit extension for
+multi-tenant federation.
+
+\textbf{Keywords:} multi-armed bandits, contextual bandits, Thompson sampling,
+conformal prediction, model routing, agentic AI, LLM cost optimization,
+asymmetric loss.
+\end{abstract}

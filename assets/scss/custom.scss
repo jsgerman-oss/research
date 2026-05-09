@@ -1,0 +1,123 @@
+// ───────────────────────────────────────────────────────────────────────────
+// Custom theme overrides — "The Engraver's Page"
+// See .agents/context/DESIGN.md for the design contract.
+//
+// This file establishes the OKLCH palette and the named rules. Hugo Blox's
+// params.yaml gives us hex starter values; this file is the canonical source.
+// ───────────────────────────────────────────────────────────────────────────
+
+:root {
+  // Forest Ink — the one accent. ≤10% surface (The Restrained Rule).
+  --color-primary: oklch(38% 0.10 150);
+  --color-primary-hover: oklch(33% 0.10 150);
+
+  // Warm Page — tinted neutral surface. Never #fff (The No-Pure-Black-or-White Rule).
+  --color-page: oklch(96% 0.005 145);
+  --color-page-elevated: oklch(94% 0.006 145);
+
+  // Ink Body — body text. Never #000.
+  --color-ink: oklch(20% 0.015 150);
+  --color-ink-muted: oklch(45% 0.012 150);
+
+  // Quiet Rule — borders, dividers, hairlines.
+  --color-rule: oklch(82% 0.005 145);
+
+  // Body line length cap (The 65–75ch Rule).
+  --measure: 70ch;
+}
+
+// Dark mode — "ink on dark page". Same hue, inverted lightness.
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-page: oklch(18% 0.012 150);
+    --color-page-elevated: oklch(22% 0.014 150);
+    --color-ink: oklch(92% 0.008 145);
+    --color-ink-muted: oklch(70% 0.010 150);
+    --color-rule: oklch(32% 0.012 150);
+    --color-primary: oklch(72% 0.12 150);
+    --color-primary-hover: oklch(78% 0.13 150);
+  }
+}
+:root[data-theme="dark"] {
+  --color-page: oklch(18% 0.012 150);
+  --color-page-elevated: oklch(22% 0.014 150);
+  --color-ink: oklch(92% 0.008 145);
+  --color-ink-muted: oklch(70% 0.010 150);
+  --color-rule: oklch(32% 0.012 150);
+  --color-primary: oklch(72% 0.12 150);
+  --color-primary-hover: oklch(78% 0.13 150);
+}
+
+// ── The 65–75ch Rule ───────────────────────────────────────────────────────
+// Long-form prose containers cap to a reading measure.
+.prose,
+article .markdown,
+article > section {
+  max-width: var(--measure);
+}
+
+// ── The Flat-By-Default Rule ───────────────────────────────────────────────
+// No drop shadows at rest. Tonal layering only.
+.card,
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl {
+  box-shadow: none !important;
+}
+
+// Surfaces that need to register as distinct use a tonal step + 1px hairline.
+.card,
+.bg-card,
+.publication-card,
+pre,
+code.block,
+.code-block {
+  background-color: var(--color-page-elevated);
+  border: 1px solid var(--color-rule);
+  border-radius: 2px;
+}
+
+// ── The No-Glassmorphism Rule ──────────────────────────────────────────────
+.backdrop-blur,
+.backdrop-blur-sm,
+.backdrop-blur-md,
+.backdrop-blur-lg,
+.backdrop-blur-xl {
+  backdrop-filter: none !important;
+}
+
+// ── The One-Hue Rule ───────────────────────────────────────────────────────
+// Links, marks, bullets, and inline UI use Forest Ink. No competing accents.
+a,
+.link {
+  color: var(--color-primary);
+  text-decoration-color: var(--color-rule);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+  transition: color 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+a:hover,
+.link:hover {
+  color: var(--color-primary-hover);
+  text-decoration-color: var(--color-primary);
+}
+
+// ── Type colour application ───────────────────────────────────────────────
+body {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+}
+
+// ── prefers-reduced-motion ─────────────────────────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

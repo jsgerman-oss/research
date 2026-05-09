@@ -1,0 +1,36 @@
+% figures/dispatch-flow.tex — Blackrim dispatch path with the advisor in place.
+% Used by sections/04-system.tex.
+\begin{tikzpicture}[
+    >=Stealth,
+    node distance=10mm and 14mm,
+    font=\small,
+    box/.style={
+        draw, rounded corners=2pt, align=center,
+        minimum width=22mm, minimum height=8mm,
+        inner sep=4pt
+    },
+    advisor/.style={
+        box, fill=blue!7, draw=blue!50!black, thick
+    },
+    arrow/.style={->, thick, draw=black!70},
+    feedback/.style={->, dashed, thick, draw=red!60!black, bend left=22}
+]
+
+\node[box]                              (req)   {User\\request};
+\node[box, right=of req]                (route) {\texttt{gt dispatch}\\(Tier-0 heuristic)};
+\node[advisor, right=of route]          (adv)   {CC-TS\\advisor};
+\node[box, right=of adv]                (call)  {LLM call\\(Anthropic / Bedrock)};
+\node[box, below=of call]               (tel)   {Telemetry\\\texttt{invocations.jsonl}};
+\node[box, below=of adv]                (post)  {Per-cell\\posteriors};
+\node[box, below=of route]              (eval)  {Eval suite\\(uncertainty\\trigger)};
+
+\draw[arrow] (req)   -- (route);
+\draw[arrow] (route) -- node[above, font=\scriptsize]{role+shape} (adv);
+\draw[arrow] (adv)   -- node[above, font=\scriptsize]{tier} (call);
+\draw[arrow] (call)  -- (tel);
+\draw[feedback] (tel.west)  to node[below, sloped, font=\scriptsize]{quality $\rightarrow$ Beta update} (post.east);
+\draw[arrow, dashed] (post.north) -- (adv.south);
+\draw[arrow] (adv.south west) -- node[above, sloped, font=\scriptsize]{wide CI} (eval.north east);
+\draw[arrow] (eval.east) -- node[above, font=\scriptsize, near end]{ground-truth $q$} (post.west);
+
+\end{tikzpicture}

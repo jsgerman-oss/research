@@ -1,0 +1,94 @@
+\section{Problem Formulation}
+\label{sec:problem}
+
+\tothink{full problem-formulation prose; the decision rule and the
+conservative-bandit constraint must be stated precisely.}
+
+\subsection{Setting}
+
+Let $\queryclasses = \{\queryclass_1, \ldots, \queryclass_{|\queryclasses|}\}$
+be a finite set of \emph{query classes}. In \blackrim's deployment,
+$|\queryclasses| = 6$ corresponding to the classes derived in the landscape
+doc \cite{blackrim_ijl0_landscape} from inspection of the recall call
+sites: technical-lookup ($\queryclass_1$), failure-recall ($\queryclass_2$),
+agent-scoped ($\queryclass_3$), continuity ($\queryclass_4$),
+concept-bridge ($\queryclass_5$), exact-id-or-slug ($\queryclass_6$).
+
+Let $\armset = \{\arm_1, \ldots, \arm_{|\armset|}\}$ be a finite set of
+\emph{fusion-config arms}. Each arm $\arm$ is a tuple specifying a
+first-stage scorer set, a fusion operator, optional decay/MMR/rerank
+wrappers, and the per-component weights. \tothink{enumerate the canonical
+arms; in v1 these are: BM25-only; BM25+decay; hybrid-RRF (BM25+SPLADE);
+hybrid-RRF (BM25+dense); hybrid-RRF (BM25+SPLADE+dense); hybrid-CC
+(BM25+dense, $\alpha$ tuned); hybrid-RRF + decay; hybrid-RRF + MMR;
+hybrid-RRF + rerank.}
+
+\subsection{Reward}
+
+For each query $x$ classified into $\queryclass(x) \in \queryclasses$ and
+each arm $\arm \in \armset$, the policy emits a top-$k$ ranked list of
+documents. The realised reward $\reward(x, \arm) \in [0, 1]$ is per-query
+NDCG@10 against a held-out relevance judgement. Aggregate reward over a
+trace $\{x_1, \ldots, x_T\}$ is the average per-query NDCG@10:
+\(
+  R_T(\policy) = \tfrac{1}{T} \sum_{t=1}^T \reward(x_t, \policy(x_t)).
+\)
+
+We use NDCG@10 as the primary metric; MRR@10 and recall@k are reported as
+secondary. \tothink{justify NDCG@10 over alternatives; cite Smucker et al.
+2007 \cite{smucker2007comparison} on significance testing for IR metrics.}
+
+\subsection{Per-class baselines and the safety constraint}
+
+The methodological framing follows the conservative-contextual-bandit
+literature \cite{wu2016conservative,kazerouni2017conservative}. For each
+query class $\queryclass \in \queryclasses$, let $\baseline(\queryclass)$
+denote the per-class \emph{baseline arm} the policy must not regress
+below:
+
+\begin{itemize}[leftmargin=*]
+  \item $\baseline(\queryclass_1, \queryclass_3, \queryclass_5, \queryclass_6) = $
+        BM25-only.
+  \item $\baseline(\queryclass_4) = $ BM25+decay.
+  \item $\baseline(\queryclass_2) = $ keyword + failure-tag boost.
+\end{itemize}
+
+The choice of per-class baseline is the substantive deviation from
+the model-advisor paper's tier-cost-ratio framing
+\cite{blackrim_moa1c}. The conservative-bandit constraint at confidence
+level $1 - \alpha$ (we use $\alpha = 0.05$) is
+\begin{equation}
+  \sum_{t \le T : \queryclass(x_t) = \queryclass}
+    \big[\reward(x_t, \policy(x_t)) - \reward(x_t, \baseline(\queryclass))\big]
+  \;\geq\; -\budget,
+  \label{eq:conservative-budget}
+\end{equation}
+with high probability uniformly over $T$, where $\budget \geq 0$ is the
+\emph{conservative budget}. \tothink{tighten the high-probability
+statement to match Wu et al.\ Theorem 2 / Kazerouni et al.\ Theorem 1.}
+
+\Cref{eq:conservative-budget} encodes "no per-class regression below
+baseline." Critical-tier queries (\tothink{define which classes count as
+Critical in deployment --- likely $\queryclass_2$ failure-recall and
+$\queryclass_6$ exact-ID}) get $\budget = 0$ (hard no-regression);
+non-Critical classes get small positive $\budget$ for exploration headroom.
+
+\subsection{The bandit problem}
+
+The advisor's job is to learn a policy $\policy : \queryclasses \to \armset$
+that maximises expected NDCG@10 subject to \cref{eq:conservative-budget}.
+This is a contextual-bandit problem with discrete arms, side-information
+(the query class), and a per-context-conditional safety budget.
+\tothink{state the formal regret-vs-baseline bound; cite Wu et al.\ /
+Kazerouni et al.\ for the high-probability conservative-bandit guarantee.}
+
+\subsection{What the advisor must produce}
+
+Operationally, the advisor exposes a function
+\(
+  \mathrm{advise} : (x, \queryclass(x)) \mapsto (\arm^\dagger, \mathrm{rationale})
+\)
+returning the recommended arm and a structured rationale (per-arm
+posterior mean reward, conformal lower bound, per-class baseline
+comparison). The rationale is non-optional for the same audit reasons as
+in \cite{blackrim_moa1c}: operators must be able to override and explain.

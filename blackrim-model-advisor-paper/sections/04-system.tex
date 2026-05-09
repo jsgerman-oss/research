@@ -1,0 +1,102 @@
+\section{System: \blackrim and the Advisor Path}
+\label{sec:system}
+
+\subsection{\blackrim in one paragraph}
+
+\blackrim \cite{german2026blackrim} is an open-source multi-agent framework
+that runs on top of the Claude Code runtime \cite{anthropic2024claudecode}.
+It exposes $17$ agents: $8$ \emph{citizens} (engineering, frontend,
+infrastructure, security, product, data, ML, knowledge), $7$ cross-cutting
+\emph{workers} (architect, builder, reviewer, tester, researcher, writer,
+judge), and $1$ general-purpose escape hatch. Citizens own a vertical and
+spawn workers; workers handle parallelisable batches. Coordination is via
+\texttt{bd}, a Dolt-backed task graph that survives context-window resets.
+
+The dispatch path --- the function from a user request to a sequence of
+LLM calls --- runs through three layers: (i) a deterministic local heuristic
+implemented in \texttt{gt dispatch} (the ``Tier-0'' path: $\$0$, no LLM at
+the routing decision); (ii) the Bayesian advisor, the contribution of this
+paper, integrated as the \texttt{-{}-advise} flag and (in default mode)
+the silent dispatcher's tier-selection step; (iii) the LLM call itself, which
+emits telemetry to a JSONL stream that the advisor reads back to update
+posteriors.
+
+\subsection{Telemetry capture}
+
+Every dispatch produces an \emph{invocation record} written to
+\texttt{.beads/telemetry/invocations.jsonl}. The record includes the agent
+identity, model identity (post-Bedrock-normalisation per
+\cite{german2026bedrock}), input/output token counts split by cache tier,
+and a session-grouped success indicator. The recording pipeline has
+non-trivial subtleties --- in particular a disk-flush race between
+SubagentStop and transcript persistence that we resolved with bounded retry
+\cite{blackrim_hyqd}; we elide them here and refer the reader to the
+companion repository.
+
+\subsection{Quality observation}
+
+Quality $q \in \{0, 1\}$ is the most operationally fragile variable in the
+system. We observe it through three channels, in order of fidelity:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Reviewer signal}. When a reviewer agent or human reviewer
+        explicitly grades a task, the verdict (approved / rejected) drives $q$.
+  \item \textbf{Eval-suite verdict}. The eval suite (\cref{sec:eval} and
+        \cite{blackrim_moa11}) replays a held-out task with a known correct
+        answer and grades the agent's output. Eval-suite tasks are scheduled
+        opportunistically on idle capacity and adversarially when the
+        advisor's posterior is wide (uncertainty-triggered eval).
+  \item \textbf{Downstream-task closure}. As a fallback, we record $q = 1$
+        when the dispatching task is later marked complete in \texttt{bd}
+        and $q = 0$ when it is reopened or escalated. This signal is noisy
+        but ample.
+\end{enumerate}
+
+The advisor weights these channels by their reliability when forming the
+likelihood used to update posteriors; \cref{sec:algorithm} returns to this.
+
+\subsection{Operator-facing surface}
+
+The advisor exposes itself to operators through three surfaces, all of which
+trace to the same underlying state:
+
+\begin{itemize}[leftmargin=*]
+  \item \texttt{gt dispatch -{}-advise}: prints a recommendation for a
+        prospective dispatch, including rationale and cost differentials
+        (\cref{sec:eval} measures operator agreement rates).
+  \item \texttt{gt advisor inspect <agent> <shape>}: shows the posterior
+        distribution at a cell, the credible interval on the quality drop,
+        and the next eval that would resolve the largest remaining
+        uncertainty.
+  \item Dashboard ``Advisor'' card: aggregate view of cost-saved,
+        quality-preservation rate, and outstanding underdetermined cells.
+\end{itemize}
+
+\Cref{fig:dispatch-flow} sketches the dispatch path with the advisor in
+place.
+
+\begin{figure}[ht]
+\centering
+% Placeholder TikZ figure — the real version lives in figures/dispatch-flow.tex
+\input{figures/dispatch-flow}
+\caption{Dispatch flow with the Bayesian advisor in place. The dotted return
+arrow represents the telemetry pathway used to update posteriors after the
+LLM call resolves.}
+\label{fig:dispatch-flow}
+\end{figure}
+
+\subsection{Why this is the right place to add the advisor}
+
+A natural alternative would be to push the advisor into the LLM provider
+itself --- and indeed, FrugalGPT \cite{chen2023frugalgpt} and RouteLLM
+\cite{ong2024routellm} take that path. Two arguments push the advisor into
+the agent framework instead:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Context}. Only the framework knows the agent identity, the
+        shape, and the critical-path position. A provider sees only a flat
+        prompt; the routing prior at the framework layer is much richer.
+  \item \textbf{Audit}. Operators have to be able to override and explain
+        each routing decision. A black-box provider router defeats this; an
+        in-framework advisor with a stable rationale string preserves it.
+\end{enumerate}

@@ -1,0 +1,123 @@
+% !TEX program = pdflatex
+% !TEX bibtex  = biber
+%
+% main.tex — master document
+%
+% Compile:
+%   make            # latexmk -pdf -bibtex
+%   make clean      # remove build artifacts
+%
+% Style: arxiv-friendly. Single-column for review-readability; switch to
+% acmart or IEEEtran via the class line below for venue-specific submission.
+
+\documentclass[11pt,letterpaper]{article}
+
+% --- Layout -----------------------------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{parskip}
+
+% --- Math + theorems --------------------------------------------------------
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{thmtools}
+\declaretheorem[name=Theorem,numberwithin=section]{theorem}
+\declaretheorem[name=Lemma,sibling=theorem]{lemma}
+\declaretheorem[name=Proposition,sibling=theorem]{proposition}
+\declaretheorem[name=Corollary,sibling=theorem]{corollary}
+\declaretheorem[name=Definition,sibling=theorem,style=definition]{definition}
+\declaretheorem[name=Assumption,sibling=theorem,style=definition]{assumption}
+\declaretheorem[name=Remark,sibling=theorem,style=remark]{remark}
+
+% --- Code + algorithms ------------------------------------------------------
+\usepackage[ruled,linesnumbered]{algorithm2e}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible,
+}
+
+% --- Figures + tables -------------------------------------------------------
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes,fit,backgrounds,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{array}
+\usepackage{longtable}
+
+% --- References + links -----------------------------------------------------
+\usepackage[backend=biber,style=numeric-comp,sorting=none,maxbibnames=99,giveninits=true]{biblatex}
+\addbibresource{bib/refs.bib}
+\addbibresource{../_shared/refs-base.bib}
+
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% --- Misc -------------------------------------------------------------------
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{etoolbox}
+
+% Notation macros — kept tight; introduce in problem-formulation, then reuse.
+\newcommand{\queryclasses}{\mathcal{Q}}           % set of query classes
+\newcommand{\armset}{\mathcal{A}}                  % set of fusion-config arms
+\newcommand{\queryclass}{q}                        % a query class
+\newcommand{\arm}{a}                               % an arm (fusion config)
+\newcommand{\baseline}{a^\star}                    % per-class baseline arm
+\newcommand{\reward}{r}                            % per-query NDCG@10
+\newcommand{\budget}{\beta}                        % conservative budget
+\newcommand{\policy}{\pi}                          % policy
+\newcommand{\posterior}{\rho}                      % posterior over arm rewards
+\newcommand{\loss}{\ell}
+\newcommand{\tothink}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\blackrim}{Blackrim\xspace}
+\newcommand{\bdmemory}{\texttt{bdmemory}\xspace}
+\newcommand{\NDCG}{\mathrm{NDCG}}
+\newcommand{\MRR}{\mathrm{MRR}}
+
+% --- Title ------------------------------------------------------------------
+\title{
+  \textbf{Adaptive Conservative Selection for Hybrid Retrieval \\
+  in Multi-Agent Memory Systems}
+}
+
+\author{%
+  Jay German\thanks{Independent. \href{mailto:camber.estate_6j@icloud.com}{camber.estate_6j@icloud.com}.}
+}
+
+\date{Draft --- \today}
+
+% ----------------------------------------------------------------------------
+\begin{document}
+\maketitle
+
+\input{sections/00-abstract}
+
+\input{sections/01-introduction}
+\input{sections/02-related-work}
+\input{sections/03-problem-formulation}
+\input{sections/04-system}
+\input{sections/05-algorithm}
+\input{sections/06-evaluation}
+\input{sections/07-discussion}
+\input{sections/08-future-work}
+\input{sections/09-conclusion}
+
+\printbibliography
+
+\appendix
+\input{sections/A-appendix}
+
+\end{document}

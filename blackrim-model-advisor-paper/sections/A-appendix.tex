@@ -1,0 +1,149 @@
+\section{Notation Reference}
+\label{app:notation}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$\agentset$, $\agent$ & Set of agents; an agent \\
+$\shapeset$, $\shape$ & Set of task shapes; a shape \\
+$\tierset$, $\tier$, $\tier^*$ & Set of model tiers; a tier; baseline tier \\
+$\theta_{\agent,\shape,\tier}$ & Quality success probability at cell \\
+$\posterior$, $\prior$ & Posterior, prior on $\theta$ \\
+$\tolerance$ & Quality-loss tolerance per cell \\
+$\alpha$ & Posterior-credibility level (we use $0.05$) \\
+$\widehat{q}_{\mathrm{lo}}$ & Conformal lower bound on $\theta$ \\
+$\Delta\cost$ & Cost differential between two tiers \\
+$\kappa$, $M[\cdot]$ & Asymmetric-loss multipliers per tolerance class \\
+$\theta_{\mathrm{eval}}$ & Posterior-width threshold for eval triggering \\
+$\lambda$ & Pooling weight cap (we use $0.5$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Proof of \cref{thm:conservative} (full version)}
+\label{app:proof}
+
+We give the full version of the proof sketched in \cref{sec:algorithm}.
+
+Fix a cell $(\agent, \shape)$ with baseline tier $\tier^*$ and tolerance
+$\tolerance$. Let $\tier \prec \tier^*$ be a candidate downgrade. By
+\cref{alg:ccts}, $\tier$ is admitted to $\mathrm{cands}$ only if
+\(
+  \widehat{q}_{\mathrm{lo}}(\agent, \shape, \tier) \geq \mu^*(\agent, \shape) - \tolerance.
+\)
+
+Conformal prediction \cite{vovk2005algorithmic,angelopoulos2021gentle}
+guarantees that, under exchangeability of the calibration set with the
+test point, the marginal coverage probability is at least $1 - \alpha$:
+\[
+  \Pr\!\big[
+    \theta_{\agent,\shape,\tier}
+      \in [\widehat{q}_{\mathrm{lo}}, \widehat{q}_{\mathrm{hi}}]
+  \big]
+  \;\geq\; 1 - \alpha.
+\]
+In particular,
+\(
+  \Pr[\theta_{\agent,\shape,\tier} \geq \widehat{q}_{\mathrm{lo}}]
+    \geq 1 - \alpha.
+\)
+
+Combining with the gate condition,
+\[
+  \Pr\!\big[
+    \theta_{\agent,\shape,\tier}
+      \geq \mu^*(\agent, \shape) - \tolerance
+  \big]
+  \;\geq\;
+  \Pr\!\big[
+    \theta_{\agent,\shape,\tier} \geq \widehat{q}_{\mathrm{lo}}
+  \big]
+  \;\geq\; 1 - \alpha,
+\]
+where the first inequality follows because the gate enforces
+$\widehat{q}_{\mathrm{lo}} \geq \mu^* - \tolerance$.
+
+Approximating $\mu^*$ by $\theta_{\agent,\shape,\tier^*}$ (justified
+asymptotically as the baseline-tier posterior concentrates), we obtain
+\cref{eq:conservative}.
+
+The Layer 3 asymmetric-loss step
+\(
+  \tier^\dagger = \arg\min_{\tier \in \mathrm{cands}}
+    \mathbb{E}_{\theta \sim \posterior_{\tier}}
+      [L(\tier, \theta; \tier^*, \mu^*)]
+\)
+selects from $\mathrm{cands}$; it never adds tiers, so the inequality
+\cref{eq:conservative} is preserved by the final selection
+$\tier^\dagger$. \qed
+
+\section{Per-cell prior pseudocount derivation}
+\label{app:prior}
+
+The mapping
+\(
+  c \mapsto (\alpha_{\mathrm{prior}}, \beta_{\mathrm{prior}})
+\)
+in \cref{eq:prior-from-confidence} is chosen to satisfy three constraints:
+
+\begin{enumerate}[leftmargin=*]
+  \item \emph{Monotonicity in confidence.} A 95\%-confidence cell yields a
+        Beta posterior whose mean exceeds a 65\%-confidence cell's mean.
+  \item \emph{Bounded influence.} No prior pseudocount exceeds $20$ on
+        either side, so $\sim 20$ posterior observations are enough to
+        dominate even the strongest prior.
+  \item \emph{Sane uniform.} A 50\%-confidence cell yields
+        $\mathrm{Beta}(10, 10)$ rather than $\mathrm{Beta}(1, 1)$; this
+        encodes ``we know it's roughly even'' rather than ``we know
+        nothing.''
+\end{enumerate}
+
+The linear scaling $c / 5$ produces this monotone, bounded mapping with
+the appropriate uniform behaviour. Alternative scalings ($c / 2$, $c / 10$)
+were tested in offline simulation and produced either too-stiff or too-soft
+priors; the $c / 5$ choice was the empirical sweet-spot.
+
+\section{Selected hyperparameters}
+\label{app:hyperparams}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Hyperparameter & Value & Rationale \\
+\midrule
+$\alpha$ (conformal)        & $0.05$  & 95\% credibility, conventional \\
+$\theta_{\mathrm{eval}}$    & $0.10$  & posterior CI half-width threshold \\
+$\lambda$ (pooling cap)     & $0.5$   & max half of own-cell strength \\
+$M[\text{Critical}]$        & $\infty$ & hard rejection \\
+$M[\text{Strict}]$          & $20$    & ADR-cascade-equivalent \\
+$M[\text{Moderate}]$        & $5$     & multi-file-ticket cascade \\
+$M[\text{Lenient}]$         & $1$     & local consequence only \\
+$\epsilon$ (baseline)       & $0.1$   & vanilla bandit comparator \\
+DR-OPE bootstrap            & $1000$  & resamples for CIs \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Reproducibility checklist}
+\label{app:repro}
+
+Following the recommendations of \cite{pineau2021improving} for empirical
+reproducibility:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Code.} The reference implementation is at
+        \cite{german2026blackrim} (\texttt{internal/dispatch/}). Tagged
+        commit for the published version is in \cite{blackrim_paper_repo}.
+  \item \textbf{Data.} The production dispatch trace is anonymised and
+        released alongside the paper artefacts in \texttt{data/}; raw
+        per-dispatch records are pseudonymised by agent ID hashing.
+  \item \textbf{Hyperparameters.} See \cref{app:hyperparams}.
+  \item \textbf{Random seeds.} All RNGs are seeded from a master seed
+        published in the artefact \texttt{README}.
+  \item \textbf{Compute.} The full evaluation runs on a single laptop
+        in $< 1$ hour; no GPU required.
+  \item \textbf{Hardware.} Production deployment runs in user terminals
+        on \texttt{darwin} and \texttt{linux}; no special hardware.
+\end{itemize}

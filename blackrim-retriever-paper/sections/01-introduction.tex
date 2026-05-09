@@ -1,0 +1,43 @@
+\section{Introduction}
+\label{sec:intro}
+
+\tothink{full introduction prose; sequenced after model-advisor paper.}
+
+This section will develop:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{The retriever as the hot path.} Every agent spawn starts
+        with a \texttt{gt context recall} or \texttt{gt context budget}
+        call into \bdmemory; the retrieved memories enter the prompt
+        prefix that determines cache-hit behaviour. A wrong recall poisons
+        every downstream prompt; a slow recall blocks dispatch. The
+        algorithmic choice on this path has compounding effects.
+  \item \textbf{Heterogeneous memory pool.} The bd-memory pool is
+        characterised by short documents (typically 30--400 tokens),
+        agent-prefix tagging (\texttt{[Yatima]}, \texttt{[Blanca]}),
+        \texttt{[failure]}-prefix structural priors, and recency-sensitive
+        engineering knowledge that ages quickly. No single retriever
+        family dominates across this surface --- \tothink{cite landscape
+        doc Section A six query classes (Q1--Q6)}.
+  \item \textbf{Why no single configuration wins.} A short summary of
+        the per-(query-class $\times$ scorer-family) matrix in the
+        landscape doc: BM25 dominates Q6 (exact-ID), hybrid-RRF wins on
+        Q5 (concept-bridge), recency-decay is load-bearing on Q4
+        (continuity). The "average NDCG" framing hides the per-class
+        regression risk that operators care about.
+  \item \textbf{Framing.} Why \emph{conservative contextual bandits}
+        \cite{wu2016conservative,kazerouni2017conservative} is the right
+        formalism here, and why this is methodologically distinct from
+        MOA-1b's tier-cost-ratio framing (cost axis is local latency,
+        not LLM tokens; baseline is per-class BM25, not a single
+        agent-default tier).
+  \item \textbf{Contributions.} (i) Per-(query-class $\times$ scorer-family
+        $\times$ fusion-config) priors grounded in IR literature
+        (\cref{sec:related,sec:problem}); (ii) a fusion architecture
+        \cref{sec:system} stacking BM25/SPLADE/dense/RRF/decay/MMR/rerank
+        with explicit corpus-size and tolerance-class gates; (iii) a
+        conservative-contextual-bandit policy \cref{sec:algorithm}
+        with per-class baselines as the safety constraint; (iv) an
+        empirical evaluation pipeline \cref{sec:eval} backed by
+        \texttt{internal/bdmemory/paper\_stream.go} telemetry.
+\end{itemize}

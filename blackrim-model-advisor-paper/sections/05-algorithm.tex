@@ -1,0 +1,308 @@
+\section{Algorithm: Conservative Constrained Thompson Sampling}
+\label{sec:algorithm}
+
+We now develop \emph{Conservative Constrained Thompson Sampling} (CC-TS), a
+four-layer policy that satisfies \cref{eq:bayesian-decision} while preserving
+the conservative property under \cref{assumption:order}. The four layers are:
+
+\begin{description}
+  \item[Layer 1: Beta-Bernoulli posteriors.] Per-cell, per-tier Bayesian
+        posteriors with offline-prior pseudocounts and online updates.
+  \item[Layer 2: Conservative posterior-rejection gate.] One-sided
+        credibility test that filters downgrades whose conformal lower bound
+        on quality preservation falls below tolerance.
+  \item[Layer 3: Asymmetric-loss decision rule.] Bayes-optimal action under
+        the asymmetric loss matrix \cref{eq:loss}, with multipliers
+        partitioned by tolerance class.
+  \item[Layer 4: Uncertainty-triggered eval.] Eval suite is fired when
+        posterior credibility is too wide for any decision to be confident.
+\end{description}
+
+The remainder of this section develops each layer, gives a regret bound for
+the unconstrained limit, and proves the conservative-property guarantee.
+
+\subsection{Layer 1: Beta-Bernoulli posteriors}
+\label{sec:layer1}
+
+For each cell $(\agent, \shape)$ and tier $\tier$, we maintain a
+$\mathrm{Beta}(\alpha_{\agent,\shape,\tier}, \beta_{\agent,\shape,\tier})$
+posterior on $\theta_{\agent,\shape,\tier}$. The Bernoulli likelihood
+\cref{eq:bernoulli} is conjugate, so updates are closed-form: on observing
+$q \in \{0,1\}$,
+\[
+  \alpha \leftarrow \alpha + q,
+  \qquad
+  \beta \leftarrow \beta + (1 - q).
+\]
+
+\paragraph{Cold-start prior.}
+We seed each cell from the offline empirical landscape (the
+agent-by-shape-by-tier matrix produced in \cite{blackrim_moa1b}). Each cell
+in the landscape is annotated with a confidence percentage $c \in [0, 100]$
+reflecting the strength of evidence underlying the recommendation. We map
+this to Beta pseudocounts via
+\begin{equation}
+  \alpha_{\mathrm{prior}} = \max\!\big(1, \mathrm{round}(c / 5)\big),
+  \quad
+  \beta_{\mathrm{prior}} = \max\!\big(1, \mathrm{round}((100 - c) / 5)\big).
+  \label{eq:prior-from-confidence}
+\end{equation}
+A 95\%-confidence cell maps to $\mathrm{Beta}(19, 1)$ (very informative); a
+65\%-confidence cell maps to $\mathrm{Beta}(13, 7)$ (effectively
+uninformative); a never-evidenced cell maps to $\mathrm{Beta}(1, 1)$, the
+uniform prior.
+
+\paragraph{Hierarchical partial pooling.}
+Many cells will be sparse for weeks. We borrow strength across siblings
+within an agent (different shapes, same agent) and across agents within a
+tolerance class. The simplest closed-form approximation is weighted-average
+pseudocount pooling:
+\begin{equation}
+  \tilde{\alpha} = \alpha + \lambda \sum_{\agent', \shape' \in \mathrm{sib}}
+    w_{\agent',\shape'} \, \alpha_{\agent',\shape',\tier},
+  \quad
+  \tilde{\beta} \text{ analogously},
+  \label{eq:pooling}
+\end{equation}
+with weights $w$ inversely proportional to sibling-posterior standard
+error and a global cap $\lambda \leq 0.5$ to prevent pooling from dominating
+own-cell evidence. Full hierarchical Beta-Beta inference is a
+straightforward MOA-9 design choice (Stan \cite{carpenter2017stan} or PyMC
+implementations exist); for the production loop the closed-form
+approximation suffices and is provably no worse asymptotically.
+
+\subsection{Layer 2: Conservative posterior-rejection gate}
+\label{sec:layer2}
+
+Given the pooled posterior, the conservative gate determines whether each
+candidate tier is admitted to the feasible set
+$\tierset_{\posterior, \tolerance, \alpha}$.
+
+\paragraph{Conformal lower bound.}
+We compute the conformal lower bound on quality preservation
+\cite{angelopoulos2021gentle,vovk2005algorithmic}. A held-out calibration
+set of $(predicted, observed)$ quality pairs is maintained per cell on a
+rolling window. Conformal prediction emits a distribution-free interval
+$[\widehat{q}_{\mathrm{lo}}, \widehat{q}_{\mathrm{hi}}]$ such that
+\(
+  \Pr(\theta \in [\widehat{q}_{\mathrm{lo}}, \widehat{q}_{\mathrm{hi}}])
+    \geq 1 - \alpha,
+\)
+regardless of the underlying distribution. The lower bound
+$\widehat{q}_{\mathrm{lo}}(\agent, \shape, \tier)$ is then plugged into the
+gate:
+
+\begin{definition}[Conservative gate]
+\label{def:gate}
+For a candidate tier $\tier \prec \tier^*$ at cell $(\agent, \shape)$ with
+tolerance $\tolerance$, the conservative gate \emph{admits} $\tier$ if and
+only if
+\begin{equation}
+  \widehat{q}_{\mathrm{lo}}(\agent, \shape, \tier)
+    \;\geq\;
+  \mu^*(\agent, \shape) - \tolerance,
+  \label{eq:gate}
+\end{equation}
+where $\mu^*$ is the posterior-mean quality at the baseline tier.
+\end{definition}
+
+The gate has four operational regimes, controlled by tolerance class:
+$\tolerance = 0$ (Critical) admits no downgrade ever, regardless of evidence
+strength; $\tolerance < 0.02$ (Strict) admits a downgrade only when the
+conformal LCB exceeds baseline-mean by 2~percentage points; and so on
+through Lenient.
+
+\subsection{Layer 3: Asymmetric-loss decision rule}
+\label{sec:layer3}
+
+Among the admitted tiers, we pick the action minimizing expected
+asymmetric loss. The loss matrix, indexed by action
+$a \in \{\mathrm{down}, \mathrm{stay}, \mathrm{up}\}$ and outcome $\omega
+\in \{\mathrm{preserved}, \mathrm{lost}\}$, is shown in
+\cref{tab:loss-matrix}.
+
+\begin{table}[h]
+\centering
+\caption{Asymmetric loss matrix. The Critical multiplier $M[\text{Critical}] = \infty$
+collapses to a hard rejection: critical-path cells never enter the
+exploration set.}
+\label{tab:loss-matrix}
+\begin{tabular}{lll}
+\toprule
+\textbf{Action $\times$ outcome} & \textbf{Loss} & \textbf{Notes} \\
+\midrule
+$L(\mathrm{down}, \mathrm{preserved})$ & $-\Delta\cost(\tier^*, \tier_{\mathrm{lower}})$ & savings \\
+$L(\mathrm{down}, \mathrm{lost})$
+  & $\Delta\cost_{\mathrm{down}} \cdot N_{\mathrm{dep}} \cdot M[\tolerance]$
+  & cascade \\
+$L(\mathrm{stay}, \cdot)$ & $0$ & baseline \\
+$L(\mathrm{up}, \mathrm{preserved})$ & $+\Delta\cost(\tier_{\mathrm{higher}}, \tier^*)$ & overpay \\
+$L(\mathrm{up}, \mathrm{lost})$ & $+\Delta\cost(\tier_{\mathrm{higher}}, \tier^*)$ & overpay \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The multipliers $M[\cdot]$ are
+\(
+  M[\text{Critical}] = \infty,
+\)
+\(
+  M[\text{Strict}] = 20,
+\)
+\(
+  M[\text{Moderate}] = 5,
+\)
+\(
+  M[\text{Lenient}] = 1.
+\)
+A Critical cell with $M = \infty$ degenerates the decision rule to
+``never downgrade,'' which is the operational behaviour we want for ADRs,
+threat models, and incident-response orchestration. Lenient cells
+($M = 1$) treat downstream cascade as bounded by the saved API spend, which
+is the correct calculus for, e.g., a research lookup that the human
+operator gates anyway.
+
+\subsection{Layer 4: Uncertainty-triggered eval}
+\label{sec:layer4}
+
+When the conformal interval at the chosen tier is wider than a threshold
+$\theta_{\mathrm{eval}}$ (we use $\theta_{\mathrm{eval}} = 0.10$ in
+production), the advisor schedules a deterministic eval-suite run on the
+cell. Eval results are weighted higher in the likelihood than production
+quality observations because their ground truth is known; the conformal
+calibration set is updated with the eval $(predicted, observed)$ pairs.
+
+This is the loop that closes the regulator: cells with thin evidence ---
+notably the open-questions cells \texttt{OQ-1}--\texttt{OQ-5} from
+\cite{blackrim_moa1b} --- accumulate eval probes proportional to their
+posterior width, and the advisor's policy converges on those cells in time
+proportional to eval cadence rather than production traffic.
+
+\subsection{The CC-TS algorithm}
+
+\Cref{alg:ccts} states CC-TS in full.
+
+\begin{algorithm}[h]
+\KwIn{Cell $(\agent, \shape)$, tolerance $\tolerance$, baseline tier $\tier^*$,
+      pooled posterior $\widetilde{\posterior}$,
+      conformal calibration sets $\mathcal{C}_{\agent,\shape,\tier}$,
+      loss matrix $L$, eval threshold $\theta_{\mathrm{eval}}$,
+      confidence level $\alpha = 0.05$.}
+\KwOut{Recommended tier $\tier^\dagger$, rationale $r$.}
+
+\BlankLine
+$\mathrm{cands} \leftarrow \{\tier^*\}$ \tcp*{baseline always admitted}
+\For{$\tier \in \tierset \setminus \{\tier^*\}$}{
+  $\widehat{q}_{\mathrm{lo}} \leftarrow
+    \mathrm{ConformalLCB}(\widetilde{\posterior}_{\tier},
+    \mathcal{C}_{\agent,\shape,\tier}, \alpha)$\;
+  \If{$\tier \prec \tier^*$ \KwAnd $\widehat{q}_{\mathrm{lo}}
+       \geq \mu^*(\agent, \shape) - \tolerance$}{
+    $\mathrm{cands} \leftarrow \mathrm{cands} \cup \{\tier\}$
+      \tcp*{Layer 2: conservative gate}
+  }
+  \ElseIf{$\tier \succ \tier^*$}{
+    $\mathrm{cands} \leftarrow \mathrm{cands} \cup \{\tier\}$
+      \tcp*{upgrades unconstrained}
+  }
+}
+
+$\tier^\dagger \leftarrow
+  \arg\min_{\tier \in \mathrm{cands}} \;
+    \mathbb{E}_{\theta \sim \widetilde{\posterior}_{\tier}}
+      \big[ L(\tier, \theta; \tier^*, \mu^*) \big]$
+  \tcp*{Layer 3: asymmetric-loss min}
+
+\If{$\mathrm{CIWidth}(\widetilde{\posterior}_{\tier^\dagger}, \alpha)
+     > \theta_{\mathrm{eval}}$}{
+  $\mathrm{ScheduleEval}(\agent, \shape, \tier^\dagger)$
+    \tcp*{Layer 4: uncertainty-triggered}
+}
+
+\Return{$\tier^\dagger,
+  r = \{\mathrm{cands}, \widehat{q}_{\mathrm{lo}}, \mathrm{LossExp}\}$}\;
+
+\caption{CC-TS recommend.}
+\label{alg:ccts}
+\end{algorithm}
+
+\subsection{Theoretical guarantees}
+
+We give two results: a regret bound under unconstrained Thompson Sampling
+(when the conservative gate is vacuous because every tier passes), and a
+conservative-property guarantee that holds always.
+
+\begin{proposition}[Unconstrained regret]
+\label{prop:regret}
+In the unconstrained limit ($M = 0$, equivalently $\tolerance \geq 1$, every
+candidate admitted), CC-TS reduces to standard Thompson Sampling per cell.
+By Agrawal--Goyal \cite{agrawal2012analysis}, the per-cell expected regret
+after $T$ rounds satisfies
+\begin{equation}
+  \mathbb{E}[R_T] \;\leq\; \mathcal{O}\!\left(
+    \sum_{\tier \neq \tier^\star_{\agent,\shape}}
+      \frac{\log T}{\Delta_\tier}
+  \right),
+  \label{eq:regret}
+\end{equation}
+with $\Delta_\tier = \theta_{\agent,\shape,\tier^\star} - \theta_{\agent,\shape,\tier}$
+the per-arm gap.
+\end{proposition}
+
+The proof is the standard Agrawal--Goyal decomposition; we omit it.
+
+\begin{theorem}[Conservative property]
+\label{thm:conservative}
+Suppose conformal calibration is exchangeable with the production stream
+\cite{vovk2005algorithmic}. Then for any cell $(\agent, \shape)$ and
+tolerance $\tolerance$, CC-TS recommends a downgrade
+$\tier \prec \tier^*$ only if
+\begin{equation}
+  \Pr\!\big[
+    \theta_{\agent,\shape,\tier} \geq \theta_{\agent,\shape,\tier^*} - \tolerance
+  \big]
+  \;\geq\;
+  1 - \alpha.
+  \label{eq:conservative}
+\end{equation}
+\end{theorem}
+
+\begin{proof}[Proof sketch.]
+The downgrade $\tier \prec \tier^*$ is admitted to $\mathrm{cands}$ in
+\cref{alg:ccts} only if the conformal lower bound exceeds
+$\mu^*(\agent, \shape) - \tolerance$. By the marginal coverage guarantee of
+conformal prediction \cite{angelopoulos2021gentle}, the event
+$\theta_{\agent,\shape,\tier} \geq \widehat{q}_{\mathrm{lo}}$ has probability
+at least $1 - \alpha$ under the calibration distribution. Combining the two
+yields \cref{eq:conservative}. The asymmetric-loss step (Layer 3) can only
+remove tiers from the candidate set, never add them, so the inequality is
+preserved by the final selection.
+\end{proof}
+
+\Cref{thm:conservative} is the load-bearing property of the system: every
+operationally-relevant downgrade is credible at the chosen confidence
+level, and the credibility is wired to the same conformal machinery whose
+coverage is well-understood \cite{angelopoulos2021gentle}.
+
+\subsection{Implementation notes}
+
+The reference implementation lives in \texttt{internal/dispatch/}
+\cite{german2026blackrim}. Three implementation properties are worth
+flagging because they materially affect the deployment story:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Pure-function recommend.} The function
+        \texttt{Recommend(state, key) -> (tier, reasons)} has no I/O and no
+        global mutable state, which makes it trivial to test exhaustively.
+  \item \textbf{Determinism for tests.} The Beta sampler is seedable from a
+        \texttt{Recommend} argument, so unit tests can verify decision shapes
+        across pseudo-random draws.
+  \item \textbf{Reasons object.} Every recommendation returns a structured
+        rationale: candidate tiers, conformal LCBs, expected losses, and
+        whether eval was triggered. This is the audit surface and the
+        operator interface in one structure.
+\end{enumerate}
+
+The full pseudocode in
+\cite{blackrim_moa1c} is faithful to the implementation; we elide it here
+for space.

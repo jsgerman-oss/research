@@ -1,0 +1,60 @@
+\section{Future Work}
+\label{sec:future}
+
+CC-TS as deployed today is a Tier-1 implementation: per-cell tabular
+posteriors, closed-form conformal calibration, asymmetric-loss decision
+rule. The open-questions list (\cref{sec:eval} and \cite{blackrim_moa1c})
+points to a credible Tier-2 stack, plus three Tier-3 directions.
+
+\paragraph{Tier 2: post-deployment refinement.}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Hierarchical partial pooling at full inference.}
+        \Cref{eq:pooling} approximates Beta-Beta pooling closed-form. A
+        full Stan or PyMC-based hierarchical model
+        \cite{carpenter2017stan,gelman2013bayesian} would use both
+        within-agent and cross-agent structure. The marginal benefit
+        depends on the answer to OQ-A8 (cross-agent transfer) in
+        \cite{blackrim_moa1c}.
+  \item \textbf{Per-tier eval-trigger thresholds.}
+        $\theta_{\mathrm{eval}}$ is uniform across tolerance classes today.
+        Critical cells with thin evidence should arguably trigger eval at
+        a tighter posterior width than Lenient cells; the empirical
+        sweet-spot per class is OQ-A9.
+  \item \textbf{Doubly-robust shadow policies.}
+        Logging on-policy decisions with their propensities enables
+        cleaner off-policy evaluation of speculative policy changes
+        \cite{thomas2016data,jiang2016doubly}. We log this today but do not
+        yet act on it; promoting it to a continuous shadow-evaluation loop
+        is a clean extension.
+\end{itemize}
+
+\paragraph{Tier 3: parking lot.}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Contextual upgrade.} If task-shape features (token count,
+        file count, time-of-day, prior-failure flag) move the optimal tier
+        within a cell, the per-cell tabular posterior is misspecified. A
+        promotion to LinUCB \cite{li2010contextual} or contextual
+        Thompson Sampling \cite{agrawal2013thompson} is the textbook fix.
+        OQ-A2 in \cite{blackrim_moa1c} resolves the empirical question.
+  \item \textbf{Non-stationarity handling.} If model providers change tier
+        behaviour over weeks --- model deprecations, prompt-routing
+        changes --- the IID Beta-Bernoulli assumption fails. Discounted
+        Thompson Sampling \cite{rajcoomar2017discounted} or EXP3-IX
+        \cite{neu2015explore} are the standard responses; OQ-A1 resolves
+        which.
+  \item \textbf{Federated multi-tenant CC-TS.} The most ambitious
+        extension. Consumer repos onboarded via \texttt{blackrim-project on}
+        could pool posteriors across tenants without sharing raw
+        telemetry, using federated Bayesian inference
+        \cite{shi2024federated} or differential-privacy mechanisms. The
+        bandwidth-vs-noise tradeoff is the open theoretical question; the
+        privacy-and-trust story is the open product question.
+\end{itemize}
+
+\paragraph{Cross-cutting: continuous-quality signal.}
+The Beta-Bernoulli framing depends on a binary success indicator. As eval
+suites mature toward continuous quality scores ($\in [0,1]$ with
+calibrated semantics), the natural posterior shape is Gaussian or
+truncated-Gaussian. The decision rule and conservative gate generalise
+naturally; only the prior elicitation in \cref{eq:prior-from-confidence}
+needs revisiting. OQ-A6 governs the empirical case.

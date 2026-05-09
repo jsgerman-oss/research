@@ -1,0 +1,144 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Daily rebuild at 04:00 UTC — picks up paper edits, broken links, dependency drift.
+    - cron: '0 4 * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  HUGO_VERSION: 0.140.2
+  HUGO_ENVIRONMENT: production
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # ── 1. Compile every paper to PDF ───────────────────────────────────
+      # Auto-discovery: any directory at the repo root matching `*-paper/`
+      # that contains a `main.tex` is compiled. Each `main.pdf` is copied
+      # into the matching `content/publications/<slug>/<slug>.pdf`, where
+      # <slug> is the directory name minus the `-paper` suffix. Directories
+      # without `main.tex` (e.g. paper sources still being assembled) are
+      # skipped, not failed.
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-fonts-extra \
+            texlive-bibtex-extra \
+            texlive-pictures \
+            texlive-science \
+            texlive-luatex \
+            biber \
+            latexmk \
+            chktex
+
+      - name: Compile all papers and stage PDFs
+        # Per-paper failures are logged via ::warning:: and counted, but do
+        # NOT fail the workflow. A skeleton paper (no main.tex, missing
+        # \addbibresource target, etc.) just means its publication page
+        # won't have a PDF link this build.
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+          compiled=0
+          skipped=0
+          failed=0
+          for paper_dir in *-paper/; do
+            paper_dir="${paper_dir%/}"
+            slug="${paper_dir%-paper}"
+            if [ ! -f "$paper_dir/main.tex" ]; then
+              echo "::notice::Skipping $paper_dir — no main.tex"
+              skipped=$((skipped + 1))
+              continue
+            fi
+            echo "::group::Compiling $paper_dir → $slug.pdf"
+            if (
+              cd "$paper_dir"
+              if [ -f Makefile ] && grep -q "^all:" Makefile; then
+                make
+              else
+                latexmk -pdf -bibtex -halt-on-error -interaction=nonstopmode main.tex
+              fi
+            ); then
+              mkdir -p "content/publications/$slug"
+              cp "$paper_dir/main.pdf" "content/publications/$slug/$slug.pdf"
+              compiled=$((compiled + 1))
+            else
+              echo "::warning::Paper $paper_dir failed to compile — site will deploy without its PDF"
+              failed=$((failed + 1))
+            fi
+            echo "::endgroup::"
+          done
+          echo "Compiled: $compiled  |  Skipped: $skipped  |  Failed: $failed"
+          ls -la content/publications/
+
+      # ── 2. Build the Hugo site ───────────────────────────────────────────
+      - name: Setup Go (for Hugo modules)
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Setup Hugo (extended)
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: ${{ env.HUGO_VERSION }}
+          extended: true
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Install Hugo Blox dependencies
+        run: |
+          set -euo pipefail
+          hugo mod get -u
+          hugo mod tidy
+
+      - name: Build site with Hugo
+        env:
+          HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
+        run: |
+          hugo \
+            --gc \
+            --minify \
+            --baseURL "${{ steps.pages.outputs.base_url }}/"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

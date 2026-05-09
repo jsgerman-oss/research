@@ -1,0 +1,103 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Where CC-TS pays its conservatism}
+
+The conservative-gate guarantee (\cref{thm:conservative}) is not free. The
+policy forgoes savings on cells where the conformal lower bound
+$\widehat{q}_{\mathrm{lo}}$ has not yet reached the tolerance threshold
+even though the point estimate suggests a downgrade is safe. In our
+deployment, this bites hardest on novel agent types --- agents added by
+consumer repos that have no offline prior --- and on cells where the eval
+suite is silent. The consequence is a measurable opportunity cost
+(\cref{fig:ablation-gate}) that an operator might rationalise as
+``leaving money on the table.'' The design choice is to take that hit
+rather than risk silent regression.
+
+\subsection{Why static frontmatter persists as a safety hatch}
+
+CC-TS is deployed alongside, not in place of, the static-frontmatter
+default. Each agent's declared tier is the policy floor: the advisor may
+recommend a downgrade, but the operator can lock the cell to the static
+default via a single configuration flag. This is more than belt-and-braces
+caution. Two regimes specifically motivate the safety hatch:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Incident response.} During an active incident, exploration
+        is exactly the wrong policy. The advisor must yield to the
+        operator's risk tolerance, not the calibrated default. We expose a
+        \texttt{force\_baseline=true} flag that short-circuits all learning
+        and plays the static recommendation.
+  \item \textbf{Adversarial drift.} If the upstream model provider
+        deprecates or silently changes a tier, posterior estimates become
+        stale before the advisor's change-point detection can react. The
+        static floor caps the damage.
+\end{enumerate}
+
+\subsection{Off-policy evaluation gap}
+
+The cost results in \cref{sec:eval} use doubly-robust off-policy evaluation
+\cite{dudik2014doubly} to compare CC-TS against baselines that were never
+actually run on the production trace. This is the standard approach in
+contextual-bandit deployments \cite{agarwal2016making}, but it has a
+known limitation: when the dispatch policy and the reward distribution are
+both non-stationary --- which is exactly our setting, since both the
+advisor's posteriors and Anthropic's underlying models are evolving --- DR
+estimators bias toward whichever regime dominates the logged data. We
+report the bootstrap CIs honestly, but operators reading the paper should
+understand that the cost numbers are point estimates with non-trivial
+distributional assumptions baked in.
+
+\subsection{When this won't work}
+
+Three regimes break CC-TS as currently described:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Continuous quality signal.} If the eval suite emits a
+        continuous score in $[0, 1]$ rather than a binary pass/fail
+        indicator, the Beta-Bernoulli posterior is the wrong family. A
+        Gaussian (or Beta-distributed continuous-quality) posterior is the
+        natural extension; this is open question OQ-A6 in
+        \cite{blackrim_moa1c}.
+  \item \textbf{Sequential structure.} CC-TS treats each dispatch as a
+        one-shot decision. If a sequence of dispatches has joint downstream
+        consequences --- e.g., an architect's ADR cascades into seven
+        builder dispatches --- the per-cell posterior under-counts the
+        cascade cost. The critical-path-aware extension in
+        \cite{blackrim_moa10} addresses this; the formal treatment is
+        contextual MDP, not bandit.
+  \item \textbf{Multi-tenant federation.} A consumer repo running CC-TS in
+        isolation sees only its own telemetry. A federated CC-TS that
+        shares posteriors across tenants would dramatically improve
+        thin-cell convergence, but introduces privacy and trust questions
+        out of scope for this paper.
+\end{itemize}
+
+\subsection{Lessons from deployment}
+
+Three deployment lessons are worth flagging explicitly because they
+generalise beyond CC-TS to any production bandit deployment.
+
+\paragraph{Quality observation is the hard part.}
+The bandit literature is dense; the production-quality-signal literature is
+sparse. Our three-channel observation mechanism (\cref{sec:system}) was
+the most carefully-designed part of the system, and the most fragile. The
+disk-flush race in transcript persistence \cite{blackrim_hyqd} alone cost
+us a week of debugging. We commend the engineering effort to anyone
+attempting a similar deployment: the bandit policy is the easy part; the
+reward signal is the hard part.
+
+\paragraph{Audit surface beats accuracy.}
+Operators trust an advisor whose recommendations they can read and check.
+The structured \texttt{Reasons} object on every recommendation
+(\cref{sec:layer3}) was responsible for more operator-trust uplift than
+any improvement to the underlying algorithm. A black-box advisor with
+$10\%$ better policy accuracy would have been turned off in week one.
+
+\paragraph{Conservative bias is the design contract.}
+The asymmetric-loss multiplier $M[\text{Critical}] = \infty$
+(\cref{tab:loss-matrix}) collapses to a hard rule: critical-path cells
+never enter the exploration set. This is not a hyperparameter; it is the
+design contract under which operators allow the advisor to drive
+production routing. Loosening it would surrender the trust that the
+deployment is built on.

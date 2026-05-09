@@ -1,0 +1,43 @@
+\begin{abstract}
+\noindent
+\tothink{abstract}
+
+The abstract will compress the paper into a single dense paragraph; outline of
+the five mandatory bullet points it must hit:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Problem.} Multi-agent memory pools are heterogeneous (short
+        bd-memory entries, mixed-shape queries, recency-sensitive); the
+        retriever sits on the hot path of every agent spawn and a wrong
+        recall poisons every downstream prompt. No single scorer or fusion
+        configuration dominates across the six query classes Blackrim
+        observes (technical-lookup, failure-recall, agent-scoped, continuity,
+        concept-bridge, exact-id-or-slug).
+  \item \textbf{Framing.} Selection of fusion configuration is a
+        \emph{conservative contextual bandit} problem — arms are
+        fusion-config combinations, context is the query class (and ideally
+        a query-class classifier), reward is per-query NDCG@10, and the
+        safety constraint is per-class no-regression below the BM25 (or
+        BM25+decay) baseline. This is structurally distinct from the
+        model-advisor paper's tier-cost-ratio framing because the cost axis
+        is local latency, not LLM-token cost.
+  \item \textbf{Algorithm.} The proposed system stacks BM25 + SPLADE +
+        dense + RRF + decay + MMR + optional cross-encoder reranker,
+        gated by a SPLADE corpus-size threshold and a Critical-tier
+        reranker hook. The contextual-bandit policy on top selects per-class
+        fusion weights subject to a conservative-bandit
+        \cite{wu2016conservative,kazerouni2017conservative} constraint.
+  \item \textbf{Evaluation.} Empirical evaluation uses paper-stream
+        telemetry (\texttt{internal/bdmemory/paper\_stream.go}) flowing to
+        \texttt{data/raw/queries.jsonl}, with held-out per-class NDCG@10
+        and recall@k against a labeled relevance set. Baselines: keyword,
+        BM25, hybrid-RRF, hybrid-CC, and the proposed adaptive policy.
+  \item \textbf{Finding.} \tothink{headline finding once data accumulates --
+        per-class no-regression preserved at $\budget = 0$; total NDCG@10
+        improvement of $\tothink{X\%}$ over BM25 baseline; SPLADE
+        corpus-size gate triggers correctly at $\tothink{N}$ documents.}
+\end{itemize}
+
+\textbf{Keywords:} hybrid retrieval, contextual bandits, conservative
+exploration, agent memory, BM25, SPLADE, RRF, recency decay, NDCG.
+\end{abstract}

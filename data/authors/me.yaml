@@ -1,0 +1,47 @@
+schema: hugoblox/author/v1
+slug: me
+is_owner: true
+name:
+  display: Jay German
+  given: Jay
+  family: German
+  alternate: ''
+  pronunciation: ''
+  pronouns: ''
+postnominals: []
+status:
+  icon: ""
+role: Independent Researcher
+
+bio: |
+  Independent research on multi-agent LLM systems, model routing under
+  cost-quality constraints, and agentic AI infrastructure.
+
+  I work on the systems-and-statistics layer of multi-agent LLM workflows:
+  how to route work across heterogeneous model tiers, how to bound quality
+  loss when a cheaper model is substituted, and how to design dispatch
+  policies that survive non-stationary production telemetry.
+
+affiliations:
+  - name: Independent
+    url: ''
+
+links:
+  - icon: at-symbol
+    url: mailto:camber.estate_6j@icloud.com
+    label: Email
+  - icon: brands/github
+    url: https://github.com/jsgerman-oss
+
+interests:
+  - Multi-agent LLM systems
+  - Model routing and dispatch
+  - Bayesian decision theory
+  - Conformal prediction
+  - Production-scale agentic AI
+
+education: []
+experience: []
+skills: []
+languages: []
+awards: []

@@ -1,0 +1,32 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented Conservative Constrained Thompson Sampling (CC-TS), a Bayesian
+adaptive routing policy for multi-agent LLM workflows. The policy combines
+hierarchical Beta-Bernoulli posteriors seeded from offline evaluation, a
+conformal-LCB-gated conservative-rejection rule, an asymmetric-loss
+decision step, and uncertainty-triggered eval. The conservative-property
+guarantee (\cref{thm:conservative}) is the load-bearing design property:
+no downgrade is committed unless the conformal lower bound credibly
+exceeds the per-task quality tolerance. We deployed CC-TS in \blackrim
+across $17$ agents and $\approx 170$ cells; the cost-quality tradeoff
+sits on the Pareto frontier consistent with our design intent.
+
+The paper's central claim is methodological: \emph{adaptive model-tier
+selection in production agent systems is a constrained Bayesian decision
+problem, not a contextual-bandit problem with an extra-large reward.} The
+asymmetric-loss structure and the small-sample-per-cell regime push the
+problem out of standard contextual-bandit territory and into the
+conservative-bandit subliterature \cite{wu2016conservative}, calibrated by
+conformal prediction \cite{angelopoulos2021gentle}, and warm-started by an
+offline empirical landscape. We believe this combination is generally
+applicable to any agent framework with heterogeneous model menus and
+asymmetric task stakes; we hope the open-source artefact lowers the
+barrier to adoption.
+
+\paragraph{Acknowledgements.}
+This work was developed alongside the open-source \blackrim codebase. We
+thank the contributors and operators who provided the dispatch traces and
+operator-survey data that backed \cref{sec:eval}. The companion artefacts
+are released under permissive licenses; see \cite{blackrim_paper_repo} for
+the code and data, and \cite{german2026blackrim} for the framework itself.

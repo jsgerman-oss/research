@@ -1,0 +1,54 @@
+\section{Related Work}
+\label{sec:related}
+
+\tothink{related-work prose; outline below maps to seven sub-families that
+need to be cited and contextualised.}
+
+\subsection{Classical sparse retrieval}
+
+\tothink{TF-IDF, BM25, BM25F lineage \cite{robertson1994okapi,robertson2009probabilistic,robertson2004simple}; pivoted-length normalisation \cite{singhal1996pivoted}; Anserini reproducibility \cite{yang2017anserini}; BEIR zero-shot baseline \cite{thakur2021beir,kamalloo2024resources}.}
+
+\subsection{Neural sparse retrieval}
+
+\tothink{SPLADE family \cite{formal2021splade,formal2021spladev2,lassance2024towards}, COIL/uniCOIL/DeepImpact \cite{gao2021coil,lin2021brief,mallia2021learning}; key claim: sparsity learned not architectural; inverted-index-friendly retrieval cost.}
+
+\subsection{Dense retrieval}
+
+\tothink{DPR \cite{karpukhin2020dense}, Sentence-BERT \cite{reimers2019sentence}, ANCE \cite{xiong2021ance}, Contriever \cite{izacard2022unsupervised}, BGE/E5/GTE \cite{xiao2024c,wang2024text,li2023towards}. Failure mode on rare-keyword / exact-ID queries (BEIR domain shift).}
+
+\subsection{Late interaction and cross-encoder rerankers}
+
+\tothink{ColBERT/ColBERTv2/PLAID \cite{khattab2020colbert,santhanam2022colbertv2,santhanam2022plaid}; monoBERT/monoT5/RankGPT \cite{nogueira2019passage,nogueira2020document,sun2023chatgpt}; modern open-weight rerankers (BGE/Cohere/Jina). Latency-effectiveness tradeoff.}
+
+\subsection{Fusion}
+
+\tothink{RRF as default \cite{cormack2009reciprocal}; CombSUM/MNZ
+\cite{fox1994combination}; weighted RRF; Bruch et al.\ 2023
+\cite{bruch2023analysis} convex-combination-vs-RRF result; Liu et al.\
+2025 \cite{liu2025dat} dynamic alpha tuning. Open question:
+RRF is robust without calibration; CC beats RRF when calibrated
+per-domain. We adopt RRF as v1 default and the CC framing as the
+contextual bandit's default arm parameterisation.}
+
+\subsection{Recency-aware retrieval}
+
+\tothink{Time-aware language models \cite{berberich2010language}; Box-Cox / power-law decay \cite{dakka2008answering}; query-dependent freshness \cite{dong2010towards}; freshness-relevance tradeoff. Forgetting-curve antecedents (Ebbinghaus 1885; Murre \& Dros 2015).}
+
+\subsection{Conservative bandits and bandit-based IR}
+
+\tothink{Conservative bandits \cite{wu2016conservative}, conservative
+contextual linear bandits \cite{kazerouni2017conservative}, improved
+conservative-exploration algorithms \cite{garcelon2020improved}.
+Connection to safe exploration in RL \cite{garcia2015comprehensive}.
+Bandit-based IR / online IR ranking
+\cite{chapelle2012large,radlinski2008learning}. This is the formal
+scaffolding for the per-class safety constraint we adopt.}
+
+\subsection{Agent-system retrieval}
+
+\tothink{RAG and tool-augmented LLMs (cite the canonical agent-RAG
+papers); the recent multi-agent-memory literature; MemGPT
+\cite{packer2023memgpt}; long-term-memory architectures. Position the
+\bdmemory shape against this body of work — short, recency-weighted,
+agent-keyed memories are not the same as "general-purpose RAG over
+documents."}

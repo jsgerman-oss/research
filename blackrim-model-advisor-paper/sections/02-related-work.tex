@@ -1,0 +1,84 @@
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Multi-armed and contextual bandits}
+
+The multi-armed bandit problem dates to Thompson \cite{thompson1933likelihood}.
+The modern era is anchored by Auer et al.'s UCB1 and its variants
+\cite{auer2002finite,audibert2009exploration}, by Russo and Van Roy's
+analysis of Thompson Sampling
+\cite{russo2014learning,russo2018tutorial,agrawal2012analysis}, and by Bubeck
+and Cesa-Bianchi's regret theory \cite{bubeck2012regret}.
+
+Contextual extensions begin with Auer's LinRel and progress through
+Li et al.'s LinUCB \cite{li2010contextual}, Agrawal and Goyal's contextual
+Thompson sampling \cite{agrawal2013thompson}, and the neural-bandit family
+\cite{zhou2020neural,zhang2020neural}. Microsoft Research's open-source
+Decision Service \cite{agarwal2016making} exemplifies a production-grade
+contextual-bandit deployment with off-policy evaluation built in.
+
+\subsection{Constrained and conservative bandits}
+
+The conservative bandit setting --- where the learner must perform no
+worse than a known baseline with high probability --- was introduced by Wu
+et al.\ \cite{wu2016conservative} and extended to linear payoffs by Amani
+et al.\ \cite{amani2019linear}. Kazerouni et al.\ \cite{kazerouni2017conservative}
+analyse the related setting under linear contextual rewards. These works
+provide the formal scaffolding for our conservative-property guarantee:
+the quality-preservation constraint is structurally identical to a
+no-worse-than-baseline constraint with the opus tier playing the baseline
+role.
+
+Safe exploration in reinforcement learning
+\cite{garcia2015comprehensive,achiam2017constrained} addresses adjacent
+concerns; we do not adopt the full RL apparatus because our decisions are
+single-step.
+
+\subsection{Calibration and uncertainty quantification}
+
+Platt scaling \cite{platt1999probabilistic} and isotonic regression
+\cite{zadrozny2002transforming} are the classical methods for converting
+classifier scores into calibrated probabilities. We use them only as
+diagnostic checks; the operational calibration in CC-TS is provided by
+conformal prediction \cite{vovk2005algorithmic,shafer2008tutorial,angelopoulos2021gentle},
+which yields distribution-free coverage guarantees on the
+quality-drop intervals.
+
+Hierarchical Bayesian modelling with partial pooling
+\cite{gelman2013bayesian} underpins our prior structure. The prior at the
+agent--shape level is partially pooled with both the agent-level marginal
+and the shape-level marginal, which dramatically improves cold-start
+behaviour for low-traffic cells.
+
+\subsection{LLM model routing and cost optimization}
+
+A recent line of work attacks the model-routing problem directly.
+RouteLLM \cite{ong2024routellm} learns a binary router between strong and
+weak models; FrugalGPT \cite{chen2023frugalgpt} composes models in
+escalation cascades. Hybrid-LLM \cite{ding2024hybrid} treats routing as a
+contextual bandit. Lu et al.\ \cite{lu2024routing} compare against an
+oracle. None of this work, to our knowledge, embeds an asymmetric loss
+matrix or a hard quality-preservation constraint --- their decision rules
+are optimised for accuracy on a benchmark, not for not-regressing on a
+production workload.
+
+\subsection{Agent frameworks}
+
+\blackrim sits in a small but growing class of multi-agent frameworks
+oriented around code: AutoGen \cite{wu2023autogen}, MetaGPT
+\cite{hong2023metagpt}, ChatDev \cite{qian2023communicative}, and
+Anthropic's Claude Code itself
+\cite{anthropic2024claudecode}. Routing decisions in these frameworks are
+either agent-static (\blackrim's pre-advisor state) or based on simple
+keyword heuristics. The advisor we describe is, to our knowledge, the
+first to bring constrained Bayesian decision theory to multi-agent LLM
+routing.
+
+\subsection{Off-policy evaluation}
+
+Inverse propensity scoring \cite{horvitz1952generalization,dudik2011doubly}
+and doubly-robust estimators
+\cite{dudik2014doubly,jiang2016doubly,thomas2016data} provide the
+theoretical machinery for evaluating a counterfactual policy from logged
+data. We use these estimators in \cref{sec:eval} to estimate what each
+baseline would have spent on the same dispatch trace.

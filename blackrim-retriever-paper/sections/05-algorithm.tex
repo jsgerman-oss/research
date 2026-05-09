@@ -1,0 +1,128 @@
+\section{Algorithm: Conservative Contextual Bandit over Fusion Configs}
+\label{sec:algorithm}
+
+\tothink{full algorithm prose; the conservative-contextual-bandit policy
+specification is the load-bearing piece.}
+
+\subsection{Layered architecture}
+
+The proposed policy stacks four layers, in the same shape as MOA-1c's
+CC-TS but adapted to the retrieval surface:
+
+\begin{description}
+  \item[Layer 1: Per-(class, arm) reward posteriors.] Beta posteriors
+        on per-query NDCG@10, with offline-prior pseudocounts seeded
+        from the per-(query-class $\times$ scorer-family $\times$
+        fusion-config) matrix in the landscape doc
+        \cite{blackrim_ijl0_landscape}.
+  \item[Layer 2: Conservative gate.] The conservative-bandit constraint
+        \cref{eq:conservative-budget} filters arms whose per-class
+        cumulative regret against $\baseline(\queryclass)$ would breach
+        the budget at confidence $1 - \alpha$.
+  \item[Layer 3: Posterior-sample selection.] Among admitted arms,
+        Thompson Sampling \cite{russo2018tutorial} on the posterior over
+        per-class arm rewards.
+  \item[Layer 4: Trigger-based eval probes.] When a per-(class, arm)
+        posterior is too wide for Layer 2 to commit, schedule a labeled
+        eval probe to tighten the posterior --- the same eval-trigger
+        loop used in CC-TS.
+\end{description}
+
+\subsection{Layer 1: Beta posteriors over NDCG@10}
+
+\tothink{justify Beta as the right family for $\reward \in [0,1]$;
+discounted Thompson sampling for non-stationarity \cite{rajcoomar2017discounted}
+parking-lot.}
+
+\paragraph{Cold-start prior.}
+\tothink{seed prior from landscape doc Section C confidence percentages
+exactly as in MOA-1c eq:prior-from-confidence: $c \mapsto (\max(1,
+\round(c/5)), \max(1, \round((100-c)/5)))$. The matrix in the landscape
+doc gives a confidence per (class, scorer) cell; we lift those to
+per-(class, arm) confidences by combining the per-component
+confidences for the arm.}
+
+\subsection{Layer 2: Conservative gate}
+
+\tothink{state the per-class cumulative-regret budget tracker; the gate
+admits arm $\arm$ for class $\queryclass$ at time $t$ only if the
+expected regret-against-baseline up to $t$, plus the worst-case regret
+of selecting $\arm$ now, stays within $-\budget(\queryclass)$ at
+confidence $1 - \alpha$. Closed-form via per-(class, arm) posterior
+means and conformal bounds.}
+
+\subsection{Layer 3: Posterior-sample selection}
+
+\tothink{Among gate-admitted arms, draw a sample
+$\widehat{r}(\arm, \queryclass) \sim \posterior_{\queryclass, \arm}$ for
+each, pick $\argmax$. Latency-cost tiebreak when posterior samples are
+within $\epsilon$ of each other --- prefer the cheaper arm.}
+
+\subsection{Layer 4: Trigger-based eval probes}
+
+\tothink{When the posterior $\posterior_{\queryclass, \arm}$ has
+credibility-interval width $> \theta_\mathrm{eval}$, schedule a labeled
+eval probe (paired query against held-out relevance judgement). The
+labeled-probe budget per session is operator-configurable; default
+$5$ probes/day.}
+
+\subsection{The CCBandit-Retriever algorithm}
+
+\Cref{alg:ccbandit} states the policy in full.
+
+\begin{algorithm}[h]
+\KwIn{Query $x$ with class $\queryclass(x) = \queryclass$,
+      per-(class, arm) posteriors $\posterior$, baseline arms
+      $\baseline(\cdot)$, budget $\budget(\cdot)$,
+      cumulative regret tracker $G(\cdot, \cdot)$, confidence
+      $\alpha = 0.05$.}
+\KwOut{Recommended arm $\arm^\dagger$, rationale $r$.}
+
+\BlankLine
+$\mathrm{cands} \leftarrow \{\baseline(\queryclass)\}$
+  \tcp*{baseline always admitted}
+\For{$\arm \in \armset \setminus \{\baseline(\queryclass)\}$}{
+  $g_\mathrm{worst} \leftarrow \mathrm{WorstCaseRegret}(\arm, \queryclass,
+       \posterior_{\queryclass, \arm}, \alpha)$\;
+  \If{$G(\queryclass, \arm) + g_\mathrm{worst} \geq -\budget(\queryclass)$}{
+    $\mathrm{cands} \leftarrow \mathrm{cands} \cup \{\arm\}$
+      \tcp*{Layer 2 admits}
+  }
+}
+
+\For{$\arm \in \mathrm{cands}$}{
+  $\widehat{r}(\arm) \leftarrow $ sample from $\posterior_{\queryclass, \arm}$
+  \tcp*{Layer 3 Thompson sampling}
+}
+$\arm^\dagger \leftarrow \argmax_{\arm \in \mathrm{cands}} \widehat{r}(\arm)$\;
+
+\If{$\mathrm{CIWidth}(\posterior_{\queryclass, \arm^\dagger}, \alpha)
+     > \theta_\mathrm{eval}$}{
+  $\mathrm{ScheduleEvalProbe}(\queryclass, \arm^\dagger)$
+    \tcp*{Layer 4 trigger}
+}
+
+\Return{$\arm^\dagger,
+  r = \{\mathrm{cands}, \widehat{r}, G(\queryclass, \cdot)\}$}\;
+
+\caption{CCBandit-Retriever recommend.}
+\label{alg:ccbandit}
+\end{algorithm}
+
+\subsection{Theoretical guarantees}
+
+\tothink{state the conservative-bandit regret bound. Two results:
+(i) regret vs.\ optimal-arm-per-class scales as
+$\mathcal{O}(\sqrt{|\armset| T \log T})$ via Wu et al.\ Theorem 2;
+(ii) per-class no-regression-vs-baseline holds with probability
+$\geq 1 - \alpha$ uniformly in $T$ via the conservative budget. Both
+are direct corollaries of \cite{wu2016conservative,kazerouni2017conservative}
+applied to the discrete-arm contextual bandit with
+side-information ($\queryclass$).}
+
+\subsection{Implementation notes}
+
+\tothink{the policy lives at \texttt{cmd/gt/contextrecall/cb\_policy.go}
+(planned). The function $\mathrm{Recommend}(x, \queryclass) \to (\arm^\dagger,
+r)$ is pure; per-class regret-tracker state is a separate persistent struct.
+Determinism for tests: the Beta sampler is seedable.}
