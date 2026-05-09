@@ -1,0 +1,417 @@
+% =====================================================================
+% refs.bib — Adaptive Conservative Selection for Hybrid Retrieval paper
+% =====================================================================
+% Conventions:
+%   • Short, deterministic keys: AuthorYearShortTitle
+%   • Cross-paper conservative-bandit + general-ML citations live in
+%     ../_shared/refs-base.bib (loaded via main.tex \addbibresource).
+%   • This file holds paper-local citations: IR literature,
+%     fusion / scorer / decay / MMR / reranker primaries, and the
+%     internal Blackrim references specific to the retriever paper.
+% =====================================================================
+
+% --- Classical sparse retrieval (BM25 family) ------------------------
+
+@inproceedings{robertson1994okapi,
+  author = {Robertson, S. E. and Walker, S. and Jones, S. and Hancock-Beaulieu, M. M. and Gatford, M.},
+  title = {Okapi at {TREC-3}},
+  booktitle = {TREC-3},
+  year = {1994},
+}
+
+@article{robertson2009probabilistic,
+  author = {Robertson, Stephen and Zaragoza, Hugo},
+  title = {The probabilistic relevance framework: {BM25} and beyond},
+  journal = {Foundations and Trends in Information Retrieval},
+  volume = {3},
+  number = {4},
+  pages = {333--389},
+  year = {2009},
+}
+
+@inproceedings{robertson2004simple,
+  author = {Robertson, Stephen and Zaragoza, Hugo and Taylor, Michael},
+  title = {Simple {BM25} extension to multiple weighted fields},
+  booktitle = {CIKM},
+  year = {2004},
+}
+
+@inproceedings{singhal1996pivoted,
+  author = {Singhal, Amit and Buckley, Chris and Mitra, Mandar},
+  title = {Pivoted document length normalization},
+  booktitle = {SIGIR},
+  year = {1996},
+}
+
+@article{yang2017anserini,
+  author = {Yang, Peilin and Fang, Hui and Lin, Jimmy},
+  title = {Anserini: Reproducible ranking baselines using {Lucene}},
+  journal = {ACM Journal of Data and Information Quality},
+  year = {2017},
+  note = {DOI:10.1145/3239571},
+}
+
+@inproceedings{thakur2021beir,
+  author = {Thakur, Nandan and Reimers, Nils and R\"{u}ckl\'{e}, Andreas and Srivastava, Abhishek and Gurevych, Iryna},
+  title = {{BEIR}: A heterogenous benchmark for zero-shot evaluation of information retrieval models},
+  booktitle = {NeurIPS Datasets and Benchmarks},
+  year = {2021},
+  note = {arXiv:2104.08663},
+}
+
+@inproceedings{kamalloo2024resources,
+  author = {Kamalloo, Ehsan and Thakur, Nandan and Lassance, Carlos and Ma, Xueguang and Kim, Jheng-Hong and Rau, David and Lin, Jimmy},
+  title = {Resources for brewing {BEIR}: Reproducible reference models and statistical analyses},
+  booktitle = {SIGIR},
+  year = {2024},
+}
+
+% --- Neural sparse retrieval (SPLADE / COIL family) ------------------
+
+@inproceedings{formal2021splade,
+  author = {Formal, Thibault and Piwowarski, Benjamin and Clinchant, St\'{e}phane},
+  title = {{SPLADE}: Sparse lexical and expansion model for first stage ranking},
+  booktitle = {SIGIR},
+  year = {2021},
+  note = {arXiv:2107.05720},
+}
+
+@article{formal2021spladev2,
+  author = {Formal, Thibault and Lassance, Carlos and Piwowarski, Benjamin and Clinchant, St\'{e}phane},
+  title = {{SPLADE v2}: Sparse lexical and expansion model for information retrieval},
+  journal = {arXiv preprint},
+  eprint = {2109.10086},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.IR},
+  year = {2021},
+}
+
+@article{lassance2024towards,
+  author = {Lassance, Carlos and Lupart, Simon and D\'{e}jean, Herv\'{e} and Clinchant, St\'{e}phane and Formal, Thibault},
+  title = {Towards effective and efficient sparse neural information retrieval},
+  journal = {ACM Transactions on Information Systems},
+  year = {2024},
+  note = {DOI:10.1145/3634912},
+}
+
+@inproceedings{gao2021coil,
+  author = {Gao, Luyu and Dai, Zhuyun and Callan, Jamie},
+  title = {{COIL}: Revisit exact lexical match in information retrieval with contextualized inverted lists},
+  booktitle = {NAACL},
+  year = {2021},
+}
+
+@article{lin2021brief,
+  author = {Lin, Jimmy and Ma, Xueguang},
+  title = {A few brief notes on {DeepImpact}, {COIL}, and a conceptual framework for information retrieval techniques},
+  journal = {arXiv preprint},
+  eprint = {2106.14807},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.IR},
+  year = {2021},
+}
+
+@inproceedings{mallia2021learning,
+  author = {Mallia, Antonio and Khattab, Omar and Suel, Torsten and Tonellotto, Nicola},
+  title = {Learning passage impacts for inverted indexes},
+  booktitle = {SIGIR},
+  year = {2021},
+}
+
+% --- Dense retrieval -------------------------------------------------
+
+@inproceedings{karpukhin2020dense,
+  author = {Karpukhin, Vladimir and O\u{g}uz, Barlas and Min, Sewon and Lewis, Patrick and Wu, Ledell and Edunov, Sergey and Chen, Danqi and Yih, Wen-tau},
+  title = {Dense passage retrieval for open-domain question answering},
+  booktitle = {EMNLP},
+  year = {2020},
+}
+
+@inproceedings{reimers2019sentence,
+  author = {Reimers, Nils and Gurevych, Iryna},
+  title = {Sentence-{BERT}: Sentence embeddings using {Siamese BERT}-networks},
+  booktitle = {EMNLP},
+  year = {2019},
+}
+
+@inproceedings{xiong2021ance,
+  author = {Xiong, Lee and Xiong, Chenyan and Li, Ye and Tang, Kwok-Fung and Liu, Jialin and Bennett, Paul and Ahmed, Junaid and Overwijk, Arnold},
+  title = {Approximate nearest neighbor negative contrastive learning for dense text retrieval},
+  booktitle = {ICLR},
+  year = {2021},
+}
+
+@article{izacard2022unsupervised,
+  author = {Izacard, Gautier and Caron, Mathilde and Hosseini, Lucas and Riedel, Sebastian and Bojanowski, Piotr and Joulin, Armand and Grave, Edouard},
+  title = {Unsupervised dense information retrieval with contrastive learning},
+  journal = {Transactions on Machine Learning Research},
+  year = {2022},
+}
+
+@article{xiao2024c,
+  author = {Xiao, Shitao and Liu, Zheng and Zhang, Peitian and Muennighoff, Niklas},
+  title = {{C-Pack}: Packed resources for general {Chinese} embeddings},
+  journal = {arXiv preprint},
+  eprint = {2309.07597},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  year = {2023},
+}
+
+@article{wang2024text,
+  author = {Wang, Liang and Yang, Nan and Huang, Xiaolong and Jiao, Binxing and Yang, Linjun and Jiang, Daxin and Majumder, Rangan and Wei, Furu},
+  title = {Text embeddings by weakly-supervised contrastive pre-training},
+  journal = {arXiv preprint},
+  eprint = {2212.03533},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  year = {2024},
+}
+
+@article{li2023towards,
+  author = {Li, Zehan and Zhang, Xin and Zhang, Yanzhao and Long, Dingkun and Xie, Pengjun and Zhang, Meishan},
+  title = {Towards general text embeddings with multi-stage contrastive learning},
+  journal = {arXiv preprint},
+  eprint = {2308.03281},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  year = {2023},
+}
+
+% --- Late interaction / cross-encoder rerankers ---------------------
+
+@inproceedings{khattab2020colbert,
+  author = {Khattab, Omar and Zaharia, Matei},
+  title = {{ColBERT}: Efficient and effective passage search via contextualized late interaction over {BERT}},
+  booktitle = {SIGIR},
+  year = {2020},
+  note = {arXiv:2004.12832},
+}
+
+@inproceedings{santhanam2022colbertv2,
+  author = {Santhanam, Keshav and Khattab, Omar and Saad-Falcon, Jon and Potts, Christopher and Zaharia, Matei},
+  title = {{ColBERTv2}: Effective and efficient retrieval via lightweight late interaction},
+  booktitle = {NAACL},
+  year = {2022},
+}
+
+@inproceedings{santhanam2022plaid,
+  author = {Santhanam, Keshav and Khattab, Omar and Potts, Christopher and Zaharia, Matei},
+  title = {{PLAID}: An efficient engine for late interaction retrieval},
+  booktitle = {CIKM},
+  year = {2022},
+}
+
+@article{nogueira2019passage,
+  author = {Nogueira, Rodrigo and Cho, Kyunghyun},
+  title = {Passage re-ranking with {BERT}},
+  journal = {arXiv preprint},
+  eprint = {1901.04085},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.IR},
+  year = {2019},
+}
+
+@inproceedings{nogueira2020document,
+  author = {Nogueira, Rodrigo and Jiang, Zhiying and Pradeep, Ronak and Lin, Jimmy},
+  title = {Document ranking with a pretrained sequence-to-sequence model},
+  booktitle = {Findings of EMNLP},
+  year = {2020},
+}
+
+@inproceedings{sun2023chatgpt,
+  author = {Sun, Weiwei and Yan, Lingyong and Ma, Xinyu and Wang, Shuaiqiang and Ren, Pengjie and Chen, Zhumin and Yin, Dawei and Ren, Zhaochun},
+  title = {Is {ChatGPT} good at search? {I}nvestigating large language models as re-ranking agent},
+  booktitle = {EMNLP},
+  year = {2023},
+}
+
+% --- Fusion ---------------------------------------------------------
+
+@inproceedings{cormack2009reciprocal,
+  author = {Cormack, Gordon V. and Clarke, Charles L. A. and Buettcher, Stefan},
+  title = {Reciprocal rank fusion outperforms {Condorcet} and individual rank learning methods},
+  booktitle = {SIGIR},
+  year = {2009},
+}
+
+@inproceedings{fox1994combination,
+  author = {Fox, Edward A. and Shaw, Joseph A.},
+  title = {Combination of multiple searches},
+  booktitle = {TREC-2},
+  year = {1994},
+}
+
+@article{bruch2023analysis,
+  author = {Bruch, Sebastian and Gai, Siyu and Ingber, Amir},
+  title = {An analysis of fusion functions for hybrid retrieval},
+  journal = {ACM Transactions on Information Systems},
+  year = {2023},
+  note = {DOI:10.1145/3596512; arXiv:2210.11934},
+}
+
+@article{liu2025dat,
+  author = {Liu, Hongjin and others},
+  title = {{DAT}: Dynamic alpha tuning for hybrid retrieval in retrieval-augmented generation},
+  journal = {arXiv preprint},
+  eprint = {2503.23013},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.IR},
+  year = {2025},
+}
+
+@article{lin2021pyserini,
+  author = {Lin, Jimmy and Ma, Xueguang and Lin, Sheng-Chieh and Yang, Jheng-Hong and Pradeep, Ronak and Nogueira, Rodrigo},
+  title = {{Pyserini}: A {Python} toolkit for reproducible information retrieval research with sparse and dense representations},
+  journal = {arXiv preprint},
+  eprint = {2105.04026},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.IR},
+  year = {2021},
+}
+
+% --- MMR + diversity ------------------------------------------------
+
+@inproceedings{carbonell1998mmr,
+  author = {Carbonell, Jaime and Goldstein, Jade},
+  title = {The use of {MMR}, diversity-based reranking for reordering documents and producing summaries},
+  booktitle = {SIGIR},
+  year = {1998},
+}
+
+@article{kulesza2012determinantal,
+  author = {Kulesza, Alex and Taskar, Ben},
+  title = {Determinantal point processes for machine learning},
+  journal = {Foundations and Trends in Machine Learning},
+  year = {2012},
+}
+
+% --- Recency / temporal IR ------------------------------------------
+
+@inproceedings{berberich2010language,
+  author = {Berberich, Klaus and Bedathur, Srikanta and Alonso, Omar and Weikum, Gerhard},
+  title = {A language modeling approach for temporal information needs},
+  booktitle = {ECIR},
+  year = {2010},
+}
+
+@inproceedings{dakka2008answering,
+  author = {Dakka, Wisam and Gravano, Luis and Ipeirotis, Panagiotis G.},
+  title = {Answering general time-sensitive queries},
+  booktitle = {CIKM},
+  year = {2008},
+}
+
+@article{campos2014survey,
+  author = {Campos, Ricardo and Dias, Ga\"{e}l and Jorge, Al\'{i}pio M. and Jatowt, Adam},
+  title = {Survey of temporal information retrieval and related applications},
+  journal = {ACM Computing Surveys},
+  year = {2014},
+}
+
+@inproceedings{dong2010towards,
+  author = {Dong, Anlei and Chang, Yi and Zheng, Zhaohui and Mishne, Gilad and Bai, Jing and Zhang, Ruiqiang and Buchner, Karolina and Liao, Ciya and Diaz, Fernando},
+  title = {Towards recency ranking in web search},
+  booktitle = {WWW},
+  year = {2010},
+}
+
+% --- Pseudo-relevance feedback / query expansion --------------------
+
+@inproceedings{lavrenko2001relevance,
+  author = {Lavrenko, Victor and Croft, W. Bruce},
+  title = {Relevance based language models},
+  booktitle = {SIGIR},
+  year = {2001},
+}
+
+@article{carpineto2012survey,
+  author = {Carpineto, Claudio and Romano, Giovanni},
+  title = {A survey of automatic query expansion in information retrieval},
+  journal = {ACM Computing Surveys},
+  year = {2012},
+}
+
+% --- IR evaluation methodology --------------------------------------
+
+@inproceedings{smucker2007comparison,
+  author = {Smucker, Mark D. and Allan, James and Carterette, Ben},
+  title = {A comparison of statistical significance tests for information retrieval evaluation},
+  booktitle = {CIKM},
+  year = {2007},
+}
+
+@inproceedings{chapelle2012large,
+  author = {Chapelle, Olivier and Joachims, Thorsten and Radlinski, Filip and Yue, Yisong},
+  title = {Large-scale validation and analysis of interleaved search evaluation},
+  booktitle = {ACM Transactions on Information Systems},
+  year = {2012},
+}
+
+@inproceedings{radlinski2008learning,
+  author = {Radlinski, Filip and Kleinberg, Robert and Joachims, Thorsten},
+  title = {Learning diverse rankings with multi-armed bandits},
+  booktitle = {ICML},
+  year = {2008},
+}
+
+@article{tonellotto2018efficient,
+  author = {Tonellotto, Nicola and Macdonald, Craig and Ounis, Iadh},
+  title = {Efficient query processing for scalable web search},
+  journal = {Foundations and Trends in Information Retrieval},
+  year = {2018},
+}
+
+% --- Agent-system retrieval -----------------------------------------
+
+@article{packer2023memgpt,
+  author = {Packer, Charles and Wooders, Sarah and Lin, Kevin and Fang, Vivian and Patil, Shishir G. and Stoica, Ion and Gonzalez, Joseph E.},
+  title = {{MemGPT}: Towards {LLMs} as operating systems},
+  journal = {arXiv preprint},
+  eprint = {2310.08560},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  year = {2023},
+}
+
+% --- Internal Blackrim references for the retriever paper -----------
+
+@misc{blackrim_retriever_paper_repo,
+  author = {German, Jay},
+  title = {Blackrim retriever paper artefacts},
+  year = {2026},
+  howpublished = {\url{https://github.com/jsgerman-oss/blackrim-retriever-paper}},
+  note = {Repository for the present paper.},
+}
+
+@misc{blackrim_ijl0_landscape,
+  author = {German, Jay},
+  title = {Retriever: deep landscape research},
+  year = {2026},
+  howpublished = {\url{https://github.com/jsgerman-oss/blackrim.dev/blob/main/docs/research/retriever-landscape.md}},
+  note = {Per-(query-class $\times$ scorer-family $\times$ fusion-config) prior matrix; 6 query classes, 8 scorer families, conservative-bandit framing.},
+}
+
+@misc{blackrim_jdzl_algorithms,
+  author = {German, Jay},
+  title = {Retriever: algorithm survey for agent-system information retrieval},
+  year = {2026},
+  howpublished = {\url{https://github.com/jsgerman-oss/blackrim.dev/blob/main/docs/research/retriever-algorithms.md}},
+  note = {9 algorithm families surveyed; top-3 recommendation; honest reassessment of the current stack.},
+}
+
+@misc{blackrim_paper_stream,
+  author = {German, Jay},
+  title = {Retriever paper-stream telemetry (\texttt{internal/bdmemory/paper\_stream.go})},
+  year = {2026},
+  howpublished = {Tracked under Blackrim bd \texttt{blackrim-41nn}.},
+  note = {Per-query JSONL telemetry: query hash, query length, query class, per-scorer top-$k$ scores and latency, final fused ranks, total latency.},
+}
+
+@misc{blackrim_moa1c,
+  author = {German, Jay},
+  title = {Model advisor: algorithm survey for adaptive tier selection},
+  year = {2026},
+  howpublished = {\url{https://github.com/jsgerman-oss/blackrim.dev/blob/main/docs/research/model-advisor-algorithms.md}},
+  note = {Companion paper's algorithm doc; the prior-pseudocount mapping appears here too.},
+}
