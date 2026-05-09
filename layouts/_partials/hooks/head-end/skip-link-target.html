@@ -1,0 +1,36 @@
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Skip-link target: ensure the first <article> has id="main".
+    var article = document.querySelector('article');
+    if (article && !article.id) {
+      article.id = 'main';
+    }
+
+    // Belt-and-suspenders: ensure the skip-link exists (covers cases where the
+    // body-start partial wasn't rendered).
+    if (!document.querySelector('a.skip-link')) {
+      var a = document.createElement('a');
+      a.href = '#main';
+      a.className = 'skip-link';
+      a.textContent = 'Skip to main content';
+      document.body.insertBefore(a, document.body.firstChild);
+    }
+
+    // Strip empty <h1> elements the kit injects when frontmatter title is ''.
+    // Removing from DOM clears them out of the accessibility tree, not just
+    // visually. The CSS rule h1:empty{display:none} is a fallback for the
+    // moment between paint and this script firing.
+    document.querySelectorAll('h1:empty').forEach(function (h1) {
+      h1.remove();
+    });
+
+    // Strip the kit's default "Professional Summary" heading on the bio block.
+    // headings.about: '' in the page block doesn't override the kit's default;
+    // we remove the heading at runtime so the bio paragraph stands alone.
+    document.querySelectorAll('h2').forEach(function (h2) {
+      if (h2.textContent.trim() === 'Professional Summary') {
+        h2.remove();
+      }
+    });
+  });
+</script>
