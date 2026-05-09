@@ -19,8 +19,8 @@ concurrency:
 
 env:
   # Hugo Blox kit modules require Hugo extended >= 0.161.0.
-  # Use a known-good recent version; bump as the kit's go.mod requires.
-  HUGO_VERSION: 0.165.0
+  # 'latest' resolves to the most recent published Hugo release.
+  HUGO_VERSION: latest
   HUGO_ENVIRONMENT: production
 
 jobs:

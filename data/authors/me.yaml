@@ -11,19 +11,38 @@ name:
 postnominals: []
 status:
   icon: ""
-role: Independent Researcher
+role: Cloud Infrastructure Technical Lead
 
 bio: |
-  Independent research on multi-agent LLM systems, model routing under
-  cost-quality constraints, and agentic AI infrastructure.
+  Cloud infrastructure technical lead with broad systems experience,
+  currently driving Azure-based platform work at Armada across commercial
+  and Azure Government environments, with active contributions to FinOps
+  and governance, risk, and compliance (GRC).
 
-  I work on the systems-and-statistics layer of multi-agent LLM workflows:
-  how to route work across heterogeneous model tiers, how to bound quality
-  loss when a cheaper model is substituted, and how to design dispatch
-  policies that survive non-stationary production telemetry.
+  I believe building systems and software is an act of service: the people
+  using what I ship deserve to enjoy it. That ethos shapes how I lead. I
+  care about what reaches production, not just what ships.
+
+  My work spans stakeholder engagement, product delivery, incident
+  response, continuous delivery, and systems engineering, with deep
+  experience in cloud cost control, security hardening, and digital
+  transformation across Azure, AWS, and GCP. I've delivered cross-team
+  initiatives at a sustainable pace, the kind that hold up after I move on.
+
+  Mentoring is core to how I work. I coach engineers, mentor other mentors,
+  and help teams grow into work they didn't think they could own yet.
+
+  On the side, I do independent research on multi-agent LLM systems: model
+  routing under cost-quality constraints, conservative Bayesian dispatch
+  policies, and agentic AI infrastructure. Current work: CC-TS, a
+  conservatively-biased Bayesian model-tier advisor with Beta-Bernoulli
+  posteriors per agent, shape, and tier; conformal wrappers for quality
+  bounds; uncertainty-triggered evaluation.
 
 affiliations:
-  - name: Independent
+  - name: Armada
+    url: 'https://armada.ai'
+  - name: Independent (research)
     url: ''
 
 links:
@@ -34,11 +53,13 @@ links:
     url: https://github.com/jsgerman-oss
 
 interests:
+  - Cloud platform engineering (Azure, AWS, GCP)
+  - FinOps and cloud cost control
+  - GRC and security hardening
   - Multi-agent LLM systems
-  - Model routing and dispatch
-  - Bayesian decision theory
+  - Model routing and Bayesian dispatch
   - Conformal prediction
-  - Production-scale agentic AI
+  - Mentorship and team growth
 
 education: []
 experience: []
