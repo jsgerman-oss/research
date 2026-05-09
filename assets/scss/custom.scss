@@ -122,19 +122,48 @@ body {
   }
 }
 
-// ── CV page ────────────────────────────────────────────────────────────────
+// ── Resume page ───────────────────────────────────────────────────────────
+// The page H1: "Resume", underlined, lifted slightly off the page.
+// Single typographic flourish — not a card/container shadow.
+.resume-title {
+  display: inline-block;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--color-primary);
+  text-underline-offset: 0.18em;
+  text-shadow:
+    0 1px 0 oklch(20% 0.04 150 / 0.04),
+    0 6px 14px oklch(20% 0.05 150 / 0.18);
+  margin-bottom: 1.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .resume-title {
+    text-shadow:
+      0 1px 0 oklch(8% 0.02 150 / 0.5),
+      0 6px 16px oklch(0% 0 0 / 0.55);
+  }
+}
+:root[data-theme="dark"] .resume-title {
+  text-shadow:
+    0 1px 0 oklch(8% 0.02 150 / 0.5),
+    0 6px 16px oklch(0% 0 0 / 0.55);
+}
+
 .cv-header {
   margin-bottom: 2.5rem;
 
-  h1 {
-    margin-bottom: 0.25rem;
-    letter-spacing: -0.01em;
-  }
-
   p:first-of-type {
     margin-top: 0;
-    font-size: 1.05rem;
+    font-size: 1.15rem;
+    line-height: 1.4;
+  }
+
+  em {
     color: var(--color-ink-muted);
+    font-style: italic;
   }
 
   .cv-contact {
@@ -169,6 +198,12 @@ article h3.cv-role + p {
   aside,
   .toc {
     display: none !important;
+  }
+
+  // No text-shadow in print — paper doesn't levitate.
+  .resume-title {
+    text-shadow: none !important;
+    text-decoration-color: #111 !important;
   }
 
   body {

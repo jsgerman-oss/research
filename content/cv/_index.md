@@ -1,21 +1,21 @@
 ---
-title: 'Curriculum Vitae'
+title: ''
 summary: 'Jay German — Cloud Infrastructure Technical Lead. Azure-focused, multi-cloud literate.'
 date: 2026-05-09
 type: page
 toc: false
 reading_time: false
 
-# Hide the page heading; we render our own structure below.
 show_breadcrumb: false
 show_date: false
 ---
 
-<header class="cv-header">
+# Resume {.resume-title}
 
-# Jay German
+<div class="cv-header">
 
-**Cloud Infrastructure Technical Lead.** Azure-focused, multi-cloud literate.
+**Jay German**
+*Cloud Infrastructure Technical Lead. Azure-focused, multi-cloud literate.*
 
 I lead cloud infrastructure at the seam where architecture, delivery, and people intersect. I care about what reaches production, not just what ships, and the work I deliver is built to hold up after I move on.
 
@@ -25,7 +25,7 @@ I lead cloud infrastructure at the seam where architecture, delivery, and people
   <a href="https://github.com/jsgerman-oss">github.com/jsgerman-oss</a>
 </p>
 
-</header>
+</div>
 
 ## Experience
 

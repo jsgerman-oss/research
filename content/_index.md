@@ -15,7 +15,7 @@ sections:
       text: ''
       button:
         enable: true
-        text: Read CV
+        text: Read Resume
         url: /cv/
       headings:
         about: ''
