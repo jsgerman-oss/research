@@ -109,19 +109,25 @@ jobs:
           hugo-version: ${{ env.HUGO_VERSION }}
           extended: true
 
-      # Hugo Blox v4 uses Tailwind v4 via Hugo's css.TailwindCSS function.
-      # Hugo specifically checks that `tailwindcss` is a Node.js script;
-      # the standalone Go binary is rejected. Install the npm package.
+      # Hugo Blox v4 ships package.json declaring @tailwindcss/cli + tailwindcss
+       # + pagefind via pnpm. Install via the kit's own toolchain so Hugo's
+      # css.TailwindCSS function finds the right CLI on PATH.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Install Tailwind CSS CLI (npm)
-        run: |
-          npm install -g @tailwindcss/cli
-          which tailwindcss
-          tailwindcss --help | head -2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+          run_install: false
+
+      - name: Install Node dependencies (pnpm)
+        run: pnpm install --frozen-lockfile
+
+      - name: Add node_modules/.bin to PATH
+        run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Setup Pages
         id: pages
