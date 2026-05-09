@@ -41,7 +41,7 @@ sections:
 
         The cost-control problem in production agent systems is not a model-selection problem in the usual sense. Rewards are asymmetric: a single poor decision in a critical-path task can erase weeks of cost savings. Per-cell sample sizes are small. A meaningful Bayesian prior is available from offline evaluation, but is itself imperfect.
 
-        I formalise this as a constrained Bayesian decision problem and study policies — currently variants of conservative constrained Thompson sampling — that minimise cost subject to a per-task quality-preservation constraint, with conformal-prediction wrappers giving explicit confidence bounds.
+        I formalise this as a constrained Bayesian decision problem and study policies, currently variants of conservative constrained Thompson sampling, that minimise cost subject to a per-task quality-preservation constraint, with conformal-prediction wrappers giving explicit confidence bounds.
 
         Methods I use, and write about: hierarchical Beta priors seeded from offline evals; Beta-Bernoulli posteriors updated from live telemetry; one-sided hypothesis testing under explicit asymmetric loss; uncertainty-triggered evaluation to resolve underdetermined cells.
     design:
@@ -65,7 +65,7 @@ sections:
     content:
       title: 'Code'
       text: |-
-        - **[Research repo](https://github.com/jsgerman-oss/research)** — paper sources, eval harnesses, reproducibility scripts.
+        - **[Research repo](https://github.com/jsgerman-oss/research):** paper sources, eval harnesses, reproducibility scripts.
     design:
       columns: '1'
 

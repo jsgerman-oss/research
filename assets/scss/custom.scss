@@ -123,8 +123,36 @@ body {
 }
 
 // ── Resume page ───────────────────────────────────────────────────────────
+// Hugo Blox renders an empty <h1> when frontmatter title is ''. Hide it so
+// our `.resume-title` (set explicitly in body markdown) is the only H1.
+article > h1:empty,
+h1:empty {
+  display: none;
+}
+
+// CV header — name, role line, bio paragraph, contact links.
+// Markdown inside <div> blocks isn't parsed by goldmark; we use raw HTML
+// in content/cv/_index.md and target the explicit classes here.
+.cv-name {
+  margin: 0 0 0.1rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+.cv-role-line {
+  margin: 0 0 1rem 0;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--color-ink-muted);
+}
+.cv-bio {
+  margin: 0 0 1.25rem 0;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
 // The page H1: "Resume", underlined, lifted slightly off the page.
-// Single typographic flourish — not a card/container shadow.
+// Single typographic flourish, not a card/container shadow.
 .resume-title {
   display: inline-block;
   font-weight: 700;
@@ -153,23 +181,17 @@ body {
 }
 
 .cv-header {
-  margin-bottom: 2.5rem;
-
-  p:first-of-type {
-    margin-top: 0;
-    font-size: 1.15rem;
-    line-height: 1.4;
-  }
-
-  em {
-    color: var(--color-ink-muted);
-    font-style: italic;
-  }
+  margin: 0 0 2.5rem 0;
 
   .cv-contact {
-    margin-top: 1.25rem;
+    margin-top: 0.5rem;
     font-size: 0.9rem;
     letter-spacing: 0.02em;
+    color: var(--color-ink-muted);
+
+    a {
+      color: var(--color-primary);
+    }
   }
 }
 

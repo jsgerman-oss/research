@@ -12,7 +12,7 @@ publication: 'Working paper, skeleton'
 publication_short: ''
 
 abstract: |
-  Multi-agent memory pools are heterogeneous — short bd-memory entries, mixed-shape queries, recency-sensitive — and the retriever sits on the hot path of every agent spawn. A wrong recall poisons every downstream prompt, and no single scorer or fusion configuration dominates across the six query classes Blackrim observes (technical-lookup, failure-recall, agent-scoped, continuity, concept-bridge, exact-id-or-slug).
+  Multi-agent memory pools are heterogeneous: short bd-memory entries, mixed-shape queries, recency-sensitive. The retriever sits on the hot path of every agent spawn, and a wrong recall poisons every downstream prompt. No single scorer or fusion configuration dominates across the six query classes Blackrim observes (technical-lookup, failure-recall, agent-scoped, continuity, concept-bridge, exact-id-or-slug).
 
   We frame fusion-config selection as a **conservative contextual bandit**: arms are fusion-config combinations (BM25 + SPLADE + dense + RRF + decay + MMR + optional cross-encoder reranker), context is the query class, reward is per-query NDCG@10, and the safety constraint is per-class no-regression below the BM25 (or BM25+decay) baseline. A SPLADE corpus-size threshold gates dense-retrieval activation; a Critical-tier reranker hook gates reranker activation. The contextual-bandit policy on top selects per-class fusion weights subject to the conservative-bandit constraint.
 
@@ -47,7 +47,7 @@ slides: ''
 
 ## Status
 
-Skeleton — sections are structure-only; full prose drafting is sequenced after the model-advisor paper. PDF will appear here once the paper compiles.
+Skeleton. Sections are structure-only; full prose drafting is sequenced after the model-advisor paper. PDF will appear here once the paper compiles.
 
 ## Companion software
 
