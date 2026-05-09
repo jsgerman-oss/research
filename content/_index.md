@@ -16,7 +16,9 @@ sections:
       button:
         enable: true
         text: Read Resume
-        url: /cv/
+        # Kit's bio button passes URL through raw (skips relURL/baseURL prefixing
+        # that the menu system applies). Use the full server path explicitly.
+        url: /research/cv/
       headings:
         about: ''
         education: ''
