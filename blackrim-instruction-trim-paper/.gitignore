@@ -1,0 +1,24 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+main.pdf
+
+# Editor cruft
+.DS_Store
+*~
+.idea/
+.vscode/
+
+# Python (scripts)
+__pycache__/
+*.pyc
+.venv/

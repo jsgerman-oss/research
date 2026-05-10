@@ -1,0 +1,34 @@
+\section{Appendix: Optimisation Landscape Detail}
+\label{sec:appendix}
+
+% Optionally fold in the full ~9000-word optimisation landscape from
+% docs/research/multi-agent-optimization-landscape.md (Blackrim repo).
+% For arxiv submission this may be a long appendix or moved to a
+% companion technical report.
+
+\subsection{Six categories surveyed}
+
+\begin{enumerate}
+  \item Token-efficiency wins beyond caching
+        (speculative decoding, function-calling, structured outputs).
+  \item Local-hardware exploitation
+        (small LMs as drafters / classifiers; ONNX CPU embedding).
+  \item Multi-agent coordination patterns
+        (KV-cache sharing, hedged requests, batch optimisation).
+  \item Math/CS/ML algorithms
+        (Thompson sampling for dispatch, RLAIF, GNNs on bd DAG,
+         control theory for cadence).
+  \item Eval pre-generation for gating
+        (template-based, mutation-driven, RLAIF-adapted).
+  \item Orthogonal systems
+        (cache-aware scheduling, prompt deduplication, append-only
+         telemetry, gRPC streaming).
+\end{enumerate}
+
+\subsection{Top-10 recommendations ranked by reward/effort}
+
+% From docs/research/multi-agent-optimization-landscape.md §"Top 10".
+% Ordering preserved here for paper consistency. Each entry summarised
+% in 2--3 sentences.
+
+\tothink{Distil the full landscape doc into a 2-page appendix table.}

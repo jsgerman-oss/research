@@ -1,0 +1,43 @@
+\section{Discussion}
+\label{sec:discussion}
+
+% 1. Why the savings are modest and why that matters.
+%    - Prompt-cache amortisation makes the static-prefix cost ~1 KB/spawn
+%      at our cache hit rate. The 17% cost reduction is small in absolute
+%      dollars.
+%    - The win that *matters* is the maintenance and onboarding burden,
+%      which scales with line count not amortised cost. 21.5% fewer lines
+%      is what humans see.
+%    - This argues for measuring trim ROI on multiple axes: tokens (small
+%      win), human-hours (larger win), instruction-fidelity (must not
+%      regress).
+%
+% 2. Why we did not pursue learned compression.
+%    - Critical literature gap: zero benchmarks on instruction documents.
+%    - Lost-in-the-middle is much weaker for instruction-tuned models.
+%    - First-principles: instruction documents are procedural and
+%      self-referential; retrieval-context compressors trained on QA/
+%      summarisation are out-of-distribution.
+%    - Conclusion: compression is high-risk for unmeasured benefit at
+%      our scale.
+%
+% 3. Why we ruled out knowledge-graph augmentation.
+%    - LLMs consume linear text. KGs serialise back to text before the
+%      model sees them, paying tokens for the serialisation plus losing
+%      the graph's structural advantage.
+%    - GraphRAG-style approaches target relational corpora; CLAUDE.md is
+%      procedural.
+%
+% 4. The optimisation landscape we surveyed alongside.
+%    - Top-10 ranked by reward/effort: speculative decoding, KV-cache
+%      sharing, eval pre-generation, learned cost models, cache-aware
+%      scheduling, function-calling-over-JSON, code-specific embeddings,
+%      early-exit, RLAIF dispatch, append-only telemetry.
+%    - Two are blocked on Anthropic-side support (1, 2); the rest are
+%      actionable and ranked here.
+%    - Methodology contribution: every recommendation is paired with a
+%      "wouldn't fit because" rationale to prevent over-application.
+
+\tothink{Expand each subsection. The optimisation-landscape survey is
+substantial enough to consider as a separate paper or extended
+appendix.}

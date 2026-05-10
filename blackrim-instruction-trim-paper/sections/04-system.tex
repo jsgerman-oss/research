@@ -1,0 +1,26 @@
+\section{System: Blackrim Multi-Agent Architecture}
+\label{sec:system}
+
+% Blackrim's architecture and how CLAUDE.md fits in.
+%
+% 1. Gestalt-opus orchestrator + 8 citizens (opus, domain leads) + 7 workers
+%    (sonnet/haiku, shared pool).
+% 2. bd (beads) — Dolt-backed task graph for coordination across context-window
+%    resets.
+% 3. Static prefix layer:
+%    - ~/.claude/CLAUDE.md (global, thin)
+%    - <project>/CLAUDE.md (project, thick — the focus of this paper)
+%    - agents/citizens/*.md, agents/workers/*.md (per-agent overlays)
+% 4. Agent dispatch pattern:
+%    - bd ready → claim atomically → spawn N parallel agents in worktrees
+%      → squash-merge via bin/merge-agent → close bd
+%    - Per Anthropic prompt cache: cache_creation on first spawn of window;
+%      cache_read on subsequent.
+% 5. Telemetry capture:
+%    - .beads/telemetry/invocations.jsonl per spawn
+%    - cache_creation_input_tokens vs cache_read_input_tokens fields
+%    - gt invocations record / gt context budget orchestration metrics
+
+\tothink{Add architecture diagram (figures/blackrim-architecture.tex)
+and reference \cref{fig:arch}. Cite the dogfooding instance: this
+paper's data was collected from the Blackrim repo itself.}

@@ -1,0 +1,114 @@
+% !TEX program = pdflatex
+% !TEX bibtex  = biber
+%
+% main.tex — Frequency-Weighted Progressive Disclosure for
+%            Static-Prefix Multi-Agent Coding Systems
+%
+% Compile:
+%   make            # latexmk -pdf -bibtex
+%   make clean      # remove build artifacts
+
+\documentclass[11pt,letterpaper]{article}
+
+% --- Layout -----------------------------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{parskip}
+
+% --- Math + theorems --------------------------------------------------------
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{thmtools}
+\declaretheorem[name=Theorem,numberwithin=section]{theorem}
+\declaretheorem[name=Lemma,sibling=theorem]{lemma}
+\declaretheorem[name=Proposition,sibling=theorem]{proposition}
+\declaretheorem[name=Definition,sibling=theorem,style=definition]{definition}
+\declaretheorem[name=Remark,sibling=theorem,style=remark]{remark}
+
+% --- Code + algorithms ------------------------------------------------------
+\usepackage[ruled,linesnumbered]{algorithm2e}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible,
+}
+
+% --- Figures + tables -------------------------------------------------------
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes,fit,backgrounds,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{array}
+\usepackage{longtable}
+
+% --- References + links -----------------------------------------------------
+\usepackage[backend=biber,style=numeric-comp,sorting=none,maxbibnames=99,giveninits=true]{biblatex}
+\addbibresource{bib/refs.bib}
+
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% --- Misc -------------------------------------------------------------------
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{etoolbox}
+
+% Notation macros — kept tight; introduce in problem-formulation, then reuse.
+\newcommand{\prefix}{\mathcal{P}}                 % static prefix content
+\newcommand{\section_{i}}{\mathsf{s}_i}                % a section
+\newcommand{\frequency}{f}                         % access frequency
+\newcommand{\size}{|\cdot|}                        % size in tokens
+\newcommand{\cachehit}{\rho}                       % cache hit rate
+\newcommand{\cost}{C}                              % per-spawn cost
+\newcommand{\budget}{B}                            % token budget
+\newcommand{\readsize}{r}                          % size of an on-demand Read
+\newcommand{\tothink}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\blackrim}{Blackrim\xspace}
+\newcommand{\claudemd}{\texttt{CLAUDE.md}\xspace}
+
+% --- Title ------------------------------------------------------------------
+\title{
+  \textbf{Frequency-Weighted Progressive Disclosure \\
+  for Static-Prefix Multi-Agent Coding Systems}
+}
+
+\author{%
+  Jay German\thanks{Independent. \href{mailto:camber.estate_6j@icloud.com}{camber.estate_6j@icloud.com}.}
+}
+
+\date{Draft — \today}
+
+% ----------------------------------------------------------------------------
+\begin{document}
+\maketitle
+
+\input{sections/00-abstract}
+
+\input{sections/01-introduction}
+\input{sections/02-related-work}
+\input{sections/03-problem-formulation}
+\input{sections/04-system}
+\input{sections/05-algorithm}
+\input{sections/06-evaluation}
+\input{sections/07-discussion}
+\input{sections/08-future-work}
+\input{sections/09-conclusion}
+
+\printbibliography
+
+\appendix
+\input{sections/A-appendix}
+
+\end{document}

@@ -1,0 +1,35 @@
+\section{Related Work}
+\label{sec:related}
+
+% Five subsections planned. Each cites the canonical papers.
+%
+% \subsection{Prompt compression for LLM context}
+% LLMLingua and LongLLMLingua (Jiang et al., \cite{llmlingua,longllmlingua});
+% RECOMP (\cite{recomp}); AutoCompressors (\cite{autocompressors}); ICAE
+% (\cite{icae}). All evaluate on retrieval / QA tasks; none specifically on
+% instruction documents. Compression-on-instructions is an open problem.
+%
+% \subsection{Hierarchical / progressive context}
+% MemGPT (\cite{memgpt}) — three-tier memory (RAM / recall / archival);
+% closest existing analog to our frequency-weighted residency model.
+% Lost in the middle (Liu et al., \cite{lostinmiddle}) — established the
+% U-shaped attention curve and the start-position bias for instruction-tuned
+% models that motivates our "keep stable rules at top" recommendation.
+%
+% \subsection{Prompt caching and KV-cache reuse}
+% Anthropic prompt-caching docs (\cite{anthropic-cache}); "Don't Break the
+% Cache" (\cite{dont-break-cache}); PagedAttention (\cite{pagedattention});
+% Mooncake (\cite{mooncake}); Preble (\cite{preble}). These motivate the
+% caching baseline our methodology assumes.
+%
+% \subsection{Knowledge graphs for LLM context}
+% GraphRAG (\cite{graphrag}); KAG (\cite{kag}). We argue these target
+% relational corpora, not procedural instruction documents, and surface
+% the serialisation overhead that rules them out for our setting.
+%
+% \subsection{Multi-agent coordination}
+% AutoGen (\cite{autogen}); CrewAI; MetaGPT (\cite{metagpt}); ChatDev;
+% LangGraph. These frame the problem domain; our contribution sits beneath
+% the coordination layer at the per-agent context-loading level.
+
+\tothink{Expand each subsection to $\sim$0.5 pages with proper citations.}

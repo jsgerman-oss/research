@@ -1,0 +1,98 @@
+\section{Empirical Evaluation}
+\label{sec:eval}
+
+We evaluate the conservative trim algorithm by applying it to
+\blackrim's \claudemd (commit baseline \texttt{eb8c3d0},
+2026-05-09) and measuring the resulting prefix size deltas plus a
+qualitative fidelity check.
+
+This section is structured as a \emph{reproducibility-first} report:
+every quantitative claim is backed by a CSV in
+\texttt{data/aggregated/} and a script in \texttt{scripts/}
+(\cref{sec:repro}).
+
+\subsection{Setup}
+
+\paragraph{Trace.}
+A single-session trace from 2026-05-09 covering the Wave 1 + Wave 2
+trim plus three companion documentation commits. Captured via
+\texttt{git log} on the Blackrim repo and \texttt{bd list} for issue
+lifecycle. Raw telemetry at \texttt{data/raw/session-telemetry.json}.
+
+\paragraph{Baselines.}
+We compare three configurations:
+\begin{itemize}
+  \item \textbf{Flat (baseline)} — pre-trim \claudemd, 708 lines /
+    48{,}840 chars.
+  \item \textbf{Wave 1} — redundancy-only trim (File Layout ASCII,
+    Plan JSON schema externalisation, PRODUCT.md duplicate, Customisation
+    fork section).
+  \item \textbf{Wave 2} — Wave 1 plus worktree-isolation deep-dive
+    externalisation (after the prerequisite \texttt{worktree-guard.md}
+    expansion + new \texttt{agent-merge.md} landed).
+\end{itemize}
+
+\subsection{Results}
+
+\begin{table}[h]
+\centering
+\caption{\claudemd size trajectory across both waves.}
+\label{tab:size}
+\begin{tabular}{lrrr}
+\toprule
+                  & Lines & Chars  & $\Delta$ vs.\ baseline \\
+\midrule
+Baseline          & 708   & 48{,}840 & 0 / 0\,\%             \\
+Wave 1 closed     & 618   & 45{,}185 & $-90$ / $-12.7\,\%$ (lines), $-7.5\,\%$ (chars) \\
+Wave 2 closed     & 556   & 40{,}492 & $-152$ / $-21.5\,\%$ (lines), $-17.1\,\%$ (chars) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Fidelity check}
+
+% TODO: define and run a held-out instruction-following eval. For the
+% draft we report a qualitative check only — the post-trim agents in
+% Phase 2a, 2b, and the cache-control investigation all completed
+% successfully without hitting the worktree-leak failure mode the
+% original deep-dive prose was written to prevent. This is *suggestive*
+% evidence that the externalised content was fidelity-preserving, but
+% an automated eval is required for a publishable claim.
+
+\tothink{Build held-out eval suite probing instruction-following on
+worktree-isolation rules, delegation discipline, commit path, and
+merge flow. Run pre/post and report the $\Delta$.}
+
+\subsection{Cache-cost analysis}
+
+\begin{equation*}
+  \cost_{\mathrm{flat}} \approx 48{,}840 \cdot
+    \big( 0.15 \cdot 50 + 0.85 \cdot 50 \cdot 0.10 \big)
+  = 48{,}840 \cdot 11.75 \approx 574{,}000\;\text{tokens/day}
+\end{equation*}
+
+\begin{equation*}
+  \cost_{\mathrm{wave2}} \approx 40{,}492 \cdot 11.75 \approx 475{,}800\;\text{tokens/day}
+\end{equation*}
+
+\begin{equation*}
+  \Delta \approx 98{,}200\;\text{tokens/day} \;\;(\sim 17\,\%)
+\end{equation*}
+
+% At Anthropic's claude-opus pricing ($75/MTok input on cache miss,
+% $7.50/MTok on cache read), the savings are bounded above by
+% ~$0.25/day for static-prefix loading alone. The non-monetary value
+% (smaller doc to maintain, faster human onboarding to the framework)
+% is plausibly larger.
+
+\subsection{Reproducibility}
+\label{sec:repro}
+
+% Reproducibility steps live in scripts/README.md. The full pipeline:
+%
+% python scripts/pull-telemetry.py --since 2026-05-09 \
+%   > data/raw/session-telemetry.json
+% python scripts/aggregate-trim-results.py \
+%   < data/raw/session-telemetry.json \
+%   > data/aggregated/trim-results.csv
+% make

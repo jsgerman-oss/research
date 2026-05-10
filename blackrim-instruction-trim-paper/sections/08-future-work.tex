@@ -1,0 +1,46 @@
+\section{Future Work}
+\label{sec:future}
+
+We organise future directions by reward-per-effort estimated from the
+deep landscape survey accompanying this paper.
+
+\paragraph{Eval pre-generation v1.}
+Templated fixture generator from bd issue descriptions, gated at squash
+merge. Multiplier effect on every subsequent agent-driven change.
+Tracked at \texttt{bd blackrim-mmlp}.
+
+\paragraph{Function-calling over JSON-mode.}
+Switch structured-output call sites from JSON-in-prose to Anthropic's
+tool-use API; literature-cited 15--25\,\% output-token reduction at
+8--12 hours estimated implementation. \texttt{bd blackrim-g3wl}.
+
+\paragraph{Code-specific embeddings.}
+Voyage-Code-2 vs. BGE-M3 vs. ColBERTv2 on \blackrim's retrieval
+corpus; pick a default. 10--20\,\% context-token reduction by
+improving retrieval precision. \texttt{bd blackrim-qgmc}.
+
+\paragraph{Cache-control marker exposure.}
+Anthropic's API supports up to four \texttt{cache\_control}
+breakpoints, but the \texttt{Claude Code} client does not currently
+expose them to \claudemd authors. If exposed, segmenting \claudemd
+into \emph{stable-rules-top} + \emph{volatile-refs-bottom} could
+preserve cache hits across volatile-section edits. Estimated 30--50\,\%
+savings on edit-heavy weeks; blocked on upstream.
+
+\paragraph{Speculative decoding + local drafters.}
+Highest theoretical reward (20--35\,\% generation-token reduction) but
+blocked on either Anthropic-side support or a self-hosted inference
+proxy that uses local draft models against Claude.
+\texttt{bd blackrim-f2jb}.
+
+\paragraph{Multi-agent KV-cache sharing.}
+Mooncake / SAGA / LMCache-style KV reuse across overlapping prefixes
+in parallel waves. Highest leverage architectural change; same
+upstream-or-proxy blocker as speculative decoding.
+\texttt{bd blackrim-3dp2}.
+
+\paragraph{Held-out instruction-following eval suite.}
+Required for \cref{sec:eval}'s fidelity claim to be publishable. The
+suite should probe: worktree-isolation rules, delegation thresholds,
+commit-path discipline, merge-flow correctness, the wiring + docs
+standard. Build alongside the eval pre-generation infrastructure.

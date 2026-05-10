@@ -1,0 +1,65 @@
+\section{Algorithm: Conservative Frequency-Weighted Trim}
+\label{sec:algo}
+
+\subsection{Inputs}
+
+\begin{itemize}
+  \item Current $\prefix$ partitioned into sections $(\section_{i})_{i=1}^{n}$.
+  \item Per-section access-frequency estimates $\hat{\frequency}_i$ (from
+    domain knowledge, telemetry, and the literature-grounded "what does
+    every spawn need" heuristic).
+  \item Existing or to-be-created external homes for externalised content.
+  \item A held-out instruction-following eval suite for the fidelity check.
+\end{itemize}
+
+\subsection{The conservative trim algorithm}
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\KwIn{$\prefix$, $\{\hat{\frequency}_i\}$, $\cachehit$, $\epsilon$}
+\KwOut{$\prefix_{\mathrm{trimmed}}$}
+\For{each section $\section_{i}$ in $\prefix$}{
+  Classify $\section_{i}$ as one of: \emph{must-resident},
+    \emph{frequency-deciding}, or \emph{redundant}.\;
+  \uIf{\emph{must-resident}}{Keep in $\prefix_{\mathrm{trimmed}}$.\;}
+  \uElseIf{\emph{redundant}}{Drop or replace with one-line pointer.\;}
+  \Else(\emph{frequency-deciding}){
+    \If{Eq.~\eqref{eq:decision} prefers external}{
+      Verify a permanent external home exists; if not, file a
+        prerequisite to create one before this step.\;
+      Replace section with one-line pointer to external doc.\;
+    }
+    \Else{Keep in $\prefix_{\mathrm{trimmed}}$.\;}
+  }
+}
+Run held-out eval suite on $\prefix_{\mathrm{trimmed}}$;
+  reject trim if $Q(\prefix_{\mathrm{trimmed}}) < Q(\prefix) - \epsilon$.\;
+\Return{$\prefix_{\mathrm{trimmed}}$}\;
+\caption{Conservative frequency-weighted trim}
+\label{alg:trim}
+\end{algorithm}
+
+\subsection{Why \emph{conservative}}
+
+The literature gap noted in \cref{sec:related} (no compression
+benchmarks on instruction documents) means that learned compression
+\emph{could} preserve fidelity but we have no measurement to back
+it. Our algorithm therefore restricts itself to two interventions
+that are provably fidelity-neutral:
+
+\begin{enumerate}
+  \item \textbf{Redundancy removal} — content that is duplicated
+    within the prefix or duplicated against an existing canonical
+    source elsewhere is dropped.
+  \item \textbf{Externalisation with pointer} — content that exists
+    permanently in an external doc is replaced by a one-line pointer.
+    The LLM's tool-use is the retrieval mechanism.
+\end{enumerate}
+
+Both leave instruction-bearing content unchanged in its canonical
+location. No section is rewritten to be terser; redundant statements
+are simply removed.
+
+\tothink{Add a worked example: the Worktree-Isolation section trim
+from 75 lines to 16 lines, with the line-by-line classification of
+must-resident vs externalisable.}

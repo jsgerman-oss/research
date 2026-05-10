@@ -1,0 +1,42 @@
+\section{Introduction}
+\label{sec:intro}
+
+% TODO: full prose. Outline below captures the intended argument.
+%
+% 1. Cost shape of static-prefix multi-agent systems.
+%    - CLAUDE.md (or system prompt equivalent) loaded into every spawn.
+%    - Anthropic prompt cache amortises 80--90% within a 5-minute TTL window,
+%      but every cache invalidation pays full prefill again.
+%    - At Blackrim's scale (~50 spawns/day, 5 parallel agents per wave),
+%      a 49 KB prefix amortises to ~1 KB/spawn but still costs $X/year on
+%      first-spawn-of-window.
+%
+% 2. The temptation: compress.
+%    - LLMLingua, RECOMP, AutoCompressors, ICAE — all proven on retrieval
+%      contexts (QA, summarisation).
+%    - Critical gap in literature: zero papers benchmark compression on
+%      instruction documents specifically.
+%    - Lost-in-the-middle (Liu et al.) is U-shaped for retrieval (15--25%
+%      degradation in middle position) but only 3--8% for instruction-tuned
+%      models. Static-prefix CLAUDE.md at the start of context is already
+%      structurally optimal.
+%
+% 3. Our contribution.
+%    a. A frequency-weighted residency model that decides what stays in-prefix.
+%    b. An applied conservative trim of Blackrim's CLAUDE.md (-21.5%) without
+%       instruction-fidelity loss.
+%    c. An integrated literature review surfacing which retrieval-context
+%       optimisations transfer (progressive disclosure, code-specific
+%       embeddings) and which do not (knowledge graphs, learned compression).
+%    d. A ranked optimisation landscape (10 directions) for static-prefix
+%       multi-agent coding systems.
+%
+% 4. Roadmap of the paper. \cref{sec:related} surveys related work;
+%    \cref{sec:problem} formalises the cost minimisation problem;
+%    \cref{sec:system} describes Blackrim's architecture; \cref{sec:algo}
+%    presents the trim algorithm; \cref{sec:eval} reports the empirical
+%    deltas; \cref{sec:discussion} situates the broader landscape;
+%    \cref{sec:future} maps next directions.
+
+\tothink{Write introduction prose from outline above; target $\sim$1.5
+pages.}

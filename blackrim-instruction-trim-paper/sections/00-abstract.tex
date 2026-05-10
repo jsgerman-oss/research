@@ -1,0 +1,27 @@
+\begin{abstract}
+\noindent
+Multi-agent LLM coding systems load a static instruction document
+(\claudemd or equivalent) into every agent spawn as a cached prefix.
+As the document grows, it dominates first-spawn cost and human
+maintenance burden, but aggressive compression of instruction text
+risks fidelity loss that is measurable in retrieval contexts but
+\emph{unmeasured} in instruction-following contexts. We argue that
+the right primitive is not compression but \emph{frequency-weighted
+progressive disclosure}: content needed every spawn stays in-prefix;
+content needed sometimes externalizes to on-demand Read calls;
+content needed rarely is dropped or moved to external archive. We
+formalise this as a cost minimisation problem under a per-section
+access frequency $\frequency_i$ and prompt-cache hit-rate
+$\cachehit$, and apply it to \blackrim's 49\,KB \claudemd through a
+literature-aligned conservative trim. The trim removes 21.5\,\% of
+lines (708 \(\to\) 556) and 17.1\,\% of characters (48{,}840 \(\to\)
+40{,}492) without compressing any instruction-bearing text --- only
+redundancy removal and externalisation to existing or new
+documentation. We report the methodology, the measured deltas, and
+the integrated literature review we conducted to ground the
+conservative target. We also enumerate ten further optimisation
+directions (speculative decoding, KV-cache sharing, eval
+pre-generation, function-calling migration, code-specific
+embeddings) ranked by reward-per-effort and discuss which fit a
+static-prefix architecture and which do not.
+\end{abstract}
