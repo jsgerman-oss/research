@@ -1,0 +1,73 @@
+\section{Algorithm: Semantic-Similarity Per-Turn Router}
+\label{sec:routing}
+
+\subsection{Inputs}
+
+\begin{itemize}
+  \item Operator's most-recent turn text \(\turn_i\) and the
+    rolling-window context \(\turn_{i-K}, \ldots, \turn_{i-1}\)
+    (default \(K = 3\)).
+  \item Exemplar set \(E = \{(\turn_e, \tier_e)\}_{e=1}^{|E|}\) ---
+    hand-curated turns labeled with the right tier (50 per tier in v1).
+  \item A code-aware embedder \(\phi: \text{turn} \to \mathbb{R}^d\)
+    (selected by \texttt{blackrim-qgmc}; defaulting to BGE-M3 or
+    Voyage-Code-2 per the bake-off result).
+  \item Similarity threshold \(T\) (escalation parameter).
+\end{itemize}
+
+\subsection{Algorithm}
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\KwIn{$\turn_i$, exemplars $E$, threshold $T$, escalation tier $\tier_{\text{esc}} = \text{opus}$}
+\KwOut{$\tier_i$}
+\(\mathbf{v} \gets \phi(\turn_i \mid \turn_{i-K}, \ldots, \turn_{i-1})\)\;
+\For{each \((\turn_e, \tier_e) \in E\)}{
+  \(s_e \gets \cos(\mathbf{v}, \phi(\turn_e))\)\;
+}
+\((\turn^{*}, \tier^{*}) \gets \arg\max_{e} s_e\)\;
+\uIf{\(s^{*} \geq T\)}{\Return{$\tier^{*}$}\;}
+\Else{\Return{$\tier_{\text{esc}}$}\;}
+\caption{Semantic-similarity per-turn router (conservative escalation)}
+\label{alg:router}
+\end{algorithm}
+
+\subsection{Why \emph{conservative escalation}}
+
+When no exemplar matches above threshold, the safe move is to
+escalate to opus rather than guess. This biases the router toward
+\emph{never downgrading what shouldn't be downgraded} at the cost
+of occasionally over-spending on edge cases that could have run on
+sonnet. The fidelity-preservation constraint (Eq.~\ref{eq:routing})
+is satisfied with high probability when \(T\) is calibrated
+on a held-out exemplar set.
+
+\subsection{Calibration}
+
+\(T\) is selected on a held-out validation set to maximise
+\(\precision\) on the "should-be-opus" class subject to overall
+recall. Phase-A research recommends \(T \approx 0.85\) for
+BGE-M3 on the operator-turn distribution, but this is
+data-dependent and re-tuned per session profile.
+
+\subsection{Why semantic similarity (not trained classifier) for v1}
+
+\begin{itemize}
+  \item \textbf{Faster shipping} --- exemplar curation (150 turns)
+    is hours, not the days needed to annotate + train DistilBERT.
+  \item \textbf{Interpretable failure modes} --- a misroute traces
+    back to a specific exemplar; debugging is direct.
+  \item \textbf{Lower overhead} --- inference is one embedder pass +
+    k-NN, not a forward pass through a trained model.
+  \item \textbf{Easy to update} --- add an exemplar, re-vectorise,
+    redeploy. No retraining loop.
+\end{itemize}
+
+The trained-classifier alternative (DistilBERT, RouteLLM-style;
+\cite{routellm}) is faster at inference but more expensive to ship;
+we defer to v2.
+
+\tothink{Add a worked example: a sample bd close + dispatch turn →
+embedded → matched to exemplar X → routed to haiku. Plus the
+counter-example: an architecture-decision turn → no match above
+threshold → escalates to opus.}

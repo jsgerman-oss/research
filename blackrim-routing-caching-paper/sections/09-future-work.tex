@@ -1,0 +1,37 @@
+\section{Future Work}
+\label{sec:future}
+
+\paragraph{Trained classifier (DistilBERT) v2.}
+Replace the semantic-similarity v1 router with a trained classifier
+on \(\sim\)500 hand-annotated turns. Phase-A research projects
+45--50\,\% cost reduction at <1\,\% quality loss, with 50\,ms
+inference overhead. Tracked at \texttt{bd blackrim-x3ju}'s parent
+epic.
+
+\paragraph{Cascade routing.}
+Always try sonnet first, measure semantic entropy on the response,
+escalate to opus when entropy exceeds threshold. Phase-A research
+projects 40--45\,\% cost reduction at <0.5\,\% quality loss with
+150\,ms overhead. Higher latency but bypasses the per-turn
+classification overhead entirely on cache hits.
+
+\paragraph{Cross-cache hit-rate optimisation.}
+The prefix cache and plan cache target orthogonal cost sources, but
+their hit rates are not independent: a high prefix-cache hit
+correlates with structurally-similar dispatches (which would also
+be plan-cache hits). Joint analysis: are we double-counting savings
+in §\ref{sec:eval}?
+
+\paragraph{Held-out instruction-following eval.}
+Required for §\ref{sec:eval}'s fidelity claim to be publishable.
+The eval suite should cover: routine-orchestration turns
+(claim/dispatch/merge), mid-complexity turns (refactor/fix/doc),
+novel-reasoning turns (architecture/debug). Build alongside
+\texttt{gt eval generate} (already shipped via
+\texttt{blackrim-mmlp}).
+
+\paragraph{Comparison with auto-compact.}
+Auto-compact (\texttt{blackrim-uvep}) attacks the same cost
+shape from a different angle: shrink conversation history rather
+than route turns. The two should compose multiplicatively. Future
+work: empirical study of router \(\times\) compact composition.

@@ -1,0 +1,24 @@
+\section{System: \blackrim Main-Thread + Dispatch Architecture}
+\label{sec:system}
+
+% Sketch of \blackrim's relevant architecture:
+%
+% 1. The main-thread orchestrator (Gestalt) runs on opus and processes
+%    operator turns, decomposing them into routable subtasks.
+% 2. Subagent dispatch goes through the existing (role × signal) cascade
+%    rules in internal/dispatch/model.go (MOA-3, blackrim-fasf).
+% 3. Static prefix layer: ~/.claude/CLAUDE.md (global, thin),
+%    <project>/CLAUDE.md (project, thick — focus of the trim paper),
+%    agents/citizens/*.md, agents/workers/*.md (per-agent overlays).
+% 4. Telemetry capture: .beads/telemetry/invocations.jsonl per spawn,
+%    cache_creation_input_tokens vs cache_read_input_tokens fields,
+%    gt invocations record + gt context budget orchestration metrics.
+% 5. Where the new primitives integrate:
+%    - Per-turn router: replaces the implicit "main-thread = opus"
+%      assumption; needs Agent SDK middleware OR Claude Code feature.
+%    - Plan cache: sits BETWEEN gt orchestrate plan and gt context budget;
+%      cache-hits short-circuit the briefing-composition step.
+
+\tothink{Add architecture diagram (figures/blackrim-routing-caching.tex)
+showing Gestalt main thread, dispatch path, plan-cache location, and
+router placement. Reference \cref{fig:arch}.}

@@ -1,0 +1,39 @@
+\section{Appendix: Phase-A Landscape Detail}
+\label{sec:appendix}
+
+% The full ~7,500-word Phase-A landscape research lives at
+% docs/research/tier-down-main-thread-landscape.md (Blackrim repo,
+% commit ecfdcba). For arxiv submission, this appendix should distil
+% the eight surveyed sub-areas into a 2–3 page reference table.
+
+\subsection{Eight surveyed sub-areas}
+
+\begin{enumerate}
+  \item Model cascading (FrugalGPT and successors)
+  \item LLM routing (RouteLLM, Hybrid LLM Routing, AutoMix, Tryage)
+  \item Confidence-based routing (semantic entropy, hidden-state probes,
+        verbalized confidence)
+  \item Speculative decoding (token-level only; not applicable at turn
+        level — too expensive to reject a whole turn)
+  \item Mixture-of-Experts at the orchestration layer
+  \item Per-turn classification paradigms (semantic similarity,
+        DistilBERT trained, LLM router)
+  \item Cost-performance frontier benchmarks (SWE-bench, BigCodeBench,
+        Aider Polyglot)
+  \item Routing-eval methodology (regret, expected utility, Pareto
+        frontier)
+\end{enumerate}
+
+\subsection{Cache-control deep-dive companion}
+
+A parallel investigation (commit 660054d on \blackrim main) revised
+downward the original cache-control segmentation estimate: 10--15\,\%
+incremental from \claudemd reordering, not 43\,\%. The actual
+high-leverage cache-side opportunity (50\,\% additional savings at
+27\,\% latency improvement) is the agentic plan caching primitive
+formalised in §\ref{sec:plancache}. The deep-dive document is
+recommended companion reading for §\ref{sec:plancache}'s motivation.
+
+\tothink{Distil both companion docs into a 2-page appendix table
+ranked by reward / effort, with arxiv IDs and integration-cost
+estimates.}

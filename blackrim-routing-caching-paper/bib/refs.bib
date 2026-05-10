@@ -1,0 +1,170 @@
+% Bibliography for "Per-Turn Model Routing and Agentic Plan Caching for
+% Cost-Optimal Multi-Agent LLM Coding Systems"
+
+% --- Model cascading -------------------------------------------------------
+@misc{frugalgpt,
+  title         = {{FrugalGPT}: How to Use Large Language Models While Reducing Cost and Improving Performance},
+  author        = {Chen, Lingjiao and Zaharia, Matei and Zou, James},
+  year          = {2023},
+  eprint        = {2305.05176},
+  archivePrefix = {arXiv},
+}
+
+% --- LLM routing ----------------------------------------------------------
+@misc{routellm,
+  title         = {{RouteLLM}: Learning to Route {LLMs} with Preference Data},
+  author        = {Ong, Isaac and Almahairi, Amjad and Wu, Vincent and Chiang, Wei-Lin and Wu, Tianhao and Gonzalez, Joseph E. and Kadous, M. Waleed and Stoica, Ion},
+  year          = {2024},
+  eprint        = {2406.18665},
+  archivePrefix = {arXiv},
+  note          = {ICLR 2025},
+}
+
+@misc{hybridllm,
+  title         = {Hybrid {LLM}: Cost-Efficient and Quality-Aware Query Routing},
+  author        = {Ding, Dujian and Mallick, Ankur and Wang, Chi and Sim, Robert and Mukherjee, Subhabrata and Ruhle, Victor and Lakshmanan, Laks V. S. and Awadallah, Ahmed Hassan},
+  year          = {2024},
+  eprint        = {2404.14618},
+  archivePrefix = {arXiv},
+}
+
+@misc{tryage,
+  title         = {{Tryage}: Real-time, Intelligent Routing of User Prompts to Large Language Models},
+  author        = {Hari, Surya Narayanan and Thomson, Matt},
+  year          = {2023},
+  eprint        = {2308.11601},
+  archivePrefix = {arXiv},
+}
+
+@misc{cascaderouting,
+  title         = {A Unified Approach to Routing and Cascading for {LLMs}},
+  author        = {Dekoninck, Jasper and others},
+  year          = {2024},
+  eprint        = {2410.10347},
+  archivePrefix = {arXiv},
+}
+
+% --- Confidence-based routing ---------------------------------------------
+@misc{semanticentropy,
+  title         = {Confidence-Aware {LLM} Routing via Semantic Entropy},
+  author        = {Various},
+  year          = {2024},
+  eprint        = {2410.13284},
+  archivePrefix = {arXiv},
+  note          = {Citation TODO; placeholder ref from Phase-A landscape research},
+}
+
+% --- Plan caching ---------------------------------------------------------
+@misc{plancache,
+  title         = {Agentic Plan Caching},
+  author        = {Various},
+  year          = {2025},
+  note          = {NeurIPS 2025; full ref TODO from cache-control deep-dive doc},
+}
+
+@misc{plancache-precursor,
+  title         = {{LLM} Cascade with Multi-Objective Optimization},
+  author        = {Various},
+  year          = {2025},
+  eprint        = {2507.07400},
+  archivePrefix = {arXiv},
+}
+
+% --- Prefix caching mechanics ---------------------------------------------
+@online{anthropic-cache,
+  title  = {Prompt caching},
+  author = {{Anthropic}},
+  year   = {2026},
+  url    = {https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching},
+  note   = {Accessed 2026-05-09.},
+}
+
+@misc{dont-break-cache,
+  title         = {Don't Break the Cache: An Evaluation of Prompt Caching for Long-Horizon Agentic Tasks},
+  author        = {{Anonymous}},
+  year          = {2026},
+  eprint        = {2601.06007},
+  archivePrefix = {arXiv},
+}
+
+@misc{pagedattention,
+  title         = {Efficient Memory Management for Large Language Model Serving with {PagedAttention}},
+  author        = {Kwon, Woosuk and Li, Zhuohan and Zhuang, Siyuan and Sheng, Ying and Zheng, Lianmin and Yu, Cody Hao and Gonzalez, Joseph E. and Zhang, Hao and Stoica, Ion},
+  year          = {2023},
+  eprint        = {2309.06180},
+  archivePrefix = {arXiv},
+}
+
+@misc{mooncake,
+  title  = {{Mooncake}: A {KVCache}-centric Disaggregated Architecture for {LLM} Serving},
+  author = {{Moonshot AI}},
+  year   = {2025},
+  note   = {NSDI 2025; full ref TODO},
+}
+
+% --- Speculative decoding (referenced but not applicable at turn level) ---
+@misc{eagle2,
+  title  = {{EAGLE-2}: Faster Inference of Language Models with Dynamic Draft Trees},
+  author = {Li, Yuhui and Wei, Fangyun and Zhang, Chao and Zhang, Hongyang},
+  year   = {2024},
+  eprint = {2406.16858},
+  archivePrefix = {arXiv},
+}
+
+% --- Multi-agent coordination ---------------------------------------------
+@misc{autogen,
+  title         = {{AutoGen}: Enabling Next-Gen {LLM} Applications via Multi-Agent Conversation},
+  author        = {Wu, Qingyun and others},
+  year          = {2023},
+  eprint        = {2308.08155},
+  archivePrefix = {arXiv},
+}
+
+@misc{memgpt,
+  title         = {{MemGPT}: Towards {LLMs} as Operating Systems},
+  author        = {Packer, Charles and Wooders, Sarah and Lin, Kevin and Fang, Vivian and Patil, Shishir G. and Stoica, Ion and Gonzalez, Joseph E.},
+  year          = {2023},
+  eprint        = {2310.08560},
+  archivePrefix = {arXiv},
+}
+
+% --- Lost in the middle (relevant to context-length discussion) ----------
+@misc{lostinmiddle,
+  title         = {Lost in the Middle: How Language Models Use Long Contexts},
+  author        = {Liu, Nelson F. and Lin, Kevin and Hewitt, John and Paranjape, Ashwin and Bevilacqua, Michele and Petroni, Fabio and Liang, Percy},
+  year          = {2023},
+  eprint        = {2307.03172},
+  archivePrefix = {arXiv},
+}
+
+% --- Coding-agent benchmarks ----------------------------------------------
+@misc{swebench,
+  title  = {{SWE-bench}: Can Language Models Resolve Real-World {GitHub} Issues?},
+  author = {Jimenez, Carlos E. and Yang, John and Wettig, Alexander and Yao, Shunyu and Pei, Kexin and Press, Ofir and Narasimhan, Karthik},
+  year   = {2024},
+  eprint = {2310.06770},
+  archivePrefix = {arXiv},
+}
+
+@misc{bigcodebench,
+  title  = {{BigCodeBench}: Benchmarking Code Generation with Diverse Function Calls and Complex Instructions},
+  author = {{BigCode}},
+  year   = {2024},
+  note   = {Citation TODO},
+}
+
+% --- Companion paper: Blackrim subagent advisor (CC-TS) -------------------
+@misc{moa1landscape,
+  title  = {Conservative Adaptive Model-Tier Selection for Multi-Agent {LLM} Workflows under Asymmetric Cost-Quality Loss},
+  author = {German, Jay},
+  year   = {2026},
+  note   = {Companion paper at \url{https://github.com/jsgerman-oss/research}},
+}
+
+% --- Companion paper: Blackrim instruction-trim methodology --------------
+@misc{trimpaper,
+  title  = {Frequency-Weighted Progressive Disclosure for Static-Prefix Multi-Agent Coding Systems},
+  author = {German, Jay},
+  year   = {2026},
+  note   = {Companion paper at \url{https://github.com/jsgerman-oss/research}},
+}

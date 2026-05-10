@@ -1,0 +1,108 @@
+% !TEX program = pdflatex
+% !TEX bibtex  = biber
+%
+% main.tex — Per-Turn Model Routing and Agentic Plan Caching for
+%            Cost-Optimal Multi-Agent LLM Coding Systems
+%
+% Compile:
+%   make            # latexmk -pdf -bibtex
+%   make clean      # remove build artifacts
+
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{parskip}
+
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{thmtools}
+\declaretheorem[name=Theorem,numberwithin=section]{theorem}
+\declaretheorem[name=Lemma,sibling=theorem]{lemma}
+\declaretheorem[name=Definition,sibling=theorem,style=definition]{definition}
+\declaretheorem[name=Remark,sibling=theorem,style=remark]{remark}
+
+\usepackage[ruled,linesnumbered]{algorithm2e}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible,
+}
+
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes,fit,backgrounds,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{array}
+\usepackage{longtable}
+
+\usepackage[backend=biber,style=numeric-comp,sorting=none,maxbibnames=99,giveninits=true]{biblatex}
+\addbibresource{bib/refs.bib}
+
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{etoolbox}
+
+% Notation macros — introduced in problem-formulation, then reused.
+\newcommand{\turn}{\tau}                % a single conversation turn
+\newcommand{\tier}{t}                    % a model tier (haiku / sonnet / opus)
+\newcommand{\tierset}{\mathcal{T}}        % set of tiers
+\newcommand{\plan}{p}                    % a plan / strategy signature
+\newcommand{\planset}{\mathcal{P}}        % the plan-cache index
+\newcommand{\cache}{\mathcal{C}}          % cache state
+\newcommand{\cost}{C}                    % per-call cost
+\newcommand{\quality}{Q}                  % quality function
+\newcommand{\precision}{\pi}             % classifier precision
+\newcommand{\hitrate}{\rho}              % cache hit rate
+\newcommand{\tothink}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\blackrim}{Blackrim\xspace}
+\newcommand{\claudemd}{\texttt{CLAUDE.md}\xspace}
+
+\title{
+  \textbf{Per-Turn Model Routing and Agentic Plan Caching \\
+  for Cost-Optimal Multi-Agent LLM Coding Systems}
+}
+
+\author{%
+  Jay German\thanks{Independent. \href{mailto:camber.estate_6j@icloud.com}{camber.estate_6j@icloud.com}.}
+}
+
+\date{Draft — \today}
+
+\begin{document}
+\maketitle
+
+\input{sections/00-abstract}
+
+\input{sections/01-introduction}
+\input{sections/02-related-work}
+\input{sections/03-problem-formulation}
+\input{sections/04-system}
+\input{sections/05-routing-algorithm}
+\input{sections/06-plancache-algorithm}
+\input{sections/07-evaluation}
+\input{sections/08-discussion}
+\input{sections/09-future-work}
+\input{sections/10-conclusion}
+
+\printbibliography
+
+\appendix
+\input{sections/A-appendix}
+
+\end{document}

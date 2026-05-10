@@ -1,0 +1,33 @@
+\begin{abstract}
+\noindent
+Static-prefix multi-agent LLM coding systems route work across a
+cheap-to-expensive model-tier hierarchy (haiku / sonnet / opus) to
+manage cost. Existing routing research targets the
+\emph{subagent-dispatch} problem and produces clear (role
+\(\times\) signal) rules; the analogous \emph{main-thread
+orchestrator} problem has no role taxonomy and requires per-turn
+classification, but it dominates the cost shape. We measure
+\blackrim's production cost split as 99.4\,\% main-thread / 0.6\,\%
+subagent dispatch, indicating that the orchestrator itself is the
+binding cost lever in a well-tuned multi-agent system. We present
+two complementary primitives that target this lever: (i) a
+semantic-similarity per-turn router for the main thread, drawing
+on FrugalGPT cascading and RouteLLM-style preference-data routing;
+(ii) an agentic plan-level semantic cache stacking on top of
+existing prefix caching, drawing on the 2025 NeurIPS
+\emph{Agentic Plan Caching} result. The router is grounded in
+exemplar curation across \(\sim\)150 hand-labeled turns (50 per
+tier) and a k-NN classifier with conservative escalation to opus
+when similarity falls below threshold; the plan cache is keyed on a
+semantic signature of the orchestration plan and indexes
+strategy-level reuse across structurally-similar bd dispatches.
+We report a 4.56\(\times\) read-to-creation ratio on the existing
+prefix cache (69.3\,\% baseline savings) as the calibration point
+the new techniques stack atop. We also document an integration
+blocker: \texttt{Claude Code} currently exposes only session-level
+model selection, not per-turn routing; we evaluate three workaround
+paths (Agent SDK middleware, Claude Code feature request, prompt
+injection). Closing the loop, we discuss why \blackrim's prior
+subagent-dispatch advisor (CC-TS, \cite{moa1landscape}) does
+\emph{not} transfer directly to the main thread and what would.
+\end{abstract}

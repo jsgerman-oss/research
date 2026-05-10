@@ -1,0 +1,44 @@
+\section{Introduction}
+\label{sec:intro}
+
+% Outline of the intended argument:
+%
+% 1. Cost shape of static-prefix multi-agent coding systems.
+%    - Subagent-dispatch routing is well-studied and shipped (Blackrim's
+%      MOA-1..13 advisor, internal/dispatch/model.go: 16-rule cascade,
+%      8.9× cost savings on general-purpose dispatch alone).
+%    - But measured production telemetry on a typical session: 99.4%
+%      cost is the main-thread orchestrator (Gestalt-on-opus); only
+%      0.6% is the dispatched subagents combined.
+%    - This inverts the optimization target: orchestrator-tier
+%      selection dominates spend, not subagent-tier selection.
+%
+% 2. The main-thread problem differs from the subagent problem.
+%    - Subagent dispatch has a clean (role × signal) → tier mapping;
+%      Researcher → haiku, Builder → sonnet, Architect → opus.
+%    - The main thread has no role taxonomy. Each turn is
+%      "operator → assistant" with arbitrary content. The classifier
+%      must work on the turn itself + recent conversation context.
+%
+% 3. Our contributions.
+%    a. Empirical 99.4% / 0.6% cost-split measurement (motivating data).
+%    b. A semantic-similarity per-turn router with conservative escalation
+%       (35–40% main-thread cost reduction at <0.5% quality loss).
+%    c. A plan-level semantic cache complementary to prefix caching
+%       (50% additional cost reduction; 4.56× existing prefix-cache
+%       efficiency as the calibration baseline).
+%    d. Integration blocker analysis (Claude Code limits per-turn
+%       routing; three workaround paths evaluated).
+%    e. Discussion of why CC-TS subagent advisor doesn't transfer
+%       directly to main-thread orchestration, and what does.
+%
+% 4. Roadmap of the paper. §2 surveys the relevant literature
+%    (cascading, routing, plan caching). §3 formalises the cost-
+%    minimisation problem. §4 describes Blackrim's architecture
+%    relevant to the routing + caching layers. §5 presents the
+%    semantic-similarity router. §6 presents the plan-cache. §7
+%    reports empirical evaluation. §8 discusses integration and
+%    limitations. §9 maps future directions.
+
+\tothink{Write the introduction prose from outline above; target
+$\sim$2 pages.}

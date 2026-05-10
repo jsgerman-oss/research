@@ -1,0 +1,77 @@
+\section{Algorithm: Agentic Plan Caching}
+\label{sec:plancache}
+
+\subsection{Setting}
+
+Following \cite{plancache}, a \emph{plan} is the strategy-level
+artefact emitted by the orchestrator before subagent dispatch:
+agent role, task shape (extract / refactor / scaffold / review),
+file scope, expected deliverable. Plans for structurally-similar
+tasks share most of these fields; the cache exploits this structural
+reuse.
+
+\subsection{Plan signature}
+
+\begin{equation}
+  \plan = h\big(
+    \text{role},
+    \text{task\_shape},
+    \text{normalised\_file\_scope},
+    \text{deliverable\_kind}
+  \big)
+  \label{eq:plansig}
+\end{equation}
+
+where \(h\) is a stable hash. The signature is intentionally
+coarser than the full plan text --- many bd dispatches with
+different surface text reduce to the same signature (e.g., "find
+the worktree-isolation hook" and "locate the bash guard for agent
+worktrees" both reduce to
+\((\text{Researcher}, \text{file-search}, \text{hooks/}, \text{path-list})\)).
+
+\subsection{Cache lookup}
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\KwIn{plan signature $\plan$, cache $\cache$, similarity threshold $T_p$}
+\KwOut{cached plan output $o$ or \textsc{miss}}
+\If{$\plan \in \cache$}{\Return{$\cache[\plan]$}\;}
+$N \gets \{\plan' \in \cache : \cos(\phi(\plan), \phi(\plan')) \geq T_p\}$\;
+\uIf{$N \neq \emptyset$}{
+  \Return{$\cache[\arg\max_{\plan' \in N} \cos(\phi(\plan), \phi(\plan'))]$}\;
+}
+\Else{\Return{\textsc{miss}}\;}
+\caption{Plan-cache lookup with semantic fallback}
+\label{alg:plancache}
+\end{algorithm}
+
+\subsection{Cache fill}
+
+On miss, the orchestrator runs the standard plan-composition path
+(\texttt{gt context budget} / \texttt{gt orchestrate plan}) and
+inserts \((\plan, o)\) into \(\cache\) post-completion --- only if
+the plan succeeded (the dispatch closed with success). Cache fills
+on success-only avoid poisoning the cache with failed plans.
+
+\subsection{Eviction}
+
+LRU eviction at fixed capacity (default 1024 entries; configurable
+via \texttt{ship.toml [cache.plan]}). TTL secondary: 30-day expiry
+to handle gradual codebase drift. Plan-version-based invalidation
+on schema changes (e.g., new agent role added) clears the entire
+cache.
+
+\subsection{Why plan caching stacks on prefix caching}
+
+Prefix caching reduces the cost of \emph{recomputing the same
+prefix} across spawns within a 5-minute window. Plan caching
+reduces the cost of \emph{recomputing equivalent plans} across
+spawns at any horizon (within TTL). They target orthogonal cost
+sources: prefix-cache savings come from the static instruction
+prefix; plan-cache savings come from the briefing-composition step
+(retrieval, similar-cases lookup, prompt assembly).
+
+\tothink{Add a worked example: bd \texttt{blackrim-foo} dispatch
+hashes to plan signature S1, miss; bd \texttt{blackrim-bar}
+dispatch (different bd, same shape) hashes to S1, hit. Show the
+short-circuit at the \texttt{gt context budget} layer.}

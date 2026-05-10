@@ -1,0 +1,26 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+% 1. What we did. Measured the 99.4% main-thread cost split. Designed
+%    a semantic-similarity per-turn router with conservative
+%    escalation. Designed a plan-level semantic cache that stacks on
+%    prefix caching. Surfaced an integration blocker (Claude Code
+%    per-turn model selection) and three workaround paths.
+%
+% 2. What this is not. We did not show that the trained-classifier v2
+%    is unnecessary; we showed that v1 ships faster and is sufficient
+%    for first-cut savings. We did not show that plan caching beats
+%    prefix caching; we showed it is complementary and stacks.
+%
+% 3. Why this matters. Static-prefix multi-agent coding systems are a
+%    rapidly-growing pattern. The cost shape is dominated by the
+%    orchestrator-on-opus default; no current production system
+%    routes the main thread per turn. The two primitives here close
+%    that gap.
+%
+% 4. Open questions for the field. Per-turn routing primitives in
+%    inference-as-a-service products (Claude Code, Cursor, Continue);
+%    plan-cache eviction policies under codebase drift; joint
+%    routing/caching benchmarks for agentic systems.
+
+\tothink{Write conclusion prose; target $\sim$0.5 page.}

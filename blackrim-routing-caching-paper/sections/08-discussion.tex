@@ -1,0 +1,30 @@
+\section{Discussion}
+\label{sec:discussion}
+
+% Three themes:
+%
+% 1. Integration blocker — Claude Code currently exposes session-level
+%    model selection only, not per-turn routing. Three workaround paths:
+%    a. Agent SDK middleware (4 weeks, production-ready, recommended)
+%    b. Claude Code feature request (8 weeks, requires Anthropic engagement)
+%    c. Prompt-injection hack (0 weeks, 5–10% overhead, fragile)
+%    The middleware path keeps Claude Code's UX intact for human-in-loop
+%    sessions while routing the under-the-hood model choice per turn.
+%
+% 2. Why CC-TS doesn't transfer directly. The subagent advisor uses
+%    Hierarchical Beta priors seeded from a (role × shape × tier)
+%    landscape; main-thread orchestration has no role taxonomy and
+%    no per-cell sample structure. The contribution here is showing
+%    that semantic similarity can substitute for role taxonomy when
+%    the per-cell structure is missing.
+%
+% 3. The conservative-escalation trade. Escalating to opus when no
+%    exemplar matches above threshold biases toward never downgrading
+%    what shouldn't be downgraded — at the cost of occasional
+%    over-spending on edge cases. We consider this the right bias
+%    for a production system; aggressive routing would catastrophic-
+%    failure-mode the orchestrator. Future work: learned classifier
+%    that does better on the threshold-edge cases.
+
+\tothink{Expand each theme. The integration-blocker discussion is
+substantial enough to deserve a subsection on its own.}

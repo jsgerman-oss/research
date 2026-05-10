@@ -1,0 +1,95 @@
+\section{Empirical Evaluation}
+\label{sec:eval}
+
+\subsection{Setup}
+
+\paragraph{Trace.}
+Production telemetry from \blackrim's dogfooding instance,
+\(\sim\)50 spawns/day across 5 parallel-agent waves, captured 2026-05-01
+through 2026-05-09. Cost computed against
+\texttt{internal/pricing/sheets/anthropic-public.toml} at the
+2026-04-24 rate sheet.
+
+\paragraph{Quality.}
+Three-channel signal per \cite{moa1landscape}: structured-output
+correctness, tool-use success, eval-suite scores where suites
+exist (\texttt{evals/gestalt-routing}, \texttt{evals/model-tier-validation},
+\texttt{evals/token-attribution-fidelity}, \texttt{evals/token-data-integrity}).
+
+\subsection{The motivating measurement: 99.4\,\% main-thread cost}
+
+\begin{table}[h]
+\centering
+\caption{\blackrim cost split (single 7-day window, claude-opus-4-7 baseline).}
+\label{tab:cost-split}
+\begin{tabular}{lrrr}
+\toprule
+              & Cost (USD) & Share & Calls \\
+\midrule
+Session total & 115.54 & 100.0\% & 445 \\
+Main-thread (Gestalt) & 114.81 & 99.4\% & 445 (turns) \\
+Subagent dispatch & 0.7338 & 0.6\% & 55 (calls) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Interpretation.} The 0.6\,\% dispatch cost is the
+already-tuned subagent advisor at work. Routing the
+\emph{orchestrator itself} to a cheaper tier on read-mostly turns
+is the dominant remaining lever.
+
+\subsection{Cache calibration baseline}
+
+Prefix-cache statistics over the same window (computed from
+\texttt{cache\_creation\_input\_tokens} vs
+\texttt{cache\_read\_input\_tokens} in
+\texttt{.beads/telemetry/invocations.jsonl}):
+
+\begin{itemize}
+  \item Read-to-creation ratio: 4.56\(\times\) (sustained reuse within TTL)
+  \item Cache hit rate: 79.3\,\% across cache-enabled spawns
+  \item Estimated cost savings vs no-caching: 69.3\,\%
+\end{itemize}
+
+The plan-cache primitive (§\ref{sec:plancache}) targets the
+remaining 30.7\,\% by capturing reuse \emph{across} the 5-minute
+TTL window via semantic plan-signature matching.
+
+\subsection{Routing evaluation}
+
+% TODO: held-out 50-turn test set, hand-labeled. Report:
+% - Per-tier precision + recall + F1.
+% - Cost-saved-vs-opus when correct; cost-of-mistake when wrong.
+% - Acceptance: ≥0.90 precision overall; ≥0.95 on "should-be-opus" class.
+
+\tothink{Build the held-out set + report numbers.}
+
+\subsection{Plan-cache evaluation}
+
+% TODO: replay 30 historical bd dispatches, measure:
+% - Cache hit rate (target ≥ 30%).
+% - False-hit rate (cache says hit but plan was different) — target < 5%.
+% - Composed cost reduction with prefix caching active.
+
+\tothink{Build the replay harness + report numbers.}
+
+\subsection{Reproducibility}
+\label{sec:repro}
+
+The full pipeline:
+
+\begin{lstlisting}[language=bash]
+python scripts/pull-telemetry.py --since 2026-05-01 \
+  --repo /Users/jayse/Code/blackrim \
+  > data/raw/session-telemetry.json
+
+python scripts/aggregate-cache-stats.py \
+  --telemetry /Users/jayse/Code/blackrim/.beads/telemetry/invocations.jsonl \
+  > data/aggregated/cache-stats.csv
+
+python scripts/aggregate-routing-evidence.py \
+  < data/raw/session-telemetry.json \
+  > data/aggregated/routing-evidence.csv
+
+make
+\end{lstlisting}
