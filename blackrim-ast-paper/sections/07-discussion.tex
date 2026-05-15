@@ -1,0 +1,148 @@
+\section{Discussion}
+\label{sec:discussion}
+
+This section addresses limitations and design boundaries. We follow
+the three-part structure used in companion work
+\cite{blackrim_moa_paper}: where the design pays a cost, why we paid
+it anyway, and when the design will not work.
+
+\subsection{The cost of the false-negative-only contract}
+\label{sec:discussion:falsenegative}
+
+\Cref{def:false_negative} forbids the compile gate from accepting
+diffs that quietly break the program but explicitly permits it to
+reject diffs that would in fact be safe. The cost is friction: an
+LLM agent proposing a structural change that the gate rejects has to
+re-plan, with no guarantee that its next attempt will fare better.
+In a session of $K$ refactor attempts, the expected number of false
+negatives at rate $\phi$ is $K \phi$; at $K = 20$ and $\phi = 0.05$
+that is one re-plan per session, which is acceptable.
+
+The trade-off was deliberate. The opposite polarity --- a gate that
+admits anything compile-clean and rejects only what the native
+syntax checker catches --- would let through a class of subtle
+refactor bugs we cannot tolerate: imports removed because the only
+reference was inside a renamed identifier, function signatures
+updated at the declaration but not at all call sites, type aliases
+quietly broken. The native syntax check is necessary but not
+sufficient; the LSP-diagnose step (\cref{alg:gate}) adds the
+sufficiency where available.
+
+\subsection{Tree-sitter version brittleness}
+\label{sec:discussion:treesitter}
+
+\Cref{assn:significance} assumes per-language significance rules are
+stable across files for a fixed grammar version. In practice,
+tree-sitter grammar versions rename node-type names roughly every
+9--18 months. Our per-language significance tables (\cref{app:significance})
+list explicit node names; a grammar bump that renames
+\texttt{function\_declaration} to \texttt{function\_def} will silently
+break the rule for that construct.
+
+The mitigations are: (a) grammar versions are pinned in
+\texttt{go.mod} and the in-tree parser-registration tables;
+(b) version bumps require updating the per-language node-kind tables
+in lockstep with re-running the acceptance fixtures, which encode
+canonical Markdown outputs for each language;
+(c) the universal fallback (line-span $\geq 10$ or named construct)
+provides a partial floor when a recognised construct is silently
+missed.
+
+The brittleness is real and not fully addressed by the design. A
+fully grammar-independent solution would require a query layer over
+tree-sitter that abstracts node names into language-neutral
+categories; we treat that as future work
+(\cref{sec:future:tier2}). The empirical question is whether the
+grammar-bump cadence is faster than our acceptance-fixture
+maintenance cadence; on the evidence of the past two grammar
+revisions (\tothink{which revisions, when, what broke}), it has not
+been.
+
+\subsection{Sanitisation as fidelity loss}
+\label{sec:discussion:sanitization}
+
+The sanitisation pass (\cref{sec:algorithm:sanitization}) is a hedge
+against prompt injection from verbatim file content. It is also a
+fidelity-loss surface: a legitimate package doc that happens to
+contain the literal string \texttt{SYSTEM:} (e.g., a Python module
+documenting an HTTP \texttt{System:} header convention) will be
+flagged with a \texttt{[sanitised]} prefix. The flag is visible to
+the agent and to a human reviewer; nothing is dropped, only marked.
+
+The conservative-biased choice was deliberate. The alternative ---
+trust verbatim content from any source --- would expose every agent
+that auto-prepends an outline to a class of supply-chain attacks: a
+malicious vendored package whose top-of-file comment is a
+prompt-injection payload would be ingested into every reading
+agent's context. We pay the legitimate-prose-misflagged cost to rule
+out that class entirely.
+
+\subsection{When this won't work}
+\label{sec:discussion:limits}
+
+The design assumes textual source code whose structure is meaningfully
+captured by an AST. It will not work for:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Non-textual code} (Jupyter notebooks, binary
+        serialised models, JSON-defined low-code workflows). The
+        AST view is null; agents must fall back to format-specific
+        tooling.
+  \item \textbf{Generated code} (protoc output, ORM-generated
+        models, transpiled bundles). The outline is technically
+        valid but uninformative; the \texttt{outline:skip} escape
+        hatch is the operator's lever.
+  \item \textbf{Constant-table--dominated files} (10000-line
+        embedded lookup tables, generated language-data files). The
+        AST view degenerates to one large declaration; the
+        compression ratio approaches 1 and the LoC threshold
+        triggers no useful outline. Operator's lever:
+        \texttt{outline:skip} or per-project
+        \texttt{threshold\_loc} bump.
+  \item \textbf{Adversarial inputs that defeat sanitisation.}
+        \Cref{sec:algorithm:sanitization} catches known
+        prompt-injection patterns but is not robust against a
+        determined attacker who crafts content that semantically
+        induces an LLM to ignore prior instructions without using
+        any of the flagged literal strings. The conservative-biased
+        sanitisation is necessary but not sufficient.
+\end{itemize}
+
+\subsection{Off-policy gap and agents already in the wild}
+\label{sec:discussion:offpolicy}
+
+The end-to-end token reduction claim (\cref{sec:eval:e2e}) is
+fundamentally an on-policy measurement: the agent's behaviour
+changes in response to the discipline subsystem (it learns to
+expect outlines, to navigate from outlines, to fetch bodies
+selectively). A counterfactual estimate from logged traces
+\emph{before} the discipline rollout would systematically
+under-estimate the reduction because pre-rollout agents do not know
+how to consume outlines efficiently.
+
+This is structurally identical to the off-policy evaluation gap in
+the companion model-advisor work \cite{blackrim_moa_paper}. The
+mitigation there --- doubly-robust off-policy evaluation
+\cite{dudik2014doubly} keyed by per-cell logged propensities --- is
+\emph{not} directly applicable here because the policy change is in
+the agent's reading strategy, not the dispatcher's routing decision.
+Our analogue is paired-trace measurement on tasks run twice (once
+with discipline, once without); accumulating that dataset is the
+work item gating OQ-AST-5.
+
+\subsection{Provisional inclusion of the pattern-DSL subsystem}
+\label{sec:discussion:patterndsl}
+
+The pattern-DSL authoring-velocity subsystem
+(\cref{sec:system:patterndsl}) is included \emph{provisionally}: it
+is the only subsystem of the five whose central empirical contribution
+(intents authored per engineer-hour, with measured fidelity loss vs.
+native parser walking) cannot yet be measured because the
+implementation is not yet shipped. We discuss it for completeness
+and because the architectural design --- a YAML grammar layered on a
+choice of two execution backends (ast-grep binary or in-tree Go
+fallback) --- is settled and consequential for the design's overall
+shape. The paper's empirical contribution does not depend on it; if
+the subsystem is delayed past the paper's revision window, the
+relevant claims downgrade from ``provisional'' to ``planned'' without
+disturbing the rest of the evaluation.

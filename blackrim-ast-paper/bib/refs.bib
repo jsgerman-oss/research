@@ -1,0 +1,262 @@
+% =====================================================================
+% refs.bib — The AST as LLM Lens paper
+% =====================================================================
+% Conventions:
+%   • Short, deterministic keys: AuthorYearShortTitle (or ToolName for tools)
+%   • Tools and dev infrastructure cite as @misc with note + (optional) url
+%   • arXiv preprints use @article with eprint, archivePrefix, primaryClass
+%   • Internal Blackrim references use @misc with note + url to repo
+% =====================================================================
+
+% --- Grammar-driven parsers ------------------------------------------------
+
+@misc{tree_sitter,
+  author = {Brunsfeld, Max},
+  title  = {Tree-sitter: an incremental parsing system for programming tools},
+  year   = {2018},
+  note   = {Open-source project; per-language grammars maintained at
+            \texttt{github.com/tree-sitter/tree-sitter-\{language\}}.},
+}
+
+@misc{go_ast,
+  title  = {Package go/ast},
+  author = {{The Go Authors}},
+  year   = {2025},
+  note   = {Go standard library; abstract syntax tree types and the
+            \texttt{go/parser} companion package.},
+}
+
+@misc{python_ast,
+  title  = {ast --- Abstract Syntax Trees},
+  author = {{Python Software Foundation}},
+  year   = {2025},
+  note   = {CPython standard library module; canonical syntax tree
+            representation for Python source.},
+}
+
+@misc{acorn,
+  title  = {Acorn: a small, fast JavaScript parser},
+  author = {Haverbeke, Marijn},
+  year   = {2025},
+  note   = {ESTree-compliant JavaScript parser; ECMAScript 2022 support
+            and JSX via the \texttt{acorn-jsx} plugin.},
+}
+
+@misc{ts_compiler,
+  title  = {The TypeScript Compiler API},
+  author = {{Microsoft}},
+  year   = {2025},
+  note   = {\texttt{ts.createSourceFile} and \texttt{typescript} package;
+            official compiler frontend.},
+}
+
+% --- Pattern-based structural editors --------------------------------------
+
+@misc{ast_grep,
+  title  = {ast-grep: a CLI tool for code structural search and rewriting},
+  author = {Yang, Herrington},
+  year   = {2024},
+  note   = {Tree-sitter--backed pattern DSL with YAML rule files;
+            \texttt{ast-grep.github.io}.},
+}
+
+@misc{comby,
+  title  = {Comby: a tool for searching and changing code structure},
+  author = {van Tonder, Rijnard and Le~Goues, Claire},
+  year   = {2019},
+  note   = {Language-agnostic structural search; ICSE 2019 companion
+            paper.},
+}
+
+@misc{semgrep,
+  title  = {Semgrep: lightweight static analysis for many languages},
+  author = {{r2c (Semgrep Inc.)}},
+  year   = {2024},
+  note   = {Pattern-based static analysis with metavariables and an
+            open rule library.},
+}
+
+% --- Language Server Protocol and refactor tooling -------------------------
+
+@misc{lsp_spec,
+  title  = {Language Server Protocol Specification},
+  author = {{Microsoft}},
+  year   = {2024},
+  note   = {Open protocol for editor / language-server communication;
+            current version 3.17.},
+}
+
+@misc{gopls,
+  title  = {gopls: the Go language server},
+  author = {{The Go Authors}},
+  year   = {2025},
+  note   = {Official Go LSP implementation; compile-aware rename and
+            code-actions surface.},
+}
+
+@misc{rust_analyzer,
+  title  = {rust-analyzer},
+  author = {{rust-lang/rust-analyzer maintainers}},
+  year   = {2025},
+  note   = {Official Rust LSP implementation.},
+}
+
+@misc{clangd,
+  title  = {clangd: a C/C++ language server},
+  author = {{LLVM Project}},
+  year   = {2025},
+  note   = {LSP implementation built on Clang.},
+}
+
+@misc{ctags,
+  title  = {Universal Ctags},
+  author = {{universal-ctags maintainers}},
+  year   = {2025},
+  note   = {Symbol-index generator for many languages; fork of the
+            classic Exuberant Ctags.},
+}
+
+@misc{scip,
+  title  = {SCIP: Source Code Intelligence Protocol},
+  author = {{Sourcegraph}},
+  year   = {2023},
+  note   = {Successor to LSIF; per-symbol code-intelligence index format.},
+}
+
+% --- LLM context engineering and prompt compression ------------------------
+
+@misc{llmlingua,
+  title         = {{LLMLingua}: Compressing Prompts for Accelerated Inference
+                    of Large Language Models},
+  author        = {Jiang, Huiqiang and Wu, Qianhui and Lin, Chin-Yew and
+                    Yang, Yuqing and Qiu, Lili},
+  year          = {2023},
+  eprint        = {2310.05736},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+}
+
+@misc{selective_context,
+  title         = {Selective Context: Compressing Context to Enhance
+                    Inference Efficiency of Large Language Models},
+  author        = {Li, Yucheng and Dong, Bo and Lin, Chenghua and
+                    Guerin, Frank},
+  year          = {2023},
+  eprint        = {2304.12102},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+}
+
+@misc{rag_for_code,
+  title  = {Retrieval-Augmented Generation for code: a survey},
+  author = {{Various Authors}},
+  year   = {2024},
+  note   = {Placeholder citation; covers the line of work
+            embedding code chunks for retrieval-augmented completion.
+            Replace with concrete citation in revision.},
+}
+
+@misc{liu2024context_engineering,
+  title  = {Context Engineering: Feeding Agents the Right Information at
+            the Right Time},
+  author = {Liu, Various},
+  year   = {2024},
+  note   = {Placeholder citation; informal community literature on
+            agent context curation. Replace with concrete reference
+            in revision.},
+}
+
+% --- Agent code tools and frameworks ---------------------------------------
+
+@misc{cursor,
+  title  = {Cursor: the AI code editor},
+  author = {{Anysphere Inc.}},
+  year   = {2024},
+  note   = {VS Code--derived AI-assisted editor; ships AST-aware edit
+            primitives.},
+}
+
+@misc{aider,
+  title  = {Aider: AI pair programming in your terminal},
+  author = {Gauthier, Paul},
+  year   = {2024},
+  note   = {Terminal-based code-editing agent; supports per-language
+            tree-sitter--based context selection.},
+}
+
+@misc{anthropic2024claudecode,
+  title  = {Claude Code},
+  author = {{Anthropic}},
+  year   = {2024},
+  note   = {Anthropic's CLI for Claude; runtime that hosts the hooks,
+            tools, and MCP servers \blackrim relies on.},
+}
+
+@misc{openai_codex_cli,
+  title  = {OpenAI Codex CLI},
+  author = {{OpenAI}},
+  year   = {2024},
+  note   = {Command-line agentic code assistant.},
+}
+
+% --- Companion Blackrim references -----------------------------------------
+
+@misc{blackrim_adr_0002,
+  title  = {Blackrim ADR 0002 --- Polyglot AST structure compression via
+            per-language shell-outs},
+  author = {German, Jay},
+  year   = {2026},
+  note   = {Accepted 2026-04-22.
+            \texttt{docs/adr/0002-polyglot-ast-structure-compression.md}
+            in the Blackrim repository.},
+}
+
+@misc{blackrim_paper_repo,
+  title  = {Companion repository for ``The AST as LLM Lens''},
+  author = {German, Jay},
+  year   = {2026},
+  note   = {Tagged commit anchoring the published version of this paper;
+            artefacts at \texttt{research/blackrim-ast-paper/}.},
+}
+
+@misc{blackrim_moa_paper,
+  title  = {Conservative Adaptive Model-Tier Selection for Multi-Agent
+            LLM Workflows under Asymmetric Cost-Quality Loss},
+  author = {German, Jay},
+  year   = {2026},
+  note   = {Companion paper. Source at
+            \texttt{research/blackrim-model-advisor-paper/}.},
+}
+
+@misc{codeindex_spec,
+  title  = {Blackrim codeindex --- design specification},
+  author = {German, Jay},
+  year   = {2026},
+  note   = {\texttt{docs/specs/codeindex.md} in the Blackrim repository;
+            describes the \texttt{codeindex\_explore} MCP retrieval
+            surface.},
+}
+
+% --- Off-policy evaluation (cited via the discussion) ----------------------
+
+@article{dudik2014doubly,
+  author  = {Dud{\'\i}k, Miroslav and Erhan, Dumitru and Langford, John
+              and Li, Lihong},
+  title   = {Doubly robust policy evaluation and optimization},
+  journal = {Statistical Science},
+  volume  = {29},
+  number  = {4},
+  pages   = {485--511},
+  year    = {2014},
+}
+
+% --- Reproducibility -------------------------------------------------------
+
+@inproceedings{pineau2021improving,
+  author    = {Pineau, Joelle and Vincent-Lamarre, Philippe and Sinha, Koustuv
+                and Larivière, Vincent and Beygelzimer, Alina
+                and d'Alché-Buc, Florence and Fox, Emily and Larochelle, Hugo},
+  title     = {Improving Reproducibility in Machine Learning Research},
+  booktitle = {Journal of Machine Learning Research},
+  year      = {2021},
+}

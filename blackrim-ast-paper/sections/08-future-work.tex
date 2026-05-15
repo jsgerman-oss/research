@@ -1,0 +1,111 @@
+\section{Future Work}
+\label{sec:future}
+
+Future work is tiered by operational maturity, following the
+companion-paper convention \cite{blackrim_moa_paper}: Tier~1
+items are committed deliverables for the next deployment cycle;
+Tier~2 items are refinements that depend on accumulated telemetry;
+Tier~3 items are exploratory and may not ship.
+
+\subsection{Tier 1 --- next deployment cycle}
+\label{sec:future:tier1}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Pattern-DSL implementation
+        (\cref{sec:system:patterndsl}).} Two backends: optional
+        shell-out to the \texttt{ast-grep} binary when installed;
+        in-tree Go fallback for the subset of the pattern grammar
+        the registered intents exercise. Authoring-velocity target:
+        $\leq 50$~LoC of YAML per new tier-0 intent, down from
+        $\sim 200$~LoC of Go today. Gates OQ-AST-6.
+  \item \textbf{Outline telemetry fill-in.} Run the discipline
+        subsystem in warn-with-auto-prepend mode for 14~days across
+        the Blackrim production agent fleet; accumulate
+        \texttt{outline-events.jsonl} to the volume required for
+        OQ-AST-3 (adoption trajectory) and OQ-AST-5 (end-to-end
+        token reduction on paired traces).
+  \item \textbf{Polyglot bench corpus expansion.} Extend
+        \texttt{cmd/gt/testdata/bench/} from the current
+        four-file fixture to a $\geq 50$-file stratified corpus
+        per language. Gates OQ-AST-1 (token-budget conformance).
+\end{enumerate}
+
+\subsection{Tier 2 --- post-deployment refinement}
+\label{sec:future:tier2}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Grammar-version abstraction layer.} A
+        language-neutral category table that maps grammar
+        node-type names to canonical categories
+        (\texttt{function-def}, \texttt{class-def},
+        \texttt{exception-handler}, etc.). Reduces the
+        per-language-grammar maintenance surface to a per-language
+        category map plus a single shared significance rule over
+        categories.
+        Addresses \cref{sec:discussion:treesitter}.
+  \item \textbf{Outline caching.} Currently every \texttt{Read}
+        on a $\loc \geq \threshold$ file re-parses the file. If
+        OQ-AST-2 latency turns out to be a user-perceived
+        bottleneck, a content-addressed outline cache keyed on
+        $(\text{file mtime}, \text{file size}, \text{language})$
+        can be added without changing the emitter contract.
+  \item \textbf{Cross-file outline composition.} The
+        \texttt{codeindex\_explore} surface already returns
+        \texttt{source\_sections} and \texttt{additional\_files};
+        a \emph{cross-file outline} that summarises the
+        relationship between a set of files (call graph, type
+        dependency, package structure) is the natural extension.
+        Differs from per-file outline in being a graph view, not a
+        tree view.
+  \item \textbf{Semantic-fidelity gate.} The current
+        \cref{alg:gate} runs native syntax check and (where
+        available) LSP-diagnose. A semantic-fidelity gate would
+        additionally run a small test subset (the package's unit
+        tests, with a wall-clock budget) on the candidate diff
+        before accepting. Costs latency, buys depth.
+\end{enumerate}
+
+\subsection{Tier 3 --- parking lot}
+\label{sec:future:tier3}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Outline-as-context for non-code artefacts.}
+        Markdown, LaTeX, and structured-config files
+        (Kubernetes manifests, Terraform modules) have AST-like
+        structure that the same lens could expose. The
+        cost-benefit is materially different (Markdown is already
+        outline-shaped) so the question is whether the unified
+        emitter or separate emitters per artefact class.
+  \item \textbf{Outline diffing.} An outline-diff between
+        two revisions of a file shows what \emph{structurally}
+        changed (declarations added / removed, public API
+        delta) independent of what cosmetically changed. Useful
+        for code review and for change-classification (is this PR
+        a refactor or a behaviour change?). The plan-token
+        mechanism in \cref{sec:algorithm:planexecute} is a
+        first step.
+  \item \textbf{Adversarial robustness of sanitisation.}
+        Empirical red-teaming of the sanitisation pass: can an
+        adversary craft package-doc content that survives the
+        sanitiser but successfully prompt-injects an outline
+        consumer? If so, what is the minimal escape pattern set
+        that closes those holes?
+  \item \textbf{Federated outline registry.} For multi-repo
+        agent workflows: a registry of outlines computed at
+        clone-time, served from a CDN. Trades freshness for
+        latency. Differs from the codeindex symbol-graph in
+        emitting outlines (~$300$~tokens each) rather than
+        symbols.
+\end{enumerate}
+
+\subsection{Pre-registered open questions}
+
+The full list of pre-registered open questions
+\texttt{OQ-AST-1..OQ-AST-7} is in \cref{app:open-questions}. They
+are the empirical questions whose answers gate promotion or
+demotion of the various subsystems. Five of them
+(\texttt{OQ-AST-1..OQ-AST-5}) are the pending claims of
+\cref{sec:eval}; the remaining two are forward-looking
+(\texttt{OQ-AST-6}: pattern-DSL fidelity vs. native parser walking;
+\texttt{OQ-AST-7}: cross-file outline composition utility on
+multi-file refactors).

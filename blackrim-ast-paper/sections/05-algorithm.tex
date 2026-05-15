@@ -1,0 +1,179 @@
+\section{Algorithms and Contracts}
+\label{sec:algorithm}
+
+This section gives the per-language outline pipeline, the significance
+rules that classify nested constructs, the normative token-budget
+truncation precedence, the sanitisation pass over verbatim file content,
+the plan/execute pair semantics, and the compile-gate verdict shape.
+The truncation precedence and sanitisation rules in particular are
+\emph{normative}: two implementations must produce identical behaviour
+on the same input. This is what allows \texttt{gt outline} run by the
+CLI to match what the runtime hook prepends to the agent's
+\texttt{Read} result, which in turn matches what
+\texttt{codeindex\_explore} surfaces over MCP.
+
+\subsection{Outline emission pipeline}
+\label{sec:algorithm:pipeline}
+
+\begin{algorithm}[H]
+\KwIn{Source file path $\file$, target token budget $\budget$
+  (default $300$).}
+\KwOut{Markdown outline of $\file$ with $|\outline(\file)| \leq \budget$.}
+\If{$\loc(\file) < \threshold$ \textbf{or} skip-comment present}{
+  \Return $\emptyset$ \tcp*{outline not required}
+}
+$\lang \leftarrow \texttt{detectLang}(\file)$\;
+$\textsc{ast} \leftarrow \texttt{parse}_\lang(\file)$\;
+\If{$\textsc{ast}$ \textbf{is} \texttt{nil}}{
+  \Return passthrough(\file) \tcp*{graceful degradation}
+}
+$\textsc{decls} \leftarrow \texttt{topLevelDecls}(\textsc{ast})$\;
+$\textsc{sig} \leftarrow \texttt{significantNested}_\lang(\textsc{ast})$\;
+$\textsc{doc} \leftarrow \texttt{sanitise}(\texttt{packageDoc}(\textsc{ast}))$\;
+$\outline(\file) \leftarrow \texttt{render}(\textsc{decls}, \textsc{sig}, \textsc{doc})$\;
+\While{$|\outline(\file)| > \budget$}{
+  $\outline(\file) \leftarrow \texttt{truncateStep}(\outline(\file))$ \tcp*{per
+    \cref{sec:algorithm:truncation}}
+}
+\Return $\outline(\file)$\;
+\caption{The outline emission pipeline. \texttt{render} produces
+  Markdown matching the schema in \cref{app:schema}.}
+\label{alg:outline}
+\end{algorithm}
+
+\subsection{Per-language significance rules}
+\label{sec:algorithm:significance}
+
+The classifier \texttt{significantNested}$_\lang$ identifies nested
+constructs worth surfacing in the outline. Per
+\cref{assn:significance}, the per-language rules are fixed against a
+specific tree-sitter grammar version (recorded in \texttt{go.mod}
+and the in-tree parser-registration table). Grammar bumps require
+updating the per-language node-kind tables in lockstep with the
+acceptance-fixture suite.
+
+The full per-language tables are in \cref{app:significance}. The
+hybrid scheme is: per-language fixed list of significant constructs,
+\emph{plus} a universal fallback for unrecognised constructs that have
+line-span $\geq 10$ or carry a name/label.
+
+\subsection{Token-budget truncation precedence}
+\label{sec:algorithm:truncation}
+
+When a candidate outline exceeds the budget $\budget$, content is cut
+in this order until it fits. This precedence is \emph{normative}; two
+implementations must produce identical truncation on the same input.
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Nested significant constructs inside private
+        functions.} Lowest signal-to-token; private internals are
+        usually irrelevant to outline navigation.
+  \item \textbf{Nested significant constructs inside public functions,
+        longest-first.} Replace with the literal token
+        \texttt{[N~nested constructs truncated]}.
+  \item \textbf{Private top-level decls collapsed to count.}
+        \texttt{(+~12 private helpers)} replaces the individual
+        entries.
+  \item \textbf{Package-doc lines beyond the first three.} Verbatim
+        text is the prompt-injection surface --- keep it bounded.
+  \item \textbf{Imports collapsed to count.} \texttt{14 imports}
+        replaces the comma-separated list.
+\end{enumerate}
+
+\Cref{app:schema} shows a worked specimen on the file
+\texttt{cmd/gt/outline/walker\_go.go} (1530~LoC) under the default
+$\budget = 300$.
+
+\subsection{Sanitisation of verbatim file content}
+\label{sec:algorithm:sanitization}
+
+The outline lens auto-prepends to a \texttt{Read}, so any verbatim
+text it surfaces (package doc, top-of-file comments, struct-field
+doc strings) lands in agent context unconditionally --- including for
+adversarial vendored or dependency code (\cref{assn:adversarial}).
+Sanitisation is the cheapest mitigation, applied as a normative
+pre-pass before render:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Truncate.} Verbatim text per top-level decl is capped
+        at $240$ characters.
+  \item \textbf{Escape.} Lines matching prompt-injection patterns
+        (literal strings \texttt{IGNORE PREVIOUS}, \texttt{SYSTEM:},
+        \texttt{ASSISTANT:}, \texttt{USER:},
+        \texttt{<|im\_start|>}, \texttt{<|im\_end|>}, and
+        model-control tokens enumerated in \cref{app:sanitisation})
+        are prefixed with the literal \texttt{[sanitised]~}.
+  \item \textbf{Collapse.} Consecutive whitespace runs longer than
+        three newlines collapse to two, defeating layout-based
+        prompt-injection tricks.
+\end{enumerate}
+
+The sanitisation is conservative-biased: false positives (legitimate
+prose flagged as injection) are acceptable; false negatives (injection
+text emitted verbatim) are not. The \texttt{[sanitised]~} marker is
+left in the output so an attentive reviewer can spot a flagged line.
+
+\subsection{Plan/execute pair contract}
+\label{sec:algorithm:planexecute}
+
+For every compound op $\intent \in \intentset$ exposed as a pair
+$\langle \intent, \intent! \rangle$:
+
+\begin{enumerate}[leftmargin=*]
+  \item $\intent(\file)$ emits a Markdown plan with five sections:
+        \textbf{Target}, \textbf{Scope}, \textbf{Diff hunks},
+        \textbf{Predicted gate verdict}, \textbf{Plan token}. The
+        plan token is a content-addressed hash $h(\intent, \file,
+        \diff)$ that the execute variant uses to identify which
+        plan it is committing.
+  \item $\intent!(\file, h)$ recomputes $\diff(\intent, \file)$
+        from current file content, verifies the plan token matches,
+        submits to gate $\gate$, and writes iff $\gate(\diff, \file)
+        = \text{accept}$. If the plan token does not match (file
+        changed since the plan was emitted), the execute aborts and
+        the caller must re-plan.
+\end{enumerate}
+
+\begin{remark}
+The plan-token mechanism is the trade-off in
+\cref{sec:system:planexecute} made concrete. Stateless plans cost the
+caller a re-plan when the file changes; the alternative --- a
+stateful plan with a server-side cookie --- would couple the agent
+to a session and complicate multi-agent dispatch. We chose
+statelessness on the principle that an LLM that has to re-plan
+because the file changed is recovering from a real conflict, not a
+spurious one.
+\end{remark}
+
+\subsection{The compile gate}
+\label{sec:algorithm:gate}
+
+\begin{algorithm}[H]
+\KwIn{Candidate diff $\diff$ over file $\file$; language $\lang$ of
+  $\file$.}
+\KwOut{Verdict $\verdict \in \{\text{accept}, \text{reject}\}$.}
+$\file' \leftarrow \texttt{applyInTempfs}(\diff, \file)$\;
+$\verdict_{\text{syntax}} \leftarrow \texttt{nativeSyntaxCheck}_\lang(\file')$\;
+\If{$\verdict_{\text{syntax}} = \text{fail}$}{
+  \Return $\text{reject}$\;
+}
+\If{$\lang$ \textbf{has} compile-aware LSP}{
+  $\verdict_{\text{lsp}} \leftarrow \texttt{lspDiagnose}_\lang(\file')$\;
+  \If{$\verdict_{\text{lsp}}$ \textbf{has new errors}}{
+    \Return $\text{reject}$\;
+  }
+}
+\Return $\text{accept}$\;
+\caption{The compile-gate verdict. The temp-fs apply ensures the gate
+  never touches the working tree; the candidate is materialised in a
+  read-only scratch directory and discarded after the verdict.}
+\label{alg:gate}
+\end{algorithm}
+
+The gate is conservative-biased by construction:
+\cref{def:false_negative} permits it to reject safe diffs (false
+negatives) but forbids accepting unsafe diffs (false positives). In
+practice, native syntax check is the floor; the LSP-diagnose step is
+opt-in for typed languages and provides a stronger gate when
+available. The empirical false-negative rate is
+\tothink{measured in \cref{sec:eval:gate}}.

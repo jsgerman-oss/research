@@ -1,0 +1,5 @@
+lang,n_files,mean_ratio,mean_tokens_savings,floor_ratio,floor_pass
+go,1,0.1800,0.8200,0.5000,pass
+python,1,0.1590,0.8410,0.2000,pass
+javascript,1,0.1700,0.8300,0.5000,pass
+typescript,1,0.2480,0.7520,0.5000,pass

@@ -60,10 +60,15 @@
 % --- References + links -----------------------------------------------------
 \usepackage[backend=biber,style=numeric-comp,sorting=none,maxbibnames=99,giveninits=true]{biblatex}
 \addbibresource{bib/refs.bib}
-\addbibresource{../_shared/refs-base.bib}
 
 \usepackage[colorlinks=true,allcolors=blue]{hyperref}
 \usepackage[capitalize,noabbrev]{cleveref}
+\crefname{assumption}{Assumption}{Assumptions}
+\Crefname{assumption}{Assumption}{Assumptions}
+\crefname{definition}{Definition}{Definitions}
+\Crefname{definition}{Definition}{Definitions}
+\crefname{remark}{Remark}{Remarks}
+\Crefname{remark}{Remark}{Remarks}
 
 % --- Misc -------------------------------------------------------------------
 \usepackage{xcolor}
@@ -72,28 +77,33 @@
 \usepackage{etoolbox}
 
 % Notation macros — kept tight; introduce in problem-formulation, then reuse.
-\newcommand{\queryclasses}{\mathcal{Q}}           % set of query classes
-\newcommand{\armset}{\mathcal{A}}                  % set of fusion-config arms
-\newcommand{\queryclass}{q}                        % a query class
-\newcommand{\arm}{a}                               % an arm (fusion config)
-\newcommand{\baseline}{a^\star}                    % per-class baseline arm
-\newcommand{\reward}{r}                            % per-query NDCG@10
-\newcommand{\budget}{\beta}                        % conservative budget
-\newcommand{\policy}{\pi}                          % policy
-\newcommand{\posterior}{\rho}                      % posterior over arm rewards
-\newcommand{\loss}{\ell}
+\newcommand{\file}{F}                             % a source file
+\newcommand{\fileset}{\mathcal{F}}                % set of source files
+\newcommand{\langset}{\mathcal{L}}                % set of supported languages
+\newcommand{\lang}{\ell}                          % a language
+\newcommand{\outline}{O}                          % outline operator
+\newcommand{\tokensize}{T}                        % token count operator
+\newcommand{\loc}{L}                              % lines-of-code operator
+\newcommand{\ratio}{r}                            % compression ratio r(F)=|O(F)|/|F|
+\newcommand{\budget}{B}                           % token budget
+\newcommand{\threshold}{\theta_{L}}               % LoC threshold (default 200)
+\newcommand{\intent}{\pi}                         % a transform intent
+\newcommand{\intentset}{\Pi}                      % set of transform intents
+\newcommand{\plan}{P}                             % a transform plan
+\newcommand{\diff}{D}                             % a diff (plan output)
+\newcommand{\gate}{G}                             % compile gate
+\newcommand{\verdict}{V}                          % gate verdict
+\newcommand{\agent}{A}                            % an agent
+\newcommand{\task}{\tau}                          % a task
+\newcommand{\success}{q}                          % task-success indicator
+\newcommand{\cost}{c}                             % token-cost function
 \newcommand{\tothink}[1]{\textcolor{red}{[TODO: #1]}}
 \newcommand{\blackrim}{Blackrim\xspace}
-\newcommand{\bdmemory}{\texttt{bdmemory}\xspace}
-\newcommand{\NDCG}{\mathrm{NDCG}}
-\newcommand{\MRR}{\mathrm{MRR}}
-\newcommand{\round}{\mathrm{round}}                % rounding operator
-\DeclareMathOperator*{\argmax}{arg\,max}            % argmax operator
 
 % --- Title ------------------------------------------------------------------
 \title{
-  \textbf{Adaptive Conservative Selection for Hybrid Retrieval \\
-  in Multi-Agent Memory Systems}
+  \textbf{The AST as LLM Lens: Outline-First Reading and \\
+  Compile-Gated Symbolic Surgery for Multi-Agent Coding Systems}
 }
 
 \author{%

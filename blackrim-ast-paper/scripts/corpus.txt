@@ -1,0 +1,27 @@
+# Polyglot corpus pinned for §6.3 (token-budget conformance), §6.4
+# (latency), and §6.7 (end-to-end) evaluation. One repository per line
+# in `org/repo@ref` form. The harness clones each into
+# `data/scratch/corpora/` and prunes to the pinned commit.
+#
+# Selection criteria:
+#   - One canonical representative per supported language.
+#   - Active maintenance + idiomatic style + non-trivial size.
+#   - Permissive license for redistribution alongside the paper artefacts.
+#
+# Update procedure: bump the @ref, regenerate data/, and record the
+# Blackrim commit + corpus commits in scripts/MANIFEST.md.
+
+# Go — stdlib + tooling
+golang/go@release-branch.go1.22
+kubernetes/kubernetes@release-1.30
+
+# Python — stdlib subset + a representative app framework
+python/cpython@3.12
+pallets/flask@3.0.3
+
+# JavaScript / TypeScript
+facebook/react@main
+microsoft/TypeScript@release-5.4
+
+# Self-reference (Blackrim itself is part of the corpus)
+jsgerman-oss/blackrim.dev@HEAD

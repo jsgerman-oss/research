@@ -1,0 +1,108 @@
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Grammar-driven parsers and per-language ASTs}
+
+Tree-sitter \cite{tree_sitter} is the dominant general-purpose parser
+generator for editor and tool tooling, with grammars maintained for
+$\sim 100$ languages and incremental re-parse that supports per-keystroke
+latency in editors such as Neovim and Helix. The grammar surface is
+also our main source of brittleness: node-type names rename roughly
+every 9--18 months as grammars evolve, which couples our per-language
+significance rules to specific grammar versions
+(\cref{sec:discussion:treesitter}). Per-language native ASTs
+--- Go's stdlib \texttt{go/parser} and \texttt{go/ast}
+\cite{go_ast}, CPython's \texttt{ast} module \cite{python_ast},
+\texttt{acorn} \cite{acorn} for JavaScript, and the TypeScript
+compiler API \cite{ts_compiler} --- offer higher fidelity at the
+cost of N distinct surfaces. The trade-off is treated in ADR~0002
+\cite{blackrim_adr_0002}: native parsers per language, shell-out
+fallback to passthrough on missing runtime, single shared output
+shape downstream.
+
+\subsection{Pattern-based structural editors}
+
+ast-grep \cite{ast_grep} provides a YAML- and tree-sitter-pattern--based
+DSL for matching and rewriting across many languages; Comby
+\cite{comby} pioneered the parameterised-pattern approach with
+language-agnostic structural search. Semgrep \cite{semgrep} extends the
+model into security-rule territory with metavariables and a substantial
+rule library. These tools are the proximate inspiration for the
+pattern-DSL subsystem in \cref{sec:system:patterndsl}: they
+demonstrate that authoring velocity for new intents can be cut from
+$\sim 200$~LoC of native parser walking to $\sim 50$~LoC of YAML. They
+are not, however, plan/execute-pair--shaped: their default is
+write-through, with dry-run as an opt-in flag. Our design inverts that
+polarity for LLM consumption (\cref{sec:system:planexecute}).
+
+\subsection{Language Server Protocol and compile-aware refactors}
+
+The Language Server Protocol \cite{lsp_spec} standardises a
+JSON-RPC interface that exposes \texttt{rename}, \texttt{prepareRename},
+\texttt{codeAction}, and related primitives. Implementations such as
+\texttt{gopls} \cite{gopls}, \texttt{rust-analyzer}
+\cite{rust_analyzer}, and \texttt{clangd} \cite{clangd} provide
+compile-aware refactors --- a rename driven by the language server
+will follow type information and update call sites that pure-syntactic
+tools cannot reach. Tier-1 refactors in \blackrim
+(\cref{sec:system:compounds}) wrap these primitives; we sit on top of
+the LSP rather than reimplementing its compile-awareness. The
+compile-gate $\gate$ we introduce in \cref{sec:algorithm:gate} is a
+generalisation: where the LSP guarantees a refactor is type-consistent
+\emph{within} the language server's compile model, $\gate$ explicitly
+re-runs the language's native syntax check on the candidate diff and
+rejects any edit whose verdict regresses, regardless of whether the
+edit originated from the LSP, the pattern-DSL, or a free-form agent
+diff.
+
+\subsection{Symbol graphs and code search}
+
+Universal Ctags \cite{ctags} and Sourcegraph's SCIP \cite{scip}
+provide per-symbol indexes with line-span navigation that overlap our
+outline emitter's role. We differ in two ways: (a) our output is
+Markdown by default, not JSON or a binary index format, because the
+primary consumer is an LLM; (b) we emit per-file, not per-repository,
+because the access pattern is ``read this file efficiently'' rather
+than ``find all references across the repo'' (which our companion
+\texttt{codeindex} surface handles via MCP \cite{codeindex_spec}).
+
+\subsection{LLM context engineering and prompt compression}
+
+The broader question of feeding an LLM the right context at the right
+time is treated in the context-engineering literature
+\cite{liu2024context_engineering}. Prompt compression methods such as
+LLMLingua \cite{llmlingua} and Selective-Context \cite{selective_context}
+learn (or heuristically choose) a sentence-level compressor that
+preserves task-relevant tokens. These are downstream of the AST
+question: once you have an outline, you may further compress it; the
+LLMLingua family takes a generic-text view, ours takes a
+grammar-aware view. Retrieval-augmented generation for code
+\cite{rag_for_code} addresses the cross-file analogue: which symbols
+from elsewhere in the repository should accompany this file. The
+\texttt{codeindex\_explore} MCP tool \cite{codeindex_spec} occupies
+that role in \blackrim and emits outlines for the files it surfaces.
+
+\subsection{Agent-facing code tools}
+
+Agentic code assistants --- Cursor \cite{cursor}, Aider \cite{aider},
+Claude Code \cite{anthropic2024claudecode}, and OpenAI's Codex CLI
+\cite{openai_codex_cli} --- ship varying degrees of AST-awareness. Most
+provide structural-edit primitives (insert before symbol; replace
+function body); some provide outlines on demand. We are not aware of
+any that has committed architecturally to \emph{outline-first reading
+as the default lens} with a hook that auto-prepends outlines to every
+file-read above a LoC threshold. The discipline subsystem
+(\cref{sec:system:discipline}) is the contribution this paper most
+directly stakes a claim on.
+
+\subsection{Multi-agent framework cost work}
+
+\blackrim's companion work on adaptive model-tier selection
+\cite{blackrim_moa_paper} treats the cost-vs-quality trade-off as a
+constrained Bayesian decision problem. The AST surface treated here is
+an upstream lever: tier-selection optimises \emph{the cost of an
+LLM call given the prompt}, while the AST surface optimises \emph{the
+prompt itself}. The two compose multiplicatively: a 100$\times$ token
+reduction at the AST layer reduces the absolute cost of every tier by
+the same factor, so the tier-selection advisor's savings stack with
+the outline-first savings rather than substituting for them.

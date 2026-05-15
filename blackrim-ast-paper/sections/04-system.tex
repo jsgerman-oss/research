@@ -1,0 +1,194 @@
+\section{System}
+\label{sec:system}
+
+\subsection{Three entry points, one emitter}
+\label{sec:system:unified}
+
+The architectural commitment underlying the read-side surface is
+that there is \emph{one} canonical outline emitter, exposed through
+\emph{three} discovery surfaces (\cref{fig:outline-flow}):
+
+\begin{table}[ht]
+\centering
+\caption{The three entry points to the unified outline emitter.}
+\label{tab:entry-points}
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Entry point} & \textbf{Consumer} & \textbf{Behaviour} \\
+\midrule
+\texttt{gt outline \textless file\textgreater} (CLI) & Hooks; humans; agents & Canonical Markdown outline \\
+\texttt{Read} + outline hook & Any \texttt{Read} on $\loc \geq \threshold$ & Auto-prepends \texttt{gt outline} \\
+\texttt{codeindex\_explore} (MCP) & Explore-tier agents & Outline alongside source sections \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\input{figures/outline-flow}
+\caption{Three discovery surfaces, one emitter. The CLI surface is the
+mechanism; the hook and MCP surfaces are the discipline. The
+\texttt{gt compress structure} command from ADR~0002 is preserved as
+a backward-compatible alias for one release, then deprecated in favour
+of \texttt{gt outline --bulk}.}
+\label{fig:outline-flow}
+\end{figure}
+
+This unification eliminates an earlier architectural drift across four
+overlapping read paths in \blackrim
+(\texttt{Read}, \texttt{codeindex\_explore},
+\texttt{compress structure}, and the proposed \texttt{gt outline}).
+One emitter, one schema, three surfaces.
+
+\subsection{Subsystem A: Outline emitter}
+\label{sec:system:emitter}
+
+The emitter is a pure function: $\outline(\file) =$ Markdown
+summary, no side effects, no cache (Phase~1). Tree-sitter parse cost
+on a 3000-line file is on the order of tens of milliseconds; cache is
+deferred until measurement shows it pays.
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Read-only.} Never writes.
+  \item \textbf{Stateless.} Each invocation re-parses.
+  \item \textbf{Polyglot.} Phase 1a ships Go; Phase 1b adds Python,
+        TypeScript, JavaScript. The backend dispatches by file
+        extension to per-language tree-sitter parsers or native
+        ASTs (\cref{tab:backends}).
+  \item \textbf{Format.} Markdown by default; \texttt{--format json}
+        for programmatic consumers.
+\end{itemize}
+
+\begin{table}[ht]
+\centering
+\caption{Per-language outline backends.}
+\label{tab:backends}
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Language} & \textbf{Backend} & \textbf{Status} \\
+\midrule
+Go         & stdlib \texttt{go/parser} + \texttt{go/ast} & Shipped (1a) \\
+Python     & embedded CPython \texttt{ast} walker        & Shipped (1b) \\
+JavaScript & \texttt{acorn} via \texttt{npx}             & Shipped (1b) \\
+TypeScript & \texttt{ts.createSourceFile}                & Shipped (1b) \\
+Java       & tree-sitter-java                            & Phase 6+ \\
+C++        & tree-sitter-cpp                             & Phase 6+ \\
+Rust       & tree-sitter-rust                            & Phase 6+ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Subsystem B: Outline-discipline}
+\label{sec:system:discipline}
+
+A pure CLI command that nobody invokes by default reduces nothing. The
+discipline subsystem makes outline-first reading the default by
+mechanical enforcement at three layers:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{PreToolUse hook.} The Claude Code runtime's
+        PreToolUse hook \cite{anthropic2024claudecode} fires before
+        every tool invocation. The outline-discipline hook
+        intercepts \texttt{Read} on a file with $\loc \geq
+        \threshold$, runs \texttt{gt outline}, and prepends the
+        Markdown output to the \texttt{Read} result returned to the
+        agent. The hook never blocks the \texttt{Read} (preserving
+        forward compatibility); the warning is \emph{rich} ---
+        outline content, not just text.
+  \item \textbf{Agent-facing skill.} A \texttt{read-with-outline}
+        skill in the skills index describes the discipline and the
+        Markdown schema; agents that invoke skills before reading
+        get the lesson explicitly.
+  \item \textbf{CLAUDE.md instruction.} The framework-wide
+        prompt-cache prefix includes the reading-discipline rule,
+        making outline-first reading part of the system context
+        every agent sees.
+\end{enumerate}
+
+The hook is \emph{stateful}: it logs to
+\texttt{.beads/telemetry/outline-events.jsonl}, tracks per-transcript
+hit-rate, and promotes from warn-mode to block-mode (refuses the
+\texttt{Read} until outline is called) once the rolling 7-day
+hit-rate crosses 80\% (the threshold at which the discipline is
+already self-sustaining; below it, block-mode creates more friction
+than learning).
+
+\paragraph{Escape hatches.} A file's first five lines may include
+\texttt{// outline:skip} or \texttt{\# outline:skip}; the threshold
+is per-project overridable via \texttt{ship.toml [outline]
+threshold\_loc}. The hook's auto-prepend may be disabled via the
+\texttt{BLACKRIM\_DISABLE\_OUTLINE\_HOOK} environment variable.
+
+\subsection{Subsystem C: Plan/execute pair pattern}
+\label{sec:system:planexecute}
+
+The write-side polarity inversion. Every symbolic compound
+(\cref{sec:system:compounds}) is exposed as a pair of commands:
+
+\begin{itemize}[leftmargin=*]
+  \item \texttt{gt \textless verb\textgreater} produces a Markdown
+        \emph{plan} describing the proposed edit (target symbols,
+        scope, diff hunks in unified format, predicted compile-gate
+        verdict).
+  \item \texttt{gt \textless verb\textgreater!} (the bang-suffix
+        variant) executes the plan against the working tree.
+\end{itemize}
+
+The plan is the reviewable artefact; the execute is the act. An LLM
+that proposes a \texttt{rename-cross-file} first produces a plan and
+includes it in its turn output; the operator (human or reviewer
+agent) reads the plan and approves or rejects; the bang variant is
+the gated commitment.
+
+The plan format is stateless: a plan emitted in one turn can be
+executed in any later turn, by any agent, with no token-of-state to
+manage. This is a deliberate trade-off against fidelity --- a plan
+that has gone stale (the file has changed since the plan was
+emitted) may fail at the gate --- in favour of composability.
+
+\subsection{Subsystem D: Compound symbolic ops}
+\label{sec:system:compounds}
+
+Three compound ops are in scope:
+
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{gt fix-imports} (and \texttt{gt fix-imports!}).
+        Re-canonicalises a file's import section: removes unused
+        imports, sorts the remainder per the language's idiomatic
+        order, hoists side-effect imports above value imports where
+        the language convention requires.
+  \item \texttt{gt extract-to-package} (and the bang variant).
+        Lifts a set of selected declarations from a file into a new
+        package, updates all call sites, and emits a plan listing
+        the moved declarations and the updated callers.
+  \item \texttt{gt rename-cross-file} (and the bang variant). A
+        thin wrapper over the LSP's compile-aware rename, surfaced
+        as a plan/execute pair with a unified Markdown plan output.
+\end{enumerate}
+
+All three compose with the compile gate $\gate$
+(\cref{sec:algorithm:gate}): the bang-suffix variant runs $\gate$ on
+the candidate diff and refuses to write if $\gate(\diff, \file) =
+\text{reject}$.
+
+\subsection{Subsystem E: Pattern-DSL authoring velocity}
+\label{sec:system:patterndsl}
+
+A Tier-0 transform intent today costs $\sim 200$~LoC of Go: an
+ast-walking visitor, intent-specific match logic, and the diff
+emitter. The pattern-DSL subsystem reduces the cost per intent to
+$\sim 50$~LoC of YAML, using a schema modelled on ast-grep
+\cite{ast_grep} and Comby \cite{comby}. The implementation in
+\blackrim has two backends: an optional shell-out to the
+\texttt{ast-grep} binary if installed, and a fallback Go matcher that
+implements the subset of the pattern grammar most-used intents
+exercise.
+
+This subsystem is the most-conservative-shipped of the five
+--- it is currently designed but not implemented
+(\cref{sec:future:tier1}). Its empirical contribution
+\textbf{(intents authored per engineer-hour)} is therefore
+\tothink{not yet measured}, and its inclusion in the paper is
+\emph{provisional}.

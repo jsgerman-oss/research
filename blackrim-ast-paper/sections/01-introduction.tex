@@ -1,0 +1,167 @@
+\section{Introduction}
+\label{sec:intro}
+
+\subsection{The context-window cost regime of agent code reading}
+
+A modern code-aware LLM agent reads a lot of code. \blackrim, the
+open-source multi-agent framework this paper draws from, dispatches
+across eight ``citizen'' domain leads and seven cross-cutting ``worker''
+exoselves; an \emph{Explore}-tier session that maps a moderately-sized
+codebase will routinely \texttt{Read} fifty to two hundred files
+before answering a single question. The economic gap between a 200-line
+file and a 2700-line file is large: at $\sim 10$ tokens per source line,
+the latter consumes $\sim 27{,}000$ input tokens, which dominates the
+cost of any subsequent reasoning. In production \blackrim telemetry,
+file reads in the 1000--3000~LoC band account for roughly half of all
+input-token spend in code-exploration sessions.\footnote{See
+\cref{sec:eval} for the methodology.}
+
+The structural answer is to interpose the AST. A summary of a file's
+top-level declarations, types, and significant nested constructs is
+typically two orders of magnitude smaller than the file itself.
+\blackrim's \texttt{gt compress structure} command, shipped earlier as
+ADR~0002 \cite{blackrim_adr_0002}, already provides per-language
+compression backends; measured token savings on a realistic fixture
+range from \textbf{75.2\%} (TypeScript) to \textbf{84.1\%} (Python).
+What ADR~0002 did not establish is the question this paper asks:
+\emph{should the AST be the LLM's default lens onto code, and what
+discipline does it take to keep it so?}
+
+The selection problem is asymmetric, like the model-tier-selection
+problem treated in companion work \cite{blackrim_moa_paper}. Reading a
+full file when an outline would have sufficed wastes tokens but produces
+correct work. Reading only an outline when the body was needed produces
+incorrect work; the agent answers from the skeleton and misses an
+edge-case inside a function. A workable design must address both
+directions: a default that prefers the outline, an escape hatch that
+fetches the body when the outline declares its limits.
+
+The same asymmetry recurs on the write side. An LLM emitting a
+free-form diff against a 2000-line file has many ways to break working
+behaviour: a renamed identifier inside a string, an import removed
+because the only remaining reference is inside a removed line, a
+type signature update missed at a call site three files away. A
+workable design must let the agent declare \emph{what} symbolic change
+it wants and let the tool compute \emph{how}.
+
+\subsection{Why existing tools do not fit cleanly}
+
+Three families of tools could in principle govern this problem, but
+each has a friction with our deployment regime:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Compression-only summarisers}
+        (\texttt{gt compress structure} v0; ctags;
+        Sourcegraph-style symbol indexes) emit a per-file skeleton
+        but are not LLM-shaped: their output is XML or JSON or
+        a custom plaintext layout, not Markdown; they do not encode
+        line-span navigation back to the body; they are not invoked
+        by default on a \texttt{Read}. They cut the token tax when
+        used, but adoption depends on agent discipline that the
+        framework does not enforce.
+
+  \item \textbf{Pattern-based structural editors} (ast-grep
+        \cite{ast_grep}, Comby \cite{comby}, semgrep
+        \cite{semgrep}) provide pattern languages for matching and
+        rewriting AST fragments. They are powerful and well-suited
+        to mechanical edits, but their failure mode is \emph{silent}:
+        a pattern that does not match emits no edit and no error.
+        An LLM that proposes a refactor via pattern-DSL and gets
+        zero matches cannot tell whether the refactor is unnecessary
+        or whether its pattern is wrong. They also are not
+        compile-gated.
+
+  \item \textbf{LSP-driven refactors}
+        (\texttt{gopls}, \texttt{rust-analyzer}, \texttt{clangd},
+        \texttt{pylsp}) provide compile-aware rename, extract, and
+        move primitives that the LLM cannot replicate. But the LSP
+        interface is request/response over a stateful protocol, not
+        a stateless command-line, and it is not natively composable
+        with a plan/execute pair pattern --- an agent that wants
+        to preview a rename's effects before applying must hand-craft
+        a JSON-RPC sequence.
+\end{enumerate}
+
+What our regime actually wants is a \emph{single Markdown emitter},
+invoked by default whenever an agent reads a file, paired with a
+\emph{compile-gated plan/execute pair} for symbolic surgery whose
+plan output is reviewable Markdown and whose execute step rejects any
+edit failing the language's native syntax check. The outline is the
+read-side primitive; the gated plan/execute pair is the write-side
+primitive. Both compose with the AST as the lens, not the file's
+bytes.
+
+\subsection{Methodological stance: data first, theory second}
+\label{sec:stance}
+
+This paper takes an empirical-first stance. We propose outline-first
+reading and compile-gated symbolic surgery as a system design, derive
+its operational contracts, and deploy components. But the paper's
+claims rest on the data, not on the design: every quantitative
+statement in \cref{sec:eval} is backed by a CSV in \texttt{data/}
+produced by a publicly-available script in \texttt{scripts/}. If the
+data eventually disconfirms a design assumption --- if outline
+adoption never crosses the discipline threshold, if compile-gates
+admit too many false negatives, if tree-sitter version drift breaks
+the per-language significance tables faster than we can patch them
+--- the design bends to the data, not the data to the design. The
+open-questions list \texttt{OQ-AST-1..OQ-AST-7} in
+\cref{app:open-questions} pre-registers the empirical questions whose
+answers could promote, demote, or scope the various subsystems.
+
+We are also transparent about where the data does not yet exist.
+\Cref{sec:eval} reports measured compression ratios on a realistic
+benchmark fixture (the existing ADR~0002 floor), and marks five
+further empirical claims (token-budget conformance, latency,
+adoption trajectory, refactor false-negative rate, end-to-end token
+reduction on agent traces) with \texttt{\tothink} placeholders. The
+draft will be updated when those datasets accumulate; an interim
+revision is appropriate when at least the adoption-trajectory and
+end-to-end-reduction datasets are filled.
+
+\subsection{Contributions}
+
+This paper makes four contributions, summarised here and developed in
+the sections cited:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Problem formulation} (\cref{sec:problem}). We
+        formalise outline-first reading and compile-gated surgery
+        as a constrained reduction problem with three measurable
+        components: outline compression ratio, outline-adoption
+        rate, and refactor false-negative rate. We give an
+        observability model for each via three operational signals.
+  \item \textbf{System design} (\cref{sec:system}). We describe a
+        single Markdown outline emitter with three entry points
+        (CLI, runtime hook auto-prepending to \texttt{Read} tool
+        results, and MCP retrieval surface) and a plan/execute pair
+        contract for symbolic surgery. We argue from architectural
+        commitments rather than from optional flags: the emitter is
+        unified, the hook is mandatory above a configurable LoC
+        threshold, and the gate is non-optional for Tier-1
+        compounds.
+  \item \textbf{Algorithm and contracts} (\cref{sec:algorithm}). We
+        give per-language significance rules, a normative
+        token-budget truncation precedence, a sanitisation rule for
+        verbatim file content fed to the outline lens, the
+        plan/execute pair semantics for symbolic compounds, and the
+        compile-gate verdict shape. The truncation precedence in
+        particular is normative: two implementations must produce
+        identical truncation behaviour on the same input.
+  \item \textbf{Empirical evaluation} (\cref{sec:eval}). We report
+        cross-language compression ratios on a $\tothink{N_{\text{bench}}}$-file
+        benchmark corpus (currently measured: Go 82.0\%, Python
+        84.1\%, JavaScript 83.0\%, TypeScript 75.2\%) and a
+        pre-registered empirical programme for the five further
+        claims listed in \cref{sec:stance}.
+\end{itemize}
+
+The remainder of the paper is structured as follows.
+\Cref{sec:related} surveys grammar-driven parsers, structural
+editors, LSP refactor tooling, and LLM context-engineering
+literature. \Cref{sec:problem} formalises the problem.
+\Cref{sec:system} describes the deployment surface.
+\Cref{sec:algorithm} develops the contracts and algorithms.
+\Cref{sec:eval} reports the empirical study.
+\Cref{sec:discussion} discusses limitations and
+\cref{sec:future} sketches extensions.

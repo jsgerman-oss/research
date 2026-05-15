@@ -1,0 +1,31 @@
+% figures/plan-execute-flow.tex — plan/execute pair contract.
+% Used by sections/05-algorithm.tex (referenced; safe to omit).
+\begin{tikzpicture}[
+    >=Stealth,
+    node distance=8mm and 14mm,
+    font=\small,
+    box/.style={
+        draw, rounded corners=2pt, align=center,
+        minimum width=24mm, minimum height=9mm,
+        inner sep=3pt
+    },
+    plan/.style={box, fill=yellow!10, draw=orange!70!black},
+    exec/.style={box, fill=green!7, draw=green!50!black, thick},
+    gate/.style={box, fill=red!7, draw=red!60!black, thick},
+    arrow/.style={->, thick, draw=black!70},
+]
+
+\node[box]                              (agent) {Agent};
+\node[plan, right=of agent]             (plan)  {\texttt{gt $\pi$}\\plan + token};
+\node[box, right=of plan]               (review){Reviewer\\(human / agent)};
+\node[exec, below=of review]            (exec)  {\texttt{gt $\pi$!}\\\scriptsize plan-token verify};
+\node[gate, left=of exec]               (g)     {Compile\\gate $\gate$};
+\node[box, left=of g]                   (apply) {Apply diff\\(or refuse)};
+
+\draw[arrow] (agent) -- node[above, font=\scriptsize]{intent $\pi$} (plan);
+\draw[arrow] (plan)  -- node[above, font=\scriptsize]{Markdown} (review);
+\draw[arrow] (review) -- node[right, font=\scriptsize]{approve} (exec);
+\draw[arrow] (exec)  -- (g);
+\draw[arrow] (g)     -- node[above, font=\scriptsize]{verdict} (apply);
+
+\end{tikzpicture}

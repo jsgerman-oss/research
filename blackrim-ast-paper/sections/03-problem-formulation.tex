@@ -1,0 +1,182 @@
+\section{Problem Formulation}
+\label{sec:problem}
+
+\subsection{Notation}
+
+Let $\fileset$ denote the set of source files an agent may interact
+with, drawn from a fixed set of languages $\langset = \{\text{Go},
+\text{Python}, \text{JavaScript}, \text{TypeScript}, \dots\}$. For a
+file $\file \in \fileset$ we write $\loc(\file)$ for its line count
+and $\tokensize(\file)$ for its token count under the LLM's tokenizer.
+We assume $\tokensize(\file)$ is bounded by $c_\text{tok} \cdot \loc(\file)$
+for a per-language constant $c_\text{tok} \in [8, 14]$ on realistic
+source code; on the Blackrim test corpus the empirical mean is
+$\approx 10$ tokens per line (\cref{sec:eval}).
+
+Let $\outline : \fileset \to \fileset$ denote the canonical outline
+operator: given a file $\file$, $\outline(\file)$ is a Markdown
+summary of its top-level declarations, package documentation, imports,
+and per-language significant nested constructs. We will write
+$|\outline(\file)|$ for the outline's token count and define the
+\emph{compression ratio}
+\[
+  \ratio(\file) \;\triangleq\; \frac{|\outline(\file)|}{\tokensize(\file)}.
+\]
+The smaller $\ratio$, the more compressive the outline.
+
+Let $\budget \in \mathbb{N}$ denote a target token budget per outline
+(default $\budget = 300$). The outline operator MUST yield
+$|\outline(\file)| \leq \budget$ via the truncation precedence in
+\cref{sec:algorithm:truncation}; conformance is an empirical claim
+measured in \cref{sec:eval}.
+
+Let $\threshold \in \mathbb{N}$ denote the LoC threshold above which a
+\texttt{Read} should be preceded by an outline call (default
+$\threshold = 200$).
+
+An \emph{agent} $\agent$ takes a \emph{task} $\task$ and produces a
+\emph{success} indicator $\success(\task; \agent) \in \{0, 1\}$
+observable through one of three channels (\cref{sec:problem:success}).
+
+\subsection{The read-tax reduction problem}
+
+For a population of agent--file--task triples $(\agent, \file,
+\task)$, the read-tax minimisation problem is:
+\[
+  \min_{\pi_\text{read}}\;
+    \mathbb{E}_{(\agent, \file, \task)}\!
+      \big[\, \cost_\text{read}(\agent, \file, \task; \pi_\text{read}) \,\big]
+  \quad
+  \text{s.t.}
+  \quad
+  \mathbb{E}\!\big[\, \success(\task; \agent, \pi_\text{read}) \,\big]
+    \;\geq\; \success_0 - \epsilon,
+\]
+where $\cost_\text{read}$ is the input-token cost of the agent's
+file-reading activity under reading policy $\pi_\text{read}$,
+$\success_0$ is the baseline success rate when the agent reads
+files in full, and $\epsilon$ is a quality-loss tolerance. The
+outline-first reading policy $\pi^\star_\text{outline}$ is the
+proposal:
+\[
+  \pi^\star_\text{outline}(\file) \;=\;
+    \begin{cases}
+      \text{full \texttt{Read}} & \text{if } \loc(\file) < \threshold, \\
+      \outline(\file) \text{ first, then full \texttt{Read} \emph{iff} needed}
+        & \text{if } \loc(\file) \geq \threshold.
+    \end{cases}
+\]
+The agent retains the right to fetch the body --- the policy
+encourages the outline as the first lens, not the only lens.
+
+\subsection{The false-negative-only contract for symbolic surgery}
+\label{sec:problem:falsenegative}
+
+The write-side problem has a different shape. Let
+$\intentset$ denote the registered set of transform intents
+(\texttt{rename-symbol}, \texttt{extract-to-package},
+\texttt{fix-imports}, \texttt{remove-console}, etc.) and let an agent
+issue an intent $\intent \in \intentset$ on file $\file$. The
+plan/execute pair (\cref{sec:system:planexecute}) produces a candidate
+diff $\diff(\intent, \file)$ which is then submitted to a compile gate
+$\gate$.
+
+\begin{definition}[Gate verdict]
+\label{def:gate}
+$\gate(\diff, \file) \in \{\text{accept}, \text{reject}\}$ is
+defined as $\text{accept}$ if the language's native syntax checker
+parses $\file + \diff$ without error, and $\text{reject}$ otherwise.
+\end{definition}
+
+\begin{definition}[False-negative-only contract]
+\label{def:false_negative}
+A symbolic-surgery system satisfies the false-negative-only contract
+if for every diff $\diff$:
+\[
+  \gate(\diff, \file) = \text{accept} \;\implies\;
+    \diff \text{ does not corrupt valid programs.}
+\]
+The contract permits the system to reject diffs that would in fact be
+safe (false negatives are allowed), but forbids accepting diffs that
+silently break the program (false positives are forbidden).
+\end{definition}
+
+The contract is intentionally asymmetric. A false negative --- the
+gate rejects a refactor that would have worked --- is an inconvenience
+the agent can recover from (it tries again, perhaps with a smaller
+scope). A false positive --- the gate accepts a refactor that breaks
+the program --- is the failure mode we cannot tolerate, because it
+poisons the downstream task with a quietly-broken codebase.
+
+\subsection{Three observable signals for $\success$}
+\label{sec:problem:success}
+
+In production we observe the success indicator $\success$ through
+three channels of varying fidelity:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Compile / lint / test signal.} The most direct: did
+        the post-edit codebase pass its own build? This is available
+        for compiled-language refactors via the LSP's compile model
+        and for any project with a CI configuration.
+  \item \textbf{Reviewer signal.} A human reviewer (or in
+        \blackrim, a Reviewer worker agent
+        \cite{blackrim_paper_repo}) marks the agent's output as
+        accepted or rejected. This is the source of truth for tasks
+        whose ``success'' is not mechanically checkable (e.g., a
+        documentation edit, an ADR review).
+  \item \textbf{Downstream-task closure.} The bd~(beads) issue the
+        agent was working on closes successfully, with no follow-up
+        \texttt{redo} issue filed within $T_\text{redo}$ (default 7
+        days). This is noisy but cumulative: drift in the closure
+        rate is detectable even when individual signals are missing.
+\end{enumerate}
+
+The three channels are not independent --- a refactor that fails
+compile will also be rejected by the reviewer and will produce a
+follow-up issue --- but they fail independently. \Cref{sec:eval} uses
+all three.
+
+\subsection{Assumptions}
+
+We make four assumptions, each minimal and each empirically checked
+later:
+
+\begin{assumption}[Stable per-language significance]
+\label{assn:significance}
+For a fixed tree-sitter grammar version, the set of significant nested
+constructs per language (\cref{sec:algorithm:significance}) is stable
+across files: the same node-type names denote the same syntactic
+constructs.
+\end{assumption}
+
+\Cref{sec:discussion:treesitter} discusses what happens when
+\cref{assn:significance} fails because of a grammar version bump.
+
+\begin{assumption}[Token-cost monotonicity in LoC]
+\label{assn:tokens}
+$\tokensize(\file)$ is approximately linear in $\loc(\file)$ with a
+per-language constant $c_\text{tok} \in [8, 14]$. Files violating this
+(e.g., enormous one-line generated arrays) are out of scope; the
+\texttt{outline:skip} comment escape hatch
+(\cref{sec:system:discipline}) is the mitigation.
+\end{assumption}
+
+\begin{assumption}[Native-syntax-check fidelity]
+\label{assn:gate}
+The compile gate $\gate$ uses the language's native parser
+(\texttt{go vet}, \texttt{python -m py\_compile}, \texttt{tsc
+--noEmit}, etc.), which we take to be ground truth for syntactic
+correctness. Semantic correctness (type-checking) is a stronger gate
+available only for typed languages; the Tier-1 LSP refactors enforce
+it where available.
+\end{assumption}
+
+\begin{assumption}[Bounded adversarial input]
+\label{assn:adversarial}
+Outlines are emitted over source files an agent has been directed to
+read. Vendored third-party code may contain hostile content (e.g., a
+package doc with prompt-injection text); we mitigate this with
+sanitisation (\cref{sec:algorithm:sanitization}) but do not promise
+robustness against arbitrary adversarial inputs.
+\end{assumption}

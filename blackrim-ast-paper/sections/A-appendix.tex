@@ -1,0 +1,195 @@
+\section{Notation Reference}
+\label{app:notation}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$\fileset$, $\file$            & Set of source files; a source file \\
+$\langset$, $\lang$            & Set of supported languages; a language \\
+$\loc(\file)$                  & Lines of code in $\file$ \\
+$\tokensize(\file)$                 & Token count of $\file$ under the LLM tokenizer \\
+$\outline(\file)$              & Canonical outline of $\file$ \\
+$\ratio(\file)$                & Compression ratio $|\outline(\file)|/\tokensize(\file)$ \\
+$\budget$                      & Target token budget per outline (default $300$) \\
+$\threshold$                   & LoC threshold for outline-required (default $200$) \\
+$\intent$, $\intentset$        & A transform intent; the registered intent set \\
+$\plan$, $\diff$               & A symbolic-surgery plan; its candidate diff \\
+$\gate$, $\verdict$            & The compile gate; its verdict $\in \{\text{accept},\text{reject}\}$ \\
+$\agent$, $\task$              & An agent; a task \\
+$\success(\task; \agent)$      & Task-success indicator $\in \{0, 1\}$ \\
+$\cost_\text{read}$            & Input-token cost of agent reading activity \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Per-Language Significance Kinds}
+\label{app:significance}
+
+The hybrid significance classifier in \cref{sec:algorithm:significance}
+uses a per-language fixed list (below) plus a universal fallback for
+unrecognised constructs that are named or have line-span $\geq 10$.
+
+\begin{center}
+\begin{tabular}{p{2.2cm}p{10cm}}
+\toprule
+Language & Fixed-list significant kinds \\
+\midrule
+\textbf{Go} & named anonymous struct or interface; \texttt{go func()} goroutine
+              spawn; \texttt{defer} blocks $\geq 3$ lines; inner
+              \texttt{select} or \texttt{switch} with $\geq 3$ cases; type
+              assertions on interface values. \\
+\textbf{Python} & nested \texttt{def} and \texttt{class}; \texttt{@dataclass}
+              and \texttt{@dataclasses.dataclass}; \texttt{with} blocks
+              managing files / locks / contexts; \texttt{async def} and
+              \texttt{await} constructs; decorators with non-trivial
+              bodies. \\
+\textbf{TypeScript / JavaScript} & nested function or arrow declarations
+              bound to identifiers; React component definitions (JSX root);
+              JSX trees $\geq 10$ lines; \texttt{useEffect} /
+              \texttt{useMemo} / \texttt{useCallback} blocks;
+              \texttt{try / catch} with $\geq 3$-line catch. \\
+\textbf{Universal} & any named or labelled inner construct; any unnamed
+              construct with line-span $\geq 10$. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Outline Markdown Schema (Specimen)}
+\label{app:schema}
+
+The canonical Markdown schema, demonstrated on a hypothetical file
+\texttt{state.go} (847 LoC, package \texttt{state}):
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+# state.go (847 LoC, 14 decls, package `state`)
+
+> Package state implements user session storage backed by Redis.
+> Concurrency: all exported functions are safe for parallel use.
+> (truncated at 3 lines)
+
+## Imports
+fmt, os, sync, internal/foo, github.com/x/y
+
+## Types
+- `User` struct (L23-L45) - fields: ID, Name, Email
+- `Repository` interface (L48-L52) - Save(u User) error
+
+## Functions
+- `NewUser(name, email string) *User` (L60-L78)
+  - go: cleanup goroutine (L66-L70)
+  - defer: log.Close (L75)
+- `(r *userRepo) Save(u User) error` (L82-L120)
+  - switch: u.Status / 4 cases (L88-L105)
+- `validate(u User) error` *(private)* (L125-L140)
+\end{lstlisting}
+
+The schema is line-span-anchored: every declaration carries
+$L_{\text{start}}\text{-}L_{\text{end}}$, allowing an agent to issue a
+targeted \texttt{Read --offset N --limit M} to fetch the body of a
+specific decl without re-reading the file.
+
+\section{Sanitisation Pattern Set}
+\label{app:sanitisation}
+
+The literal-string patterns flagged by \cref{sec:algorithm:sanitization}
+as prompt-injection candidates:
+
+\begin{center}
+\small
+\begin{tabular}{ll}
+\toprule
+Pattern & Rationale \\
+\midrule
+\texttt{IGNORE PREVIOUS}            & Classic prompt-injection prefix \\
+\texttt{IGNORE ALL PREVIOUS}        & Variant \\
+\texttt{SYSTEM:}                    & Role-impersonation marker \\
+\texttt{ASSISTANT:}                 & Role-impersonation marker \\
+\texttt{USER:}                      & Role-impersonation marker \\
+\texttt{<|im\_start|>}              & ChatML control token \\
+\texttt{<|im\_end|>}                & ChatML control token \\
+\texttt{<s>}, \texttt{</s>}         & LLaMA-family control tokens \\
+\texttt{[INST]}, \texttt{[/INST]}   & Instruct-tuned model markers \\
+\texttt{Human:}, \texttt{Assistant:} & Anthropic-style role markers \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The set is conservative-biased: legitimate prose containing any of
+these literals is flagged with the \texttt{[sanitised]} prefix; the
+content is not dropped, only marked. Operators can extend the set in
+\texttt{ship.toml [outline.sanitisation] additional\_patterns}.
+
+\section{Pre-Registered Open Questions}
+\label{app:open-questions}
+
+The empirical questions whose answers gate promotion or demotion of
+the various subsystems. Pre-registered in this paper draft and in
+\texttt{docs/research/blackrim-ast-open-questions.md} in the
+companion repository.
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{OQ-AST-1 — Token-budget conformance.} On the
+        broader polyglot corpus, what fraction of outlines satisfy
+        $|\outline(\file)| \leq \budget = 300$? Breakdown by
+        language; report $p_{50}$, $p_{95}$, $p_{99}$.
+  \item \textbf{OQ-AST-2 — Emission latency.} Wall-clock latency
+        of \texttt{gt outline} on files 100~LoC to 5000~LoC; what
+        is the user-perceived latency added by the
+        prepend-to-Read hook?
+  \item \textbf{OQ-AST-3 — Discipline adoption trajectory.}
+        Hit-rate of outline-discipline over the 14-day rollout;
+        does adoption cross 80\% triggering promote-to-block?
+  \item \textbf{OQ-AST-4 — Compile-gate false-negative rate.}
+        On a curated 200-diff corpus, what is the false-negative
+        rate of $\gate$ (rejected diffs that ground-truth review
+        would have accepted)? Is it within the 5\% conservatism
+        budget?
+  \item \textbf{OQ-AST-5 — End-to-end token reduction.} On paired
+        Explore-tier traces (with and without discipline), what
+        is the per-task input-token reduction, the wall-clock
+        change, and the task-success delta?
+  \item \textbf{OQ-AST-6 — Pattern-DSL authoring fidelity.} When
+        the YAML pattern-DSL is implemented, what is the fidelity
+        loss vs. native parser walking, measured by per-intent
+        match coverage on a sample-of-intents harness?
+  \item \textbf{OQ-AST-7 — Cross-file outline composition.} For
+        multi-file refactors, does a cross-file outline composition
+        (call graph + type dependency summary) improve agent
+        success rate over per-file outlines plus
+        \texttt{codeindex\_explore} retrieval?
+\end{itemize}
+
+\section{Reproducibility Checklist}
+\label{app:repro}
+
+Following the recommendations of \cite{pineau2021improving} for
+empirical reproducibility:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Code.} The reference implementation is the Blackrim
+        repository at the tagged commit cited in
+        \cite{blackrim_paper_repo}. Relevant directories:
+        \texttt{cmd/gt/outline/}, \texttt{cmd/gt/compress\_structure*},
+        \texttt{internal/codeindex/refactor/},
+        \texttt{internal/codeindex/symbol/}, \texttt{hooks-staging/}.
+  \item \textbf{Data.} The benchmark fixture is in
+        \texttt{cmd/gt/testdata/bench/}; the broader corpus is pinned
+        in \texttt{scripts/corpus.txt}. Telemetry inputs to OQ-AST-3
+        and OQ-AST-5 are released anonymised under the same tag.
+  \item \textbf{Hyperparameters.} Default $\budget = 300$ tokens;
+        $\threshold = 200$ LoC; sanitisation pattern set per
+        \cref{app:sanitisation}. Defaults match in-tree values; both
+        are per-project overridable in \texttt{ship.toml}.
+  \item \textbf{Random seeds.} Outline emission and the compile gate
+        are deterministic. Where any stochastic harness is used
+        (e.g., paired-trace sampling for OQ-AST-5), seeds are
+        published in the artefact \texttt{README}.
+  \item \textbf{Compute.} The full §6.2 reproduction runs on a
+        single laptop in $< 1$~minute; no GPU required.
+  \item \textbf{Hardware.} Reference deployment runs on
+        \texttt{darwin} and \texttt{linux}; no special hardware. The
+        TypeScript backend's first-run \texttt{npm install} requires
+        network access.
+\end{itemize}

@@ -1,0 +1,43 @@
+% figures/outline-flow.tex — three discovery surfaces, one outline emitter.
+% Used by sections/04-system.tex.
+\begin{tikzpicture}[
+    >=Stealth,
+    node distance=10mm and 18mm,
+    font=\small,
+    box/.style={
+        draw, rounded corners=2pt, align=center,
+        minimum width=28mm, minimum height=10mm,
+        inner sep=4pt
+    },
+    emitter/.style={
+        box, fill=blue!7, draw=blue!50!black, thick,
+        minimum width=34mm, minimum height=14mm
+    },
+    surface/.style={
+        box, fill=green!5, draw=green!40!black
+    },
+    consumer/.style={
+        box, fill=gray!5
+    },
+    arrow/.style={->, thick, draw=black!70}
+]
+
+\node[emitter]                                  (em)    {\texttt{outline.EmitOutline()}\\\scriptsize per-language backends};
+
+\node[surface, above left=of em]                (cli)   {\texttt{gt outline}\\(CLI)};
+\node[surface, left=of em]                      (hook)  {\texttt{Read} hook\\(auto-prepend)};
+\node[surface, below left=of em]                (mcp)   {\texttt{codeindex\_explore}\\(MCP)};
+
+\node[consumer, above right=of em]              (human) {Human /\\hook log};
+\node[consumer, right=of em]                    (agent) {Agent\\\texttt{Read} result};
+\node[consumer, below right=of em]              (xagent){Explore-tier\\agent};
+
+\draw[arrow] (cli)   -- (em);
+\draw[arrow] (hook)  -- (em);
+\draw[arrow] (mcp)   -- (em);
+
+\draw[arrow] (em) -- (human);
+\draw[arrow] (em) -- (agent);
+\draw[arrow] (em) -- (xagent);
+
+\end{tikzpicture}

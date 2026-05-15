@@ -41,61 +41,107 @@ jobs:
       # <slug> is the directory name minus the `-paper` suffix. Directories
       # without `main.tex` (e.g. paper sources still being assembled) are
       # skipped, not failed.
-      - name: Install TeX Live
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            texlive-latex-recommended \
-            texlive-latex-extra \
-            texlive-fonts-recommended \
-            texlive-fonts-extra \
-            texlive-bibtex-extra \
-            texlive-pictures \
-            texlive-science \
-            texlive-luatex \
-            biber \
-            latexmk \
-            chktex
+      #
+      # We run inside the official `texlive/texlive:latest` Docker image
+      # instead of apt-installing the same packages every run. The apt
+      # path takes ~30 minutes (the texlive-* packages are ~3 GB across
+      # thousands of files); the Docker pull is typically 30–90 s warm,
+      # 1–2 min cold, and gives us a single known-good TeX Live version
+      # rather than whatever Ubuntu happens to ship.
+      - name: Pull TeX Live container
+        run: docker pull texlive/texlive:latest
 
       - name: Compile all papers and stage PDFs
-        # Per-paper failures are logged via ::warning:: and counted, but do
-        # NOT fail the workflow. A skeleton paper (no main.tex, missing
-        # \addbibresource target, etc.) just means its publication page
-        # won't have a PDF link this build.
+        # Per-paper failures are logged via ::warning:: and counted, but
+        # do NOT fail the workflow — the site still deploys without that
+        # paper's PDF. The verification step below decides whether the
+        # workflow itself goes red.
         run: |
           set -uo pipefail
           shopt -s nullglob
-          compiled=0
-          skipped=0
-          failed=0
+
+          # Build the compile script inside the container. Mounted at
+          # /work; runs as the host UID/GID so emitted files are owned
+          # by the runner user, not root.
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            -w /work \
+            --user "$(id -u):$(id -g)" \
+            texlive/texlive:latest \
+            bash -c '
+              set -uo pipefail
+              shopt -s nullglob
+              compiled=0
+              skipped=0
+              failed=0
+              for paper_dir in *-paper/; do
+                paper_dir="${paper_dir%/}"
+                slug="${paper_dir%-paper}"
+                if [ ! -f "$paper_dir/main.tex" ]; then
+                  echo "::notice::Skipping $paper_dir — no main.tex"
+                  skipped=$((skipped + 1))
+                  continue
+                fi
+                echo "::group::Compiling $paper_dir → $slug.pdf"
+                if (
+                  cd "$paper_dir"
+                  if [ -f Makefile ] && grep -q "^all:" Makefile; then
+                    make
+                  else
+                    latexmk -pdf -bibtex -halt-on-error -interaction=nonstopmode main.tex
+                  fi
+                ); then
+                  mkdir -p "content/publications/$slug"
+                  cp "$paper_dir/main.pdf" "content/publications/$slug/$slug.pdf"
+                  compiled=$((compiled + 1))
+                else
+                  echo "::warning::Paper $paper_dir failed to compile — site will deploy without its PDF"
+                  failed=$((failed + 1))
+                fi
+                echo "::endgroup::"
+              done
+              echo "Compiled: $compiled  |  Skipped: $skipped  |  Failed: $failed"
+            '
+
+      - name: Verify staged PDFs and write step summary
+        # Surfaces a per-paper pass/fail table in the Actions UI. Fails
+        # the workflow if any paper that has source (main.tex present)
+        # did NOT produce a staged PDF. Skeleton papers without main.tex
+        # are reported but do not fail the build.
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+          {
+            echo "## Paper compile results"
+            echo
+            echo "| Paper | main.tex | PDF | Size |"
+            echo "|-------|----------|-----|------|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          regressions=0
           for paper_dir in *-paper/; do
             paper_dir="${paper_dir%/}"
             slug="${paper_dir%-paper}"
-            if [ ! -f "$paper_dir/main.tex" ]; then
-              echo "::notice::Skipping $paper_dir — no main.tex"
-              skipped=$((skipped + 1))
-              continue
-            fi
-            echo "::group::Compiling $paper_dir → $slug.pdf"
-            if (
-              cd "$paper_dir"
-              if [ -f Makefile ] && grep -q "^all:" Makefile; then
-                make
+            has_src="-"
+            has_pdf="-"
+            size="-"
+            if [ -f "$paper_dir/main.tex" ]; then
+              has_src="✓"
+              pdf="content/publications/$slug/$slug.pdf"
+              if [ -f "$pdf" ]; then
+                has_pdf="✓"
+                size=$(du -h "$pdf" | awk '{print $1}')
               else
-                latexmk -pdf -bibtex -halt-on-error -interaction=nonstopmode main.tex
+                has_pdf="✗ MISSING"
+                regressions=$((regressions + 1))
               fi
-            ); then
-              mkdir -p "content/publications/$slug"
-              cp "$paper_dir/main.pdf" "content/publications/$slug/$slug.pdf"
-              compiled=$((compiled + 1))
-            else
-              echo "::warning::Paper $paper_dir failed to compile — site will deploy without its PDF"
-              failed=$((failed + 1))
             fi
-            echo "::endgroup::"
+            echo "| $slug | $has_src | $has_pdf | $size |" >> "$GITHUB_STEP_SUMMARY"
           done
-          echo "Compiled: $compiled  |  Skipped: $skipped  |  Failed: $failed"
-          ls -la content/publications/
+          if [ "$regressions" -gt 0 ]; then
+            echo "::error::$regressions paper(s) with source failed to produce a PDF"
+            exit 1
+          fi
+          echo "All papers with source compiled successfully."
 
       # ── 2. Build the Hugo site ───────────────────────────────────────────
       - name: Setup Go (for Hugo modules)

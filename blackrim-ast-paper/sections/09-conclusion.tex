@@ -1,0 +1,38 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper proposed an AST-native code surface for multi-agent LLM
+workflows comprising a unified Markdown outline emitter (with three
+discovery surfaces), a discipline subsystem that makes outline-first
+reading the default for files above a configurable LoC threshold,
+and a plan/execute pair contract for symbolic surgery with a
+compile-gated execute step satisfying a false-negative-only
+correctness contract.
+
+The measured cross-language compression ratios (Go 82.0\%, Python
+84.1\%, JavaScript 83.0\%, TypeScript 75.2\%) on a realistic
+benchmark fixture establish the read-side mechanism's floor. The
+end-to-end token reduction on real agent traces, the adoption
+trajectory of the discipline subsystem, and the false-negative rate
+of the compile gate are the pre-registered claims whose datasets
+are still accumulating; we are transparent about which numbers are
+measured and which are owed.
+
+The architectural commitments --- one emitter, three surfaces; the
+hook as the discipline mechanism, not a discoverable feature; the
+gate as a hard precondition for symbolic surgery, not an optional
+flag --- are the contribution we stake the design on. They compose
+with the model-tier-selection advisor from companion work
+\cite{blackrim_moa_paper} multiplicatively: outline-first reading
+shrinks the prompt; tier-selection picks the cheapest model that
+can serve the (smaller) prompt. The savings stack.
+
+The methodological stance is deliberate: data first, design
+second. If the discipline subsystem fails to drive adoption above
+the 80\% threshold, it does not get promoted to block-mode. If the
+compile gate's false-negative rate exceeds the conservatism budget,
+the threshold relaxes. If the pattern-DSL fidelity turns out to be
+unacceptable for production intents, the YAML-authoring path stays
+optional and the in-tree Go matcher remains the load-bearing
+backend. The architecture is committed; the parameters bend to the
+data.
