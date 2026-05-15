@@ -32,8 +32,6 @@ tags:
 featured: false
 
 links:
-  - type: pdf
-    url: blackrim-instruction-trim.pdf
   - type: source
     url: https://github.com/jsgerman-oss/research/tree/main/blackrim-instruction-trim-paper
 

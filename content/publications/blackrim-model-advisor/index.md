@@ -31,8 +31,6 @@ featured: true
 
 # Custom links — populated as the work progresses.
 links:
-  - type: pdf
-    url: blackrim-model-advisor.pdf
   - type: source
     url: https://github.com/jsgerman-oss/research/tree/main/blackrim-model-advisor-paper
   - type: code

@@ -35,8 +35,6 @@ tags:
 featured: true
 
 links:
-  - type: pdf
-    url: blackrim-ast.pdf
   - type: source
     url: https://github.com/jsgerman-oss/research/tree/main/blackrim-ast-paper
 

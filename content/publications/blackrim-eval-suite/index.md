@@ -37,8 +37,6 @@ tags:
 featured: false
 
 links:
-  - type: pdf
-    url: blackrim-eval-suite.pdf
   - type: source
     url: https://github.com/jsgerman-oss/research/tree/main/blackrim-eval-suite-paper
 

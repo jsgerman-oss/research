@@ -33,8 +33,6 @@ tags:
 featured: false
 
 links:
-  - type: pdf
-    url: blackrim-routing-caching.pdf
   - type: source
     url: https://github.com/jsgerman-oss/research/tree/main/blackrim-routing-caching-paper
 
