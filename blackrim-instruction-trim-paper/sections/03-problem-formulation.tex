@@ -3,14 +3,14 @@
 
 \subsection{Setting}
 
-Let $\prefix = (\section_{i})_{i=1}^{n}$ be a static instruction document
+Let $\prefix = (\sect)_{i=1}^{n}$ be a static instruction document
 partitioned into $n$ sections. For each section we define:
 
 \begin{itemize}
-  \item $\size{\section_{i}}$ — size in tokens.
+  \item $\size{\sect}$ — size in tokens.
   \item $\frequency_i \in [0, 1]$ — fraction of agent spawns that
     semantically need this section's content.
-  \item $\readsize_i$ — token cost of fetching $\section_{i}$ via an
+  \item $\readsize_i$ — token cost of fetching $\sect$ via an
     on-demand Read call (file content + tool-invocation overhead).
 \end{itemize}
 
@@ -34,13 +34,13 @@ where $\alpha \approx 0.10$ is the cache-read multiplier (per
 $\sim 10\%$.
 
 With frequency-weighted progressive disclosure, each section is either
-\emph{resident} ($\section_{i} \in \prefix$) or \emph{externalised}
-(\(\section_{i}\) lives in an external doc accessed via Read on demand).
+\emph{resident} ($\sect \in \prefix$) or \emph{externalised}
+(\(\sect\) lives in an external doc accessed via Read on demand).
 Per-window cost becomes
 
 \begin{equation}
   \cost_{\mathrm{trimmed}} =
-    \!\!\sum_{i \in \mathrm{resident}}\!\! \size{\section_{i}} \cdot
+    \!\!\sum_{i \in \mathrm{resident}}\!\! \size{\sect} \cdot
       \big( (1 - \cachehit)\,S + \cachehit\,S\,\alpha \big)
     \;+\;
     \!\!\sum_{j \in \mathrm{ext}}\!\! \frequency_j \,S \cdot \readsize_j .
@@ -49,17 +49,17 @@ Per-window cost becomes
 
 \subsection{Decision rule}
 
-A section $\section_{i}$ is more cost-efficient externalised iff
+A section $\sect$ is more cost-efficient externalised iff
 
 \begin{equation}
-  \frequency_i \,\readsize_i < \size{\section_{i}}
+  \frequency_i \,\readsize_i < \size{\sect}
     \cdot \big( (1 - \cachehit) + \cachehit \alpha \big) .
   \label{eq:decision}
 \end{equation}
 
 Substituting Anthropic's published $\alpha = 0.10$ and Blackrim's
 empirical $\cachehit \approx 0.85$ gives a break-even when
-$\frequency_i \cdot \readsize_i < 0.235\,\size{\section_{i}}$.
+$\frequency_i \cdot \readsize_i < 0.235\,\size{\sect}$.
 
 \subsection{Fidelity constraint}
 

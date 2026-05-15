@@ -33,6 +33,8 @@ tags:
 featured: false
 
 links:
+  - type: pdf
+    url: blackrim-retriever.pdf
   - type: source
     url: https://github.com/jsgerman-oss/research/tree/main/blackrim-retriever-paper
 

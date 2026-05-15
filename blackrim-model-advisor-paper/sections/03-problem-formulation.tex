@@ -52,31 +52,31 @@ that more expensive tiers are at least as likely to succeed. It is supported
 by Anthropic's published benchmarks \cite{anthropic2024modelcards} and by the
 empirical landscape we present in \cref{sec:eval}. The advisor exploits this
 ordering to extrapolate: if sonnet's posterior at a cell credibly exceeds
-$\tolerance$, then opus's also does, so opus is feasible whenever sonnet is.
+$\qtol$, then opus's also does, so opus is feasible whenever sonnet is.
 
 \subsection{Quality-loss tolerance}
 
-A \emph{quality-loss tolerance} $\tolerance \in [0,1]$ is the maximum
+A \emph{quality-loss tolerance} $\qtol \in [0,1]$ is the maximum
 allowable degradation in expected quality versus a reference tier
 $\tier^* \in \tierset$ (in our deployment, $\tier^*$ is opus). The advisor's
 constraint at a cell is
 \begin{equation}
-  \theta_{\agent,\shape,\tier^*} - \theta_{\agent,\shape,\tier} \leq \tolerance,
+  \theta_{\agent,\shape,\tier^*} - \theta_{\agent,\shape,\tier} \leq \qtol,
   \label{eq:tolerance-constraint}
 \end{equation}
-i.e.\ the candidate tier $\tier$ may not lose more than $\tolerance$
-absolute quality versus $\tier^*$. We partition $\tolerance$ into four
+i.e.\ the candidate tier $\tier$ may not lose more than $\qtol$
+absolute quality versus $\tier^*$. We partition $\qtol$ into four
 operational tiers, summarised in \cref{tab:tolerance-tiers}.
 
 \begin{table}[h]
 \centering
 \caption{Quality-loss tolerance tiers used by the advisor. Critical-path
 tasks --- those whose downstream blast radius is large --- are pinned to
-$\tolerance = 0$ (no downgrade ever).}
+$\qtol = 0$ (no downgrade ever).}
 \label{tab:tolerance-tiers}
 \begin{tabular}{lll}
 \toprule
-\textbf{Class} & \textbf{$\tolerance$} & \textbf{Typical workload} \\
+\textbf{Class} & \textbf{$\qtol$} & \textbf{Typical workload} \\
 \midrule
 Critical & $0$              & ADRs, threat modelling, IR orchestration \\
 Strict   & $< 0.02$         & Production code review, prompt review \\
@@ -106,17 +106,17 @@ is the expected regret-of-failure. The decision rule that minimises
 \cref{eq:tolerance-constraint} is
 \begin{equation}
   \tier^\dagger
-    = \arg\min_{\tier \in \tierset(\tolerance)}
+    = \arg\min_{\tier \in \tierset(\qtol)}
       \cost(\tier),
   \label{eq:decision}
 \end{equation}
 where
 \(
-  \tierset(\tolerance) = \{ \tier : \theta^* - \theta_{\agent,\shape,\tier} \leq \tolerance \}
+  \tierset(\qtol) = \{ \tier : \theta^* - \theta_{\agent,\shape,\tier} \leq \qtol \}
 \)
-is the feasible set under tolerance $\tolerance$. The decision rule is thus
+is the feasible set under tolerance $\qtol$. The decision rule is thus
 ``cheapest tier whose quality stays within tolerance.'' The advisor's job is
-to estimate $\tierset(\tolerance)$ from data with high credibility.
+to estimate $\tierset(\qtol)$ from data with high credibility.
 
 \subsection{The Bayesian advisor problem}
 
@@ -126,15 +126,15 @@ observation history. The Bayesian decision rule, replacing
 \cref{eq:tolerance-constraint} with its posterior-credibility analogue, is
 \begin{equation}
   \tier^\dagger
-    = \arg\min_{\tier \in \tierset_{\posterior, \tolerance, \alpha}}
+    = \arg\min_{\tier \in \tierset_{\posterior, \qtol, \alpha}}
       \cost(\tier),
   \label{eq:bayesian-decision}
 \end{equation}
 where
 \begin{equation}
-  \tierset_{\posterior, \tolerance, \alpha}
+  \tierset_{\posterior, \qtol, \alpha}
     = \left\{ \tier : \Pr_{\theta \sim \posterior}\!\big[
-        \theta^* - \theta_{\agent,\shape,\tier} \leq \tolerance
+        \theta^* - \theta_{\agent,\shape,\tier} \leq \qtol
       \big] \geq 1 - \alpha
     \right\}
   \label{eq:credible-feasible}
@@ -148,7 +148,7 @@ implements; \cref{sec:algorithm} develops the algorithm.
 
 Operationally, the advisor exposes a function
 \(
-  \mathrm{advise} : (\agent, \shape, \tolerance) \mapsto (\tier^\dagger,
+  \mathrm{advise} : (\agent, \shape, \qtol) \mapsto (\tier^\dagger,
   \mathrm{rationale}, \mathrm{cost\_diff})
 \)
 returning the recommended tier, a human-readable rationale, and the cost

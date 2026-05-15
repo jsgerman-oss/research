@@ -4,7 +4,7 @@
 \subsection{Inputs}
 
 \begin{itemize}
-  \item Current $\prefix$ partitioned into sections $(\section_{i})_{i=1}^{n}$.
+  \item Current $\prefix$ partitioned into sections $(\sect)_{i=1}^{n}$.
   \item Per-section access-frequency estimates $\hat{\frequency}_i$ (from
     domain knowledge, telemetry, and the literature-grounded "what does
     every spawn need" heuristic).
@@ -18,8 +18,8 @@
 \SetAlgoLined
 \KwIn{$\prefix$, $\{\hat{\frequency}_i\}$, $\cachehit$, $\epsilon$}
 \KwOut{$\prefix_{\mathrm{trimmed}}$}
-\For{each section $\section_{i}$ in $\prefix$}{
-  Classify $\section_{i}$ as one of: \emph{must-resident},
+\For{each section $\sect$ in $\prefix$}{
+  Classify $\sect$ as one of: \emph{must-resident},
     \emph{frequency-deciding}, or \emph{redundant}.\;
   \uIf{\emph{must-resident}}{Keep in $\prefix_{\mathrm{trimmed}}$.\;}
   \uElseIf{\emph{redundant}}{Drop or replace with one-line pointer.\;}

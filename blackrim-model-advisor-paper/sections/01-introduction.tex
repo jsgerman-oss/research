@@ -92,9 +92,9 @@ sections cited:
   \item \textbf{Problem formulation} (\cref{sec:problem}). We formalise
         adaptive model-tier selection as a constrained Bayesian decision
         problem with explicit per-task quality-loss tolerance
-        $\tolerance \in [0,1]$ partitioned into four operational tiers
-        (Critical $\tolerance = 0$, Strict $\tolerance < 0.02$, Moderate
-        $\tolerance < 0.05$, Lenient $\tolerance < 0.10$).
+        $\qtol \in [0,1]$ partitioned into four operational tiers
+        (Critical $\qtol = 0$, Strict $\qtol < 0.02$, Moderate
+        $\qtol < 0.05$, Lenient $\qtol < 0.10$).
   \item \textbf{Algorithm} (\cref{sec:algorithm}). We propose Conservative
         Constrained Thompson Sampling (CC-TS), with three components:
         (a) hierarchical Beta priors with partial pooling across agents and
@@ -102,7 +102,7 @@ sections cited:
         updated from telemetry; (c) conformal calibration of quality-drop
         intervals. We give a regret bound under standard sub-Gaussian
         reward assumptions and prove the conservative property: no downgrade
-        is committed with credible quality risk above $\tolerance$.
+        is committed with credible quality risk above $\qtol$.
   \item \textbf{System and deployment} (\cref{sec:system}). We describe the
         end-to-end deployment in \blackrim: the dispatch path, telemetry
         capture, eval triggering, and the operator-facing

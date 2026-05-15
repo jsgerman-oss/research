@@ -76,7 +76,7 @@ approximation suffices and is provably no worse asymptotically.
 
 Given the pooled posterior, the conservative gate determines whether each
 candidate tier is admitted to the feasible set
-$\tierset_{\posterior, \tolerance, \alpha}$.
+$\tierset_{\posterior, \qtol, \alpha}$.
 
 \paragraph{Conformal lower bound.}
 We compute the conformal lower bound on quality preservation
@@ -95,20 +95,20 @@ gate:
 \begin{definition}[Conservative gate]
 \label{def:gate}
 For a candidate tier $\tier \prec \tier^*$ at cell $(\agent, \shape)$ with
-tolerance $\tolerance$, the conservative gate \emph{admits} $\tier$ if and
+tolerance $\qtol$, the conservative gate \emph{admits} $\tier$ if and
 only if
 \begin{equation}
   \widehat{q}_{\mathrm{lo}}(\agent, \shape, \tier)
     \;\geq\;
-  \mu^*(\agent, \shape) - \tolerance,
+  \mu^*(\agent, \shape) - \qtol,
   \label{eq:gate}
 \end{equation}
 where $\mu^*$ is the posterior-mean quality at the baseline tier.
 \end{definition}
 
 The gate has four operational regimes, controlled by tolerance class:
-$\tolerance = 0$ (Critical) admits no downgrade ever, regardless of evidence
-strength; $\tolerance < 0.02$ (Strict) admits a downgrade only when the
+$\qtol = 0$ (Critical) admits no downgrade ever, regardless of evidence
+strength; $\qtol < 0.02$ (Strict) admits a downgrade only when the
 conformal LCB exceeds baseline-mean by 2~percentage points; and so on
 through Lenient.
 
@@ -133,7 +133,7 @@ exploration set.}
 \midrule
 $L(\mathrm{down}, \mathrm{preserved})$ & $-\Delta\cost(\tier^*, \tier_{\mathrm{lower}})$ & savings \\
 $L(\mathrm{down}, \mathrm{lost})$
-  & $\Delta\cost_{\mathrm{down}} \cdot N_{\mathrm{dep}} \cdot M[\tolerance]$
+  & $\Delta\cost_{\mathrm{down}} \cdot N_{\mathrm{dep}} \cdot M[\qtol]$
   & cascade \\
 $L(\mathrm{stay}, \cdot)$ & $0$ & baseline \\
 $L(\mathrm{up}, \mathrm{preserved})$ & $+\Delta\cost(\tier_{\mathrm{higher}}, \tier^*)$ & overpay \\
@@ -183,7 +183,7 @@ proportional to eval cadence rather than production traffic.
 \Cref{alg:ccts} states CC-TS in full.
 
 \begin{algorithm}[h]
-\KwIn{Cell $(\agent, \shape)$, tolerance $\tolerance$, baseline tier $\tier^*$,
+\KwIn{Cell $(\agent, \shape)$, tolerance $\qtol$, baseline tier $\tier^*$,
       pooled posterior $\widetilde{\posterior}$,
       conformal calibration sets $\mathcal{C}_{\agent,\shape,\tier}$,
       loss matrix $L$, eval threshold $\theta_{\mathrm{eval}}$,
@@ -196,8 +196,8 @@ $\mathrm{cands} \leftarrow \{\tier^*\}$ \tcp*{baseline always admitted}
   $\widehat{q}_{\mathrm{lo}} \leftarrow
     \mathrm{ConformalLCB}(\widetilde{\posterior}_{\tier},
     \mathcal{C}_{\agent,\shape,\tier}, \alpha)$\;
-  \If{$\tier \prec \tier^*$ \KwAnd $\widehat{q}_{\mathrm{lo}}
-       \geq \mu^*(\agent, \shape) - \tolerance$}{
+  \If{$\tier \prec \tier^*$ \textbf{and} $\widehat{q}_{\mathrm{lo}}
+       \geq \mu^*(\agent, \shape) - \qtol$}{
     $\mathrm{cands} \leftarrow \mathrm{cands} \cup \{\tier\}$
       \tcp*{Layer 2: conservative gate}
   }
@@ -234,7 +234,7 @@ conservative-property guarantee that holds always.
 
 \begin{proposition}[Unconstrained regret]
 \label{prop:regret}
-In the unconstrained limit ($M = 0$, equivalently $\tolerance \geq 1$, every
+In the unconstrained limit ($M = 0$, equivalently $\qtol \geq 1$, every
 candidate admitted), CC-TS reduces to standard Thompson Sampling per cell.
 By Agrawal--Goyal \cite{agrawal2012analysis}, the per-cell expected regret
 after $T$ rounds satisfies
@@ -255,11 +255,11 @@ The proof is the standard Agrawal--Goyal decomposition; we omit it.
 \label{thm:conservative}
 Suppose conformal calibration is exchangeable with the production stream
 \cite{vovk2005algorithmic}. Then for any cell $(\agent, \shape)$ and
-tolerance $\tolerance$, CC-TS recommends a downgrade
+tolerance $\qtol$, CC-TS recommends a downgrade
 $\tier \prec \tier^*$ only if
 \begin{equation}
   \Pr\!\big[
-    \theta_{\agent,\shape,\tier} \geq \theta_{\agent,\shape,\tier^*} - \tolerance
+    \theta_{\agent,\shape,\tier} \geq \theta_{\agent,\shape,\tier^*} - \qtol
   \big]
   \;\geq\;
   1 - \alpha.
@@ -270,7 +270,7 @@ $\tier \prec \tier^*$ only if
 \begin{proof}[Proof sketch.]
 The downgrade $\tier \prec \tier^*$ is admitted to $\mathrm{cands}$ in
 \cref{alg:ccts} only if the conformal lower bound exceeds
-$\mu^*(\agent, \shape) - \tolerance$. By the marginal coverage guarantee of
+$\mu^*(\agent, \shape) - \qtol$. By the marginal coverage guarantee of
 conformal prediction \cite{angelopoulos2021gentle}, the event
 $\theta_{\agent,\shape,\tier} \geq \widehat{q}_{\mathrm{lo}}$ has probability
 at least $1 - \alpha$ under the calibration distribution. Combining the two

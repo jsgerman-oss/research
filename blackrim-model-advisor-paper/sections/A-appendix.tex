@@ -11,7 +11,7 @@ $\shapeset$, $\shape$ & Set of task shapes; a shape \\
 $\tierset$, $\tier$, $\tier^*$ & Set of model tiers; a tier; baseline tier \\
 $\theta_{\agent,\shape,\tier}$ & Quality success probability at cell \\
 $\posterior$, $\prior$ & Posterior, prior on $\theta$ \\
-$\tolerance$ & Quality-loss tolerance per cell \\
+$\qtol$ & Quality-loss tolerance per cell \\
 $\alpha$ & Posterior-credibility level (we use $0.05$) \\
 $\widehat{q}_{\mathrm{lo}}$ & Conformal lower bound on $\theta$ \\
 $\Delta\cost$ & Cost differential between two tiers \\
@@ -28,10 +28,10 @@ $\lambda$ & Pooling weight cap (we use $0.5$) \\
 We give the full version of the proof sketched in \cref{sec:algorithm}.
 
 Fix a cell $(\agent, \shape)$ with baseline tier $\tier^*$ and tolerance
-$\tolerance$. Let $\tier \prec \tier^*$ be a candidate downgrade. By
+$\qtol$. Let $\tier \prec \tier^*$ be a candidate downgrade. By
 \cref{alg:ccts}, $\tier$ is admitted to $\mathrm{cands}$ only if
 \(
-  \widehat{q}_{\mathrm{lo}}(\agent, \shape, \tier) \geq \mu^*(\agent, \shape) - \tolerance.
+  \widehat{q}_{\mathrm{lo}}(\agent, \shape, \tier) \geq \mu^*(\agent, \shape) - \qtol.
 \)
 
 Conformal prediction \cite{vovk2005algorithmic,angelopoulos2021gentle}
@@ -54,7 +54,7 @@ Combining with the gate condition,
 \[
   \Pr\!\big[
     \theta_{\agent,\shape,\tier}
-      \geq \mu^*(\agent, \shape) - \tolerance
+      \geq \mu^*(\agent, \shape) - \qtol
   \big]
   \;\geq\;
   \Pr\!\big[
@@ -63,7 +63,7 @@ Combining with the gate condition,
   \;\geq\; 1 - \alpha,
 \]
 where the first inequality follows because the gate enforces
-$\widehat{q}_{\mathrm{lo}} \geq \mu^* - \tolerance$.
+$\widehat{q}_{\mathrm{lo}} \geq \mu^* - \qtol$.
 
 Approximating $\mu^*$ by $\theta_{\agent,\shape,\tier^*}$ (justified
 asymptotically as the baseline-tier posterior concentrates), we obtain
