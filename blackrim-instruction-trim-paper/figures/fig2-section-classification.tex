@@ -1,0 +1,55 @@
+% fig2-section-classification.tex
+% Stacked horizontal bar chart: one row per section, colored by classification.
+% Baseline line counts from data/aggregated/section-residency.csv (TRIM-02).
+
+\begin{figure}[ht]
+\centering
+\pgfplotstableread[col sep=comma]{%
+section,must,freqdec,redundant
+{How It Works},10,0,0
+{Delegation discipline},44,0,0
+{Skill-Driven Workflow},0,78,0
+{Background Agents},0,309,0
+{HitL Approval},56,0,0
+{Beads Issue Tracker},41,0,0
+{Session Completion},38,0,0
+{Agent System},0,0,69
+{Customization},0,0,28
+}\secdata
+\begin{tikzpicture}
+\begin{axis}[
+  xbar stacked,
+  width=0.85\textwidth,
+  height=6cm,
+  bar width=9pt,
+  ytick=data,
+  yticklabels from table={\secdata}{section},
+  yticklabel style={font=\footnotesize, text width=3.2cm, align=right},
+  xlabel={Baseline line count},
+  xmin=0, xmax=360,
+  legend style={
+    at={(0.98,0.02)},
+    anchor=south east,
+    font=\footnotesize,
+    cells={anchor=west},
+  },
+  reverse legend,
+]
+\addplot table [x=must,    y expr=\coordindex] {\secdata};
+\addlegendentry{Must-resident}
+\addplot table [x=freqdec, y expr=\coordindex] {\secdata};
+\addlegendentry{Frequency-deciding}
+\addplot table [x=redundant, y expr=\coordindex] {\secdata};
+\addlegendentry{Redundant / removed}
+\end{axis}
+\end{tikzpicture}
+\caption{Per-section classification applied by the conservative trim
+algorithm to the Blackrim \claudemd baseline.
+Bar length equals baseline line count; color encodes the
+algorithm verdict: \emph{must-resident} (kept across all waves),
+\emph{frequency-deciding} (trimmed or externalised based on
+Eq.\,\eqref{eq:decision}), and \emph{redundant} (collapsed to a
+pointer).
+Source: \texttt{data/aggregated/section-residency.csv}.}
+\label{fig:section-classification}
+\end{figure}
