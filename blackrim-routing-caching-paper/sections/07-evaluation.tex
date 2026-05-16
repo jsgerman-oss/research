@@ -23,13 +23,18 @@ exist (\texttt{evals/gestalt-routing}, \texttt{evals/model-tier-validation},
 
 \begin{table}[h]
 \centering
-\caption{\blackrim cost split (single 7-day window, claude-opus-4-7 baseline).}
+\caption{\blackrim cost split (single 7-day window, claude-opus-4-7 baseline).
+  Cost figures from dashboard \texttt{/api/tokens/comprehensive} (verified screenshot
+  2026-05-09T22:04\,PT); call counts cross-checked against
+  \texttt{.beads/telemetry/invocations.jsonl} via
+  \texttt{scripts/aggregate-cost-split.py}.
+  Source: \texttt{data/aggregated/cost-split.csv}.}
 \label{tab:cost-split}
 \begin{tabular}{lrrr}
 \toprule
               & Cost (USD) & Share & Calls \\
 \midrule
-Session total & 115.54 & 100.0\% & 445 \\
+Session total & 115.54 & 100.0\% & 500 \\
 Main-thread (Gestalt) & 114.81 & 99.4\% & 445 (turns) \\
 Subagent dispatch & 0.7338 & 0.6\% & 55 (calls) \\
 \bottomrule
@@ -180,6 +185,12 @@ The full pipeline:
 python scripts/pull-telemetry.py --since 2026-05-01 \
   --repo /Users/jayse/Code/blackrim \
   > data/raw/session-telemetry.json
+
+python scripts/aggregate-cost-split.py \
+  --telemetry /Users/jayse/Code/blackrim/.beads/telemetry/invocations.jsonl \
+  --pricing /Users/jayse/Code/blackrim/internal/pricing/sheets/anthropic-public.toml \
+  --session-evidence data/raw/session-evidence.json \
+  > data/aggregated/cost-split.csv
 
 python scripts/aggregate-cache-stats.py \
   --telemetry /Users/jayse/Code/blackrim/.beads/telemetry/invocations.jsonl \

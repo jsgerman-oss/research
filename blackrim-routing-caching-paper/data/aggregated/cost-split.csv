@@ -1,0 +1,5 @@
+bucket,cost_usd,n_calls,cost_share_pct
+session_total,115.5400,500,100.0000
+main_thread,114.8100,445,99.3682
+subagent_dispatch,0.7338,55,0.6351
+unclassified,0.0000,0,0.0000
