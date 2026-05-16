@@ -2,24 +2,38 @@
 """
 label.py — LLM-judge labeling CLI for the retriever relevance pipeline.
 
-Reads the candidate pool produced by pool.py, calls an LLM judge for each
-(query_hash, doc_id) pair not already labeled, and writes graded relevance
-judgements to data/raw/relevance.jsonl.
+Reads the hydrated candidate pool produced by hydrate.py (recommended) or the
+raw pool from pool.py, calls an LLM judge for each (query_hash, doc_id) pair
+not already labeled, and writes graded relevance judgements to
+data/raw/relevance.jsonl.
 
 Usage (dry-run — no API calls, produces a stub for downstream testing):
     python scripts/eval-relevance/label.py --dry-run
 
+Usage (gold-set mode — reads hydrated pool with real query text):
+    python scripts/eval-relevance/label.py \\
+        --pool blackrim-retriever-paper/data/aggregated/relevance-pool-hydrated.jsonl \\
+        --dry-run
+
 Usage (production — requires ANTHROPIC_API_KEY):
-    python scripts/eval-relevance/label.py \
-        --pool blackrim-retriever-paper/data/aggregated/relevance-pool.jsonl \
-        --out blackrim-retriever-paper/data/raw/relevance.jsonl \
-        --api-key-env ANTHROPIC_API_KEY \
-        --model claude-haiku-4-5-20251001 \
-        --cost-budget-usd 5.0 \
+    python scripts/eval-relevance/label.py \\
+        --pool blackrim-retriever-paper/data/aggregated/relevance-pool-hydrated.jsonl \\
+        --out blackrim-retriever-paper/data/raw/relevance.jsonl \\
+        --api-key-env ANTHROPIC_API_KEY \\
+        --model claude-haiku-4-5-20251001 \\
+        --cost-budget-usd 5.0 \\
         --rate-limit-rps 2.0
 
+Gold-set mode (--gold-set-mode):
+    When the pool was built by hydrate.py in gold-set mode, pass
+    --gold-set-mode to skip LLM judging for pairs where a human judgment
+    already exists in the gold query file.  The gold set currently marks all
+    judgments as "UNMARKED" so this flag is a no-op today; it provides the
+    hook for future manual annotation rounds.
+
 Output schema (data/raw/relevance.jsonl):
-    query_hash, doc_id, query_class, label (0|1|2), model, dry_run (bool)
+    query_hash, doc_id, query_class, query_text (if available), label (0|1|2),
+    model, dry_run (bool), gold_set_override (bool)
 
 Resumability: pairs already present in --out are skipped (idempotent).
 Cost gate: total estimated cost is computed before the first API call; the
@@ -136,8 +150,22 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
         "--pool",
-        default="blackrim-retriever-paper/data/aggregated/relevance-pool.jsonl",
-        help="Input pool from pool.py.",
+        default="blackrim-retriever-paper/data/aggregated/relevance-pool-hydrated.jsonl",
+        help=(
+            "Input pool file. Default: hydrated pool from hydrate.py. "
+            "Falls back to relevance-pool.jsonl if the hydrated file doesn't exist."
+        ),
+    )
+    p.add_argument(
+        "--gold-set-mode",
+        action="store_true",
+        default=False,
+        help=(
+            "When set, pairs from the gold evaluation set that already carry a "
+            "human judgment (judgment != 'UNMARKED') are passed through without "
+            "calling the LLM judge.  Currently a no-op because all gold judgments "
+            "are 'UNMARKED'; provided as a hook for future manual annotation rounds."
+        ),
     )
     p.add_argument(
         "--out",
@@ -187,13 +215,34 @@ def main() -> int:
     pool_path = Path(args.pool)
     out_path = Path(args.out)
 
+    # Fall back to the raw pool if the hydrated file doesn't exist yet.
+    raw_pool_path = Path(
+        "blackrim-retriever-paper/data/aggregated/relevance-pool.jsonl"
+    )
+    if not pool_path.exists() and pool_path != raw_pool_path and raw_pool_path.exists():
+        print(
+            f"warn: hydrated pool not found at {pool_path}; "
+            f"falling back to {raw_pool_path}. "
+            "Run hydrate.py first for real query text in judge prompts.",
+            file=sys.stderr,
+        )
+        pool_path = raw_pool_path
+
     if not pool_path.exists():
         print(f"error: pool not found: {pool_path}", file=sys.stderr)
         print(
-            "       Run pool.py first: python scripts/eval-relevance/pool.py",
+            "       Run hydrate.py first: "
+            "python scripts/eval-relevance/hydrate.py",
+            file=sys.stderr,
+        )
+        print(
+            "       Or build the raw pool: "
+            "python scripts/eval-relevance/pool.py",
             file=sys.stderr,
         )
         return 1
+
+    is_hydrated = "hydrated" in pool_path.name
 
     # Load pool
     pool: list[dict] = []
@@ -210,6 +259,21 @@ def main() -> int:
     if not pool:
         print("error: pool is empty", file=sys.stderr)
         return 1
+
+    if is_hydrated:
+        n_with_text = sum(1 for r in pool if r.get("doc_available"))
+        print(
+            f"hydrated pool: {len(pool)} pairs | "
+            f"{n_with_text} with resolved doc text | "
+            f"{len(pool) - n_with_text} stubs",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            f"raw pool (no query/doc plaintext): {len(pool)} pairs. "
+            "Run hydrate.py for better judge accuracy.",
+            file=sys.stderr,
+        )
 
     # Skip already-labeled pairs
     already_done = _load_existing(out_path)
@@ -267,6 +331,7 @@ def main() -> int:
     min_interval = 1.0 / args.rate_limit_rps if not args.dry_run else 0.0
     n_labeled = 0
     n_malformed = 0
+    n_gold_passthrough = 0
     total_in_tokens = 0
     total_out_tokens = 0
     actual_cost = 0.0
@@ -276,22 +341,57 @@ def main() -> int:
             qhash = row["query_hash"]
             doc_id = row["doc_id"]
             qclass = row.get("query_class", "unknown")
+            # Hydrated pool carries plaintext; raw pool does not.
+            query_text = row.get("query_text") or f"[query_hash={qhash}, class={qclass}]"
+            doc_text = row.get("doc_text") or f"[doc_id={doc_id}]"
+            gold_set_override = False
 
             if args.dry_run:
                 label = _DRY_RUN_LABEL
                 in_tok = _EST_INPUT_TOKENS_PER_CALL
                 out_tok = _EST_OUTPUT_TOKENS_PER_CALL
-            else:
-                # Build prompt — query_text is unavailable (hashed); doc is unavailable too.
-                # In production, callers should augment pool rows with plaintext
-                # query and doc snippet before calling label.py. For now we use
-                # the query_hash and doc_id as stand-ins so the pipeline is
-                # structurally complete.
-                from judge_prompt import build_prompt  # noqa: PLC0415
+            elif args.gold_set_mode and row.get("source") == "gold-set":
+                # Future hook: when the gold set carries human judgments
+                # (judgment != 'UNMARKED'), pass them through without an LLM call.
+                # Currently all judgments are UNMARKED so this never fires, but the
+                # path is ready for manual annotation rounds.
+                gold_judgment = row.get("judgment", "UNMARKED")
+                if gold_judgment not in ("UNMARKED", "", None):
+                    _LABEL_MAP = {"NOT_RELEVANT": 0, "PARTIAL": 1, "RELEVANT": 2}
+                    mapped = _LABEL_MAP.get(str(gold_judgment).upper())
+                    if mapped is not None:
+                        label = mapped
+                        in_tok = 0
+                        out_tok = 0
+                        gold_set_override = True
+                        n_gold_passthrough += 1
+                    else:
+                        # Unrecognised judgment string — fall through to LLM judge.
+                        gold_set_override = False
 
-                query_repr = f"[query_hash={qhash}, class={qclass}]"
-                doc_repr = f"[doc_id={doc_id}]"
-                prompt = build_prompt(query_repr, doc_repr)
+                if not gold_set_override:
+                    # Gold pair but judgment is UNMARKED — call the LLM judge.
+                    from judge_prompt import build_prompt  # noqa: PLC0415
+                    prompt = build_prompt(query_text, doc_text)
+                    t0 = time.monotonic()
+                    label, in_tok, out_tok = _call_judge(client, prompt, args.model)
+                    elapsed = time.monotonic() - t0
+                    if label is None:
+                        n_malformed += 1
+                        label = _DRY_RUN_LABEL
+                        print(
+                            f"  warn: malformed judge response for "
+                            f"({qhash}, {doc_id}) — defaulting to {label}",
+                            file=sys.stderr,
+                        )
+                    sleep_for = max(0.0, min_interval - elapsed)
+                    if sleep_for > 0:
+                        time.sleep(sleep_for)
+            else:
+                # Standard LLM judge path.  Uses plaintext from hydrated pool
+                # when available; falls back to hash/slug stubs for raw pool.
+                from judge_prompt import build_prompt  # noqa: PLC0415
+                prompt = build_prompt(query_text, doc_text)
 
                 t0 = time.monotonic()
                 label, in_tok, out_tok = _call_judge(client, prompt, args.model)
@@ -325,9 +425,11 @@ def main() -> int:
                 "query_hash": qhash,
                 "doc_id": doc_id,
                 "query_class": qclass,
+                "query_text": query_text,
                 "label": label,
                 "model": args.model if not args.dry_run else "dry-run",
                 "dry_run": args.dry_run,
+                "gold_set_override": gold_set_override,
             }
             g.write(json.dumps(out_row) + "\n")
             n_labeled += 1
@@ -342,6 +444,7 @@ def main() -> int:
     print(
         f"done: {n_labeled} pairs labeled | "
         f"{n_malformed} malformed responses | "
+        f"{n_gold_passthrough} gold-set passthroughs | "
         f"total tokens: {total_in_tokens} in / {total_out_tokens} out | "
         f"actual cost: ${actual_cost:.4f} | "
         f"output: {out_path}",
