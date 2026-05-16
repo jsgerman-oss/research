@@ -36,9 +36,36 @@ comment, so the LaTeX `\input{data/...}` chain does not break the build
 while the datasets are still accumulating. Replace them with real
 implementations as the corresponding open questions resolve.
 
-## Corpus
+## Compression corpus (v2)
 
-`corpus.txt` pins the broader polyglot corpus used by the
+`corpus-files/` holds the 40-file polyglot corpus used by
+`pull-compression-ratios.py` in corpus mode (default). Layout:
+
+```
+corpus-files/
+  go/    file-01.go … file-10.go   (76–1098 LoC)
+  py/    file-01.py … file-10.py   (68–370 LoC)
+  js/    file-01.js … file-10.js   (60–125 LoC)
+  tsx/   file-01.tsx … file-10.tsx (58–248 LoC)
+```
+
+**Provenance.** Files were sampled from open-source repositories already
+cloned in `data/scratch/corpora/` and from the Blackrim checkout
+(`~/Code/blackrim`):
+
+| Lang | Sources |
+|------|---------|
+| Go | `internal/dispatch/`, `internal/eval/`, `internal/compress/`, `internal/approval/`, `internal/bdmemory/`; Kubernetes `pkg/registry/coordination/lease/strategy.go` |
+| Python | Research paper scripts from `blackrim-model-advisor-paper/`, `blackrim-retriever-paper/`, `blackrim-instruction-trim-paper/`; Flask `src/flask/config.py`, `views.py` |
+| JavaScript | React `packages/react-devtools-shared/`, `packages/dom-event-testing-library/`, `packages/react-dom-bindings/`; `blackrim-nimbus-skills/bin/lib/` |
+| TypeScript | TypeScript compiler `src/services/codefixes/`; Blackrim `site/src/lib/`, `site/src/data/crew.ts`; Jody `src/lib/preferences.ts` |
+
+All files were checked for secret patterns (`gho_*`, `ghp_*`, `sk-*`,
+inline password assignments) before inclusion.
+
+## Broader corpus
+
+`corpus.txt` pins the wider polyglot corpus used by the
 budget-conformance, latency, and end-to-end scripts. One repository
 per line, in the form `org/repo@ref` (e.g., `golang/go@release-branch.go1.22`).
 The harness clones each into `data/scratch/corpora/` and prunes to
@@ -50,18 +77,24 @@ the pinned commit.
 # Smoke-test the implemented scripts
 make data       # from paper root; runs the four "ready" scripts
 
-# Run a single script with explicit Blackrim root
+# Corpus mode (default, no gt binary needed)
 python scripts/pull-compression-ratios.py \
-    --blackrim-root=$HOME/Code/blackrim \
     > data/raw/compression-ratios.jsonl
 
 python scripts/aggregate-by-language.py \
     < data/raw/compression-ratios.jsonl \
     > data/aggregated/by-language.csv
+
+# Legacy mode: invoke gt outline on single in-tree bench fixture
+# (reproduces pre-v2 n=1 measurements from §6 footnote)
+python scripts/pull-compression-ratios.py \
+    --legacy \
+    --blackrim-root=$HOME/Code/blackrim \
+    > data/raw/compression-ratios-legacy.jsonl
 ```
 
 ## Requirements
 
 - Python 3.11+
-- A Blackrim checkout with the in-tree `gt` binary built (`go build ./cmd/gt`).
-- Network access for the first run of the JS/TS backends (npm install).
+- Corpus mode (default): no external dependencies — reads `corpus-files/` in-tree.
+- Legacy mode: a Blackrim checkout with the `gt` binary built (`go build ./cmd/gt`).
