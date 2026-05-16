@@ -24,8 +24,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/auditidentity/blackrim.dev/internal/scorer/trajectory"
 )
 
