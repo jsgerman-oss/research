@@ -168,13 +168,105 @@ most promising direction for closing the opus-recall gap (see
 \S\ref{sec:future}).
 
 \subsection{Plan-cache evaluation}
+\label{sec:plancache-eval}
 
-% TODO: replay 30 historical bd dispatches, measure:
-% - Cache hit rate (target ≥ 30%).
-% - False-hit rate (cache says hit but plan was different) — target < 5%.
-% - Composed cost reduction with prefix caching active.
+% RC-06 results (2026-05-16).
+% Real telemetry: n=3 unique dispatches from plan-events.jsonl (3 unique queries,
+% each duplicated → 6 raw records; deduplicated on prompt_prefix_hash).
+% Fixture: n=40 synthetic dispatches (sample-dispatches.jsonl, RC-05).
+% Data: data/aggregated/plancache-eval-real.csv, plancache-summary-real.csv,
+%        plancache-eval.csv, plancache-summary.csv, composed-cost.csv.
+% Scripts: scripts/eval-plan-cache/index.py, replay.py, aggregate-composed-cost.py.
 
-\tothink{Build the replay harness + report numbers.}
+\paragraph{Setup.}
+We evaluate the plan-cache primitive (§\ref{sec:plancache}) using a
+leave-one-out (LOO) cross-validation replay harness.
+Each dispatch's user query is used to retrieve the most similar cached plan
+from the remaining index (LOO fold), and the retrieved plan signature is
+compared against the actual plan executed.
+A \emph{hit} is recorded when the top-1 retrieved signature exactly matches the
+gold signature for that dispatch.
+A \emph{false hit} is recorded when the signatures match but the dispatches'
+\texttt{task\_type} fields differ, indicating a qualitatively incorrect reuse.
+Matching uses exact signature-hash comparison in the absence of query embeddings
+(equivalent to dry-run mode in \texttt{scripts/eval-plan-cache/replay.py});
+the plan signature is the ordered coarse tool-call sequence described in
+§\ref{sec:plancache} and \texttt{scripts/eval-plan-cache/index.py}.
+
+\paragraph{Data limitation (small-$n$ caveat).}
+The Blackrim \texttt{.beads/telemetry/plan-events.jsonl} log contains only
+6 raw records, corresponding to 3 unique plan structures (each duplicated by a
+second telemetry-flush event sharing the same \texttt{prompt\_prefix\_hash}).
+After deduplication, the real-telemetry eval set is \(n=3\), well below the
+\(\geq\!30\) acceptance bar set in §\ref{sec:plancache}.
+All three dispatches have distinct coarse plan signatures
+(\texttt{Read:backend/|Bash},
+\texttt{Read:backend/|Write:backend/|Edit:backend/|Bash},
+\texttt{Read:backend/}),
+so every LOO fold returns a miss by construction.
+A supplementary evaluation on the 40-dispatch synthetic fixture
+(\texttt{tests/fixtures/sample-dispatches.jsonl}) is reported alongside the
+real-telemetry result to demonstrate harness correctness.
+
+\paragraph{Results.}
+\begin{table}[h]
+\centering
+\caption{Plan-cache LOO evaluation results.
+  Real: \(n=3\) unique dispatches from \texttt{plan-events.jsonl} (RC-06).
+  Fixture: \(n=40\) synthetic dispatches (\texttt{sample-dispatches.jsonl}, RC-05).
+  Source: \texttt{data/aggregated/plancache-summary-real.csv} and
+  \texttt{data/aggregated/plancache-summary.csv}.}
+\label{tab:plancache-results}
+\begin{tabular}{lrrrr}
+\toprule
+Dataset & $n$ & Hit rate & False-hit rate & Composed savings \\
+\midrule
+Real telemetry & 3  & 0.0\,\% & 0.0\,\% & 78.6\,\% \\
+Synthetic fixture & 40 & 15.0\,\% & 0.0\,\% & 81.8\,\% \\
+\textit{Target} & \textit{$\geq$30} & \textit{$\geq$30\,\%} & \textit{$<$5\,\%} & — \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Neither dataset meets the \(\geq\!30\,\%\) hit-rate target.
+On real telemetry (\(n=3\)), the hit rate is 0.0\,\% (0/3) and the
+false-hit rate is 0.0\,\% (0/3); every LOO fold misses because all three
+unique queries map to distinct coarse signatures.
+On the 40-dispatch synthetic fixture, the hit rate is 15.0\,\% (6/40) and
+the false-hit rate is 0.0\,\%, consistent with RC-05 dry-run results.
+
+\paragraph{Composed cost reduction.}
+Plan-cache savings add on top of prefix-cache savings by reducing the cost
+of the fraction of requests that fire a correct cache hit.
+Formally, if \(P = 0.786\) is the prefix-cache savings fraction (§\ref{sec:prefixcache-eval})
+and \(H\) is the plan-cache true-hit rate, then:
+\[
+  \text{composed} = P + H\,(1 - P)
+\]
+With \(H=0.0\) on real telemetry, plan caching adds zero marginal savings
+over the 78.6\,\% prefix-cache baseline: composed savings = 78.6\,\%.
+With \(H=0.15\) on the synthetic fixture, plan caching adds
+\(0.15 \times 0.214 = 3.2\,\%\) of additional savings, for a composed
+figure of 81.8\,\%.
+Neither figure approaches the 50\,\% \emph{additional} savings headline
+from \citet{agentic-plan-caching-neurips2025}, which was measured on a much
+larger deployment with higher query repetition rates.
+
+\paragraph{Interpretation.}
+The measured data do not support the \(\geq\!30\,\%\) hit-rate claim at this
+corpus size.
+The result is an honest empirical baseline, not a failure of the mechanism:
+the Blackrim dispatch corpus is too small and too heterogeneous at the
+3-dispatch scale for signature reuse to occur in LOO evaluation.
+The synthetic fixture at \(n=40\) produces a 15\,\% hit rate with zero
+false hits, demonstrating that the harness is correct and the signature
+design is conservative (low false-hit rate) — the limiting factor is corpus
+size and query diversity.
+Achieving the \(\geq\!30\,\%\) target would require either a larger corpus
+(\(\gtrsim\!200\) real dispatches with sufficient repetition) or a relaxed
+similarity threshold using cosine-similarity retrieval over query embeddings
+rather than exact signature-hash matching.
+These directions are deferred to future work (§\ref{sec:future}).
 
 \subsection{Reproducibility}
 \label{sec:repro}

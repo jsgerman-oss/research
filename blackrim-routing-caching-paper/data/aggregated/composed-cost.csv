@@ -1,0 +1,2 @@
+prefix_only_savings_pct,plancache_only_savings_pct,marginal_plancache_pct,composed_savings_pct,true_hit_rate,false_hit_rate,hit_rate,n_dispatches,plancache_source
+78.6,0.0,0.0,78.6,0.0,0.0,0.0,3,real telemetry

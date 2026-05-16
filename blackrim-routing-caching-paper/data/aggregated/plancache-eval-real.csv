@@ -1,0 +1,4 @@
+dispatch_id,gold_signature,top1_signature,similarity,decision,correct,false_hit,gold_task_type,top1_task_type
+real-e0aad97f,Read:backend/|Bash:,Read:backend/|Write:backend/|Edit:backend/|Bash:,0.0,miss,False,False,build,build
+real-006f3ccf,Read:backend/|Write:backend/|Edit:backend/|Bash:,Read:backend/|Bash:,0.0,miss,False,False,build,build
+real-601347ef,Read:security/,Read:backend/|Bash:,0.0,miss,False,False,operate,build

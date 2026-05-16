@@ -218,6 +218,36 @@ The fixture covers the acceptance bar of ≥30 dispatches.  RC-06 will collect
 additional real dispatch data and rerun the harness to produce the final §7
 numbers.
 
+## Known data limitation (RC-06)
+
+The real Blackrim telemetry corpus is substantially below the acceptance bar
+for this eval.
+
+| Fact | Detail |
+|------|--------|
+| Raw plan-events records | 6 (from `.beads/telemetry/plan-events.jsonl`) |
+| Unique dispatches after dedup | **3** (deduplicated on `prompt_prefix_hash`) |
+| Acceptance bar | **≥ 30** dispatches |
+| Hit rate on real data (n=3) | **0.0%** — all 3 queries have distinct signatures; every LOO fold misses by construction |
+| Hit rate on synthetic fixture (n=40) | **15.0%** — below the ≥ 30% target |
+
+**Why n=3 is too small:** In LOO evaluation over 3 dispatches with all-distinct
+signatures, no fold can produce a hit.  A hit requires at least two dispatches
+sharing the same coarse plan signature.  With n=3 heterogeneous real queries,
+this never occurs.
+
+**What would be needed:** A corpus of ≥ 200 real dispatches with sufficient
+query repetition (e.g., repeated "build a new internal package" or "run tests"
+turns) would likely achieve meaningful hit rates.  Cosine-similarity retrieval
+over query embeddings (non-dry-run mode) could also close the gap at smaller n
+by matching semantically similar but not identical queries.
+
+**Impact on §7:** The real-telemetry result is reported as an honest small-n
+baseline in Table~\ref{tab:plancache-results}.  The 40-dispatch synthetic
+fixture is reported alongside it to demonstrate harness correctness.  Neither
+meets the ≥ 30% target.  The §8 limitations section discusses the path to
+sufficient corpus size.
+
 ## Acceptance criteria (RC-05)
 
 - [x] `scripts/eval-plan-cache/index.py` exists
@@ -226,4 +256,4 @@ numbers.
 - [x] `--dry-run` mode runs end-to-end without external data or API calls
 - [x] `data/aggregated/plancache-eval.csv` produced by `replay.py`
 - [x] `data/aggregated/plancache-summary.csv` produced by `replay.py`
-- [ ] RC-06: update §7 with final hit_rate / false_hit_rate numbers
+- [x] RC-06: §7 updated with measured hit_rate / false_hit_rate; small-n caveat documented

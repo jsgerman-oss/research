@@ -1,0 +1,2 @@
+n_dispatches,n_hits,n_false_hits,n_misses,hit_rate,false_hit_rate,miss_rate,true_hit_rate,prefix_savings_baseline,composed_cost_reduction_vs_prefix_only
+3,0,0,3,0.0,0.0,1.0,0.0,0.786,0.786
