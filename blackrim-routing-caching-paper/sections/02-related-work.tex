@@ -1,31 +1,152 @@
 \section{Related Work}
 \label{sec:related}
 
-% Five subsections planned. Each cites the canonical papers.
-%
-% \subsection{Model cascading}
-% FrugalGPT (Chen, Zaharia, Zou, \cite{frugalgpt}); CascadingLLMs and
-% confidence-cascade variants. Try cheap first, escalate on confidence
-% drop. 98% cost savings at 95%+ fidelity claims; 2% typical fidelity loss.
-%
-% \subsection{LLM routing}
-% RouteLLM (\cite{routellm}) — preference-data-trained classifier;
-% 85% cost reduction on MT-Bench at 95% of GPT-4 quality. Related:
-% Hybrid LLM Routing (\cite{hybridllm}), AutoMix, Tryage
-% (\cite{tryage}).
-%
-% \subsection{Confidence-based routing}
-% Semantic entropy (\cite{semanticentropy}); hidden-state probes;
-% verbalized-confidence baselines.
-%
-% \subsection{Plan caching for agentic systems}
-% NeurIPS 2025 Agentic Plan Caching (\cite{plancache}) — semantic-
-% signature cache at the plan layer; 50% cost / 27% latency win;
-% complementary to prefix caching.
-%
-% \subsection{Prefix caching mechanics}
-% Anthropic prompt-cache docs (\cite{anthropic-cache}); PagedAttention
-% (\cite{pagedattention}); Mooncake (\cite{mooncake}); SGLang/vLLM
-% RadixAttention. The baseline that plan caching stacks atop.
+This paper sits at the intersection of two bodies of work: LLM model
+routing (choosing which model to invoke given a query) and caching for
+LLM systems (avoiding redundant computation). We survey both strands,
+noting where each applies and where it falls short for the per-turn
+multi-agent orchestration setting we address.
 
-\tothink{Expand each subsection to $\sim$0.5 pages with proper citations.}
+\subsection{Model routing and cascading}
+\label{sec:related-routing}
+
+\paragraph{FrugalGPT.}
+\citeauthor{frugalgpt}~\cite{frugalgpt} introduce the
+\emph{cascade} framing: invoke a cheap model first and escalate
+to a more capable (and expensive) model only when the cheap
+model's output fails a quality check. On five standard NLP
+benchmarks they demonstrate 98\,\% cost savings at 95\,\%+
+fidelity relative to always using GPT-4. The key idea---that a
+quality signal on the cheap model's output can gate escalation---
+applies in principle to per-turn orchestration. In practice,
+however, the gate requires an observable quality signal
+\emph{within the same turn}, before the downstream subagent
+dispatches have run; in our setting the turn's quality is
+not fully observable until downstream execution completes, making
+synchronous cascade impractical. We adopt conservative escalation
+(route to opus when uncertain) as the operationally safe
+analogue.
+
+\paragraph{RouteLLM.}
+\citeauthor{routellm}~\cite{routellm} train a lightweight
+classifier on human preference data (\textsc{ChatBot Arena}
+labels) to distinguish which model tier a given prompt requires.
+Their best system achieves 85\,\% cost reduction on MT-Bench at
+95\,\% of GPT-4 quality. RouteLLM's core insight---that a small
+trained router can recover most of a strong model's quality at
+a fraction of the cost---is the inspiration for our exemplar-based
+router, but preference-data training is not available for
+main-thread orchestration turns: there is no pairwise human
+preference signal for ``Gestalt's response to a bd-dispatch prompt
+on haiku vs.\@ opus.'' We therefore use exemplar curation rather
+than supervised training for the v1 router, deferring the trained
+classifier to future work.
+
+\paragraph{Hybrid LLM and Tryage.}
+\citeauthor{hybridllm}~\cite{hybridllm} route queries between a
+small local model and a large remote model by estimating
+\emph{output quality} from the query alone, without observing the
+small model's output first. \citeauthor{tryage}~\cite{tryage}
+extend this to real-time routing across an arbitrary catalogue of
+models by learning capability-aware representations for each
+provider. Both systems target single-turn question-answering
+workloads; neither accounts for the rolling conversation context
+or the structured-tool-use success signal available in a
+multi-agent session. Our router incorporates a rolling \(K\)-turn
+context window to capture conversational momentum, which is
+critical for disambiguating orchestration turns that look similar
+in isolation (e.g., a short planning question and a short
+confirmation message).
+
+\paragraph{Confidence-based escalation.}
+\citeauthor{semanticentropy}~\cite{semanticentropy} route queries
+by measuring semantic entropy in a cheap model's output: high
+entropy implies the cheap model is uncertain, triggering
+escalation. \citeauthor{aggarwal2024routingconfidence}~\cite{aggarwal2024routingconfidence}
+use speculative token-level confidence for a similar purpose.
+Confidence-based routing has the attractive property of
+\emph{self-certifying}: the cheap model's own distribution signals
+whether it is adequate. However, it requires a first pass on the
+cheap model for every turn, incurring non-trivial latency overhead
+(a full haiku or sonnet inference call before deciding to route to
+opus). In a long-running orchestration session where the operator
+is actively waiting, this latency is unacceptable on turns that
+will escalate anyway. Our approach classifies \emph{before}
+inference from the operator's prompt alone, at the cost of a
+single embedder forward pass.
+
+\paragraph{What is missing for the multi-agent orchestration setting.}
+The routing literature addresses either (a) subagent dispatch---
+where the agent's role provides a strong structural prior and a
+clean (role~\(\times\)~signal) rule cascade suffices
+\cite{moa1landscape}---or (b) single-turn chat---where the
+conversation has no persistent session state and tool-use success
+is not observable. The main-thread orchestration problem is
+neither: turns are drawn from a long-running session with shared
+context, there is no role label, and the quality signal is
+partially observable through downstream tool-use outcomes. No
+published routing system is grounded in this setting, and no
+evaluation data set of labeled main-thread orchestration turns
+exists in the literature. This paper provides the first such
+labeled set (49 turns, three-tier labels) and the first published
+evaluation on it.
+
+\subsection{Caching for LLM systems}
+\label{sec:related-caching}
+
+\paragraph{Prefix caching.}
+Modern LLM serving systems cache the key-value (KV) attention
+states for repeated prompt prefixes, avoiding redundant
+computation on tokens that have been processed before.
+\citeauthor{pagedattention}~\cite{pagedattention} introduce
+PagedAttention for efficient KV-cache memory management in vLLM;
+\citeauthor{mooncake}~\cite{mooncake} extend this to a
+disaggregated prefill-decode architecture that decouples KV
+cache from the compute layer. On the API side, Anthropic's
+\texttt{cache\_control} headers~\cite{anthropic-cache} expose
+prompt caching directly to client applications: cache-write
+tokens are billed at 1.25\(\times\) the base rate, and cache-read
+tokens at 0.10\(\times\)---a 12.5\(\times\) read-to-write ratio
+that yields substantial savings when a prompt prefix is reused
+within the 5-minute TTL window. \citeauthor{dont-break-cache}~\cite{dont-break-cache}
+characterise the fragility of this savings: even small prefix
+perturbations across spawns---reordered tool lists, timestamp
+updates, non-deterministic field ordering---can break the cache
+and eliminate the discount. \blackrim already achieves a
+10.44\(\times\) read-to-creation ratio and 90.1\,\% cache hit rate
+under deliberate prefix-stabilisation discipline (\S\ref{sec:eval});
+prefix caching is therefore the \emph{calibration baseline} atop
+which we measure additional savings.
+
+\paragraph{Agentic plan caching.}
+\citeauthor{plancache}~\cite{plancache} introduce plan caching as
+a complement to prefix caching for agentic systems. Their key
+observation is that many agent dispatches reduce to
+\emph{structurally equivalent} plans---the task shape, agent role,
+and deliverable kind are the same even if the surface text differs.
+By hashing a semantic plan signature and caching the orchestration
+output keyed on that hash, the full plan-composition step can be
+short-circuited on hit. They report a 50\,\% cost reduction and
+27\,\% latency reduction on their agentic benchmark relative to
+no-cache. This paper's plan cache (\S\ref{sec:plancache}) is a
+direct implementation of their algorithm applied to \blackrim's
+bd-dispatch pipeline; our contribution on this side is
+\emph{empirical}, not algorithmic: we measure the hit rate and
+incremental savings in a production multi-agent coding system,
+and we characterise the interaction between plan-cache savings and
+the prefix-cache baseline. We do not claim novelty for the
+caching mechanism itself and are explicit about this lineage.
+
+\paragraph{The gap this paper fills.}
+Existing work on LLM caching addresses either the KV-cache
+layer (prefix caching, PagedAttention) or the plan layer
+(agentic plan caching) in isolation. No prior work measures the
+\emph{composed cost model} combining prefix caching, plan caching,
+and per-turn routing in a single production system, or
+characterises how savings from each source interact. We show that
+the three sources are independent in the cost equation and that a
+closed-form product bound applies under mild independence
+assumptions (\S\ref{sec:problem}). We also provide the first
+comparison against the prefix-cache baseline in a real-deployment
+context where cache-break discipline is an active operational
+concern.

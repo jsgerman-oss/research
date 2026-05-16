@@ -1,44 +1,114 @@
 \section{Introduction}
 \label{sec:intro}
 
-% Outline of the intended argument:
-%
-% 1. Cost shape of static-prefix multi-agent coding systems.
-%    - Subagent-dispatch routing is well-studied and shipped (Blackrim's
-%      MOA-1..13 advisor, internal/dispatch/model.go: 16-rule cascade,
-%      8.9× cost savings on general-purpose dispatch alone).
-%    - But measured production telemetry on a typical session: 99.4%
-%      cost is the main-thread orchestrator (Gestalt-on-opus); only
-%      0.6% is the dispatched subagents combined.
-%    - This inverts the optimization target: orchestrator-tier
-%      selection dominates spend, not subagent-tier selection.
-%
-% 2. The main-thread problem differs from the subagent problem.
-%    - Subagent dispatch has a clean (role × signal) → tier mapping;
-%      Researcher → haiku, Builder → sonnet, Architect → opus.
-%    - The main thread has no role taxonomy. Each turn is
-%      "operator → assistant" with arbitrary content. The classifier
-%      must work on the turn itself + recent conversation context.
-%
-% 3. Our contributions.
-%    a. Empirical 99.4% / 0.6% cost-split measurement (motivating data).
-%    b. A semantic-similarity per-turn router with conservative escalation
-%       (35–40% main-thread cost reduction at <0.5% quality loss).
-%    c. A plan-level semantic cache complementary to prefix caching
-%       (50% additional cost reduction; 4.56× existing prefix-cache
-%       efficiency as the calibration baseline).
-%    d. Integration blocker analysis (Claude Code limits per-turn
-%       routing; three workaround paths evaluated).
-%    e. Discussion of why CC-TS subagent advisor doesn't transfer
-%       directly to main-thread orchestration, and what does.
-%
-% 4. Roadmap of the paper. §2 surveys the relevant literature
-%    (cascading, routing, plan caching). §3 formalises the cost-
-%    minimisation problem. §4 describes Blackrim's architecture
-%    relevant to the routing + caching layers. §5 presents the
-%    semantic-similarity router. §6 presents the plan-cache. §7
-%    reports empirical evaluation. §8 discusses integration and
-%    limitations. §9 maps future directions.
+\paragraph{The 99.4\,\% problem.}
+Static-prefix multi-agent LLM coding systems assign dispatched
+subagents to cheap-to-expensive tiers (haiku / sonnet / opus) via
+a (role~\(\times\)~signal) rule cascade. When the cascade is
+well-tuned---as it is in \blackrim, where 16 static rules route
+each subagent role to its cost-optimal tier (Researcher to haiku,
+Builder to sonnet, Architect to opus)---the companion paper
+\cite{moa1landscape} reports an 8.9\(\times\) cost reduction on
+subagent dispatch alone. Yet this improvement makes a different
+problem more visible. Production telemetry measured over a 7-day
+window of \(\sim\)50 spawns per day shows that total session cost
+splits as \textbf{99.4\,\%} on the main-thread orchestrator
+(Gestalt running on claude-opus-4-7) and \textbf{0.6\,\%} on all
+dispatched subagents combined (Table~\ref{tab:cost-split},
+\S\ref{sec:eval}). The implication is stark: once subagent
+dispatch is tuned, further dispatch optimisation yields at most
+0.6\,\% additional savings. The orchestrator itself is the
+binding cost lever, and it has no analogous tier selector. Every
+main-thread turn pays opus rates regardless of whether the turn
+requires opus-level capability.
 
-\tothink{Write the introduction prose from outline above; target
-$\sim$2 pages.}
+\paragraph{Two complementary primitives.}
+Two architectural primitives target the orchestrator cost directly.
+\emph{Per-turn model routing} selects the cheapest model tier
+adequate for each main-thread turn---replacing the implicit
+always-opus default without sacrificing the quality needed for
+orchestration-level reasoning. The main-thread turn distribution
+is heterogeneous: a bd-claim confirmation, a read-only status
+question, and a multi-step architecture decision all appear on
+the same thread but demand very different model capability levels.
+A well-calibrated router can route the first two to haiku or
+sonnet while reserving opus for the third.
+\emph{Plan-level semantic caching} short-circuits the briefing-composition
+step for structurally equivalent bd dispatches, stacking on top
+of the existing prefix-cache layer rather than competing with it.
+Neither primitive has a published methodology grounded in
+production multi-agent telemetry: prior routing work targets
+either subagent dispatch (where role labels are available) or
+single-turn chat (where the conversation is a single pair, not
+a long-running orchestration session), and prior caching work
+treats prefix reuse within a fixed TTL window rather than
+plan-level reuse across an unbounded horizon.
+
+\paragraph{Our approach.}
+We design and evaluate both primitives on \blackrim's production
+instance. The \emph{semantic-similarity router} (\S\ref{sec:routing})
+represents each main-thread turn as an embedding, finds its
+nearest neighbour in a hand-curated exemplar set of
+\(\sim\)150 labeled turns, and routes to the exemplar's tier---
+escalating conservatively to opus when no exemplar exceeds a
+similarity threshold~\(\tau\). This approach requires no training,
+tolerates a small exemplar set, and produces interpretable routing
+decisions. The \emph{agentic plan cache} (\S\ref{sec:plancache})
+derives a stable semantic signature from the orchestration plan
+(agent role, task shape, normalised file scope, deliverable kind),
+performs exact-then-approximate lookup, and returns the cached
+output on hit, short-circuiting the \texttt{gt context budget}
+/ \texttt{gt orchestrate plan} pipeline entirely.
+
+\paragraph{Contributions.}
+This paper makes four contributions:
+
+\begin{enumerate}[label=(\roman*),leftmargin=2em]
+  \item \textbf{Cost-decomposition measurement.} We report the
+    99.4\,\% / 0.6\,\% main-thread / dispatch cost split for a
+    production multi-agent coding system and explain why it
+    inverts the optimisation target relative to the prior routing
+    literature.
+
+  \item \textbf{Semantic-similarity per-turn router.} We implement
+    and evaluate a k-NN router over sentence embeddings, with
+    conservative escalation, on a 49-turn hand-labeled test set
+    drawn from real session transcripts. Leave-one-out
+    cross-validation yields macro-F1 0.526 (+6.0 points over the
+    length-heuristic baseline), with haiku-F1 0.786 and sonnet-F1
+    0.667. Estimated cost savings are 30\,\% above the
+    length-heuristic baseline.
+
+  \item \textbf{Plan-cache calibration measurement.} We report
+    the existing prefix-cache baseline---10.44\(\times\)
+    read-to-creation ratio, 90.1\,\% hit rate, 78.6\,\% estimated
+    savings on real-API spawns from Anthropic's
+    \texttt{cache\_control} layer---as the calibration point atop
+    which plan-cache incremental savings are measured. We define
+    the plan-signature function and describe the cache-fill and
+    eviction policy.
+
+  \item \textbf{Composed-cost analysis.} We show that per-turn
+    routing and plan caching are independent in the cost equation
+    and that their savings compound multiplicatively, enabling a
+    single closed-form cost-reduction bound for a session that uses
+    both.
+\end{enumerate}
+
+We also document an integration blocker---the current Claude Code
+interface exposes session-level model selection only, not per-turn
+routing---and evaluate three workaround paths
+(\S\ref{sec:discussion}).
+
+\paragraph{Paper structure.}
+\S\ref{sec:related} surveys the two literature strands this paper
+draws on: LLM model routing (cascading, preference-data routing,
+confidence-based escalation) and caching for LLM systems (prefix
+caching, agentic plan caching). \S\ref{sec:problem} formalises the
+per-turn routing and plan-cache decisions as a joint cost-minimisation
+problem. \S\ref{sec:system} describes \blackrim's relevant
+architecture. \S\ref{sec:routing} presents the semantic-similarity
+router. \S\ref{sec:plancache} presents the plan-cache design.
+\S\ref{sec:eval} reports empirical evaluation. \S\ref{sec:discussion}
+discusses integration constraints and limitations.
+\S\ref{sec:future} maps future directions.
