@@ -18,7 +18,18 @@ python scripts/aggregate-cache-stats.py \
 #   < data/raw/session-telemetry.json \
 #   > data/aggregated/routing-evidence.csv
 
-# 4. Build the PDF
+# 4. Plan-cache evaluation (RC-05) — no API calls required
+python scripts/eval-plan-cache/index.py \
+  --dispatches tests/fixtures/sample-dispatches.jsonl \
+  --out scripts/eval-plan-cache/plan-index.jsonl \
+  --dry-run
+python scripts/eval-plan-cache/replay.py \
+  --index scripts/eval-plan-cache/plan-index.jsonl \
+  --out data/aggregated/plancache-eval.csv \
+  --summary data/aggregated/plancache-summary.csv \
+  --dry-run
+
+# 5. Build the PDF
 make
 ```
 
@@ -75,6 +86,29 @@ pre-JSONL window used in `docs/research/cache-control-deep-dive.md` (29
 spawns, 4.56× ratio, 79.3% hit rate, 69.3% savings) cannot be reproduced
 from the current JSONL. The CSV reflects the JSONL-available window
 (2026-05-09 through present); §7 numbers have been updated accordingly.
+
+## Plan-cache pipeline (RC-05)
+
+`scripts/eval-plan-cache/` implements the plan-cache replay harness that §7
+"Plan-cache evaluation" references.  Full documentation: `scripts/eval-plan-cache/README.md`.
+
+**index.py** reads a JSONL dispatches file, extracts a coarse plan signature
+(ordered sequence of `Tool:coarse-target` pairs) for each record, and optionally
+embeds the user query with `all-MiniLM-L6-v2`.  Outputs `plan-index.jsonl`.
+
+**replay.py** runs leave-one-out cross-validation: for each dispatch i, it
+builds a temporary index from all other dispatches, retrieves the top-1
+neighbour by cosine similarity (or exact signature-hash in `--dry-run` mode),
+and records hit/miss/false-hit.  Emits `plancache-eval.csv` (per-dispatch)
+and `plancache-summary.csv` (hit_rate, false_hit_rate, composed_cost_reduction).
+
+| Output CSV | Key metrics |
+|---|---|
+| `data/aggregated/plancache-eval.csv` | per-dispatch: decision, similarity, false_hit |
+| `data/aggregated/plancache-summary.csv` | hit_rate, false_hit_rate, composed_cost_reduction |
+
+Target acceptance bar (§7): hit_rate ≥ 30%, false_hit_rate < 5%.
+RC-06 will rerun on real dispatch data and update §7 with final numbers.
 
 ## Why no LLM calls
 
