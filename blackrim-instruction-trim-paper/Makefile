@@ -31,14 +31,28 @@ lint:
 wordcount:
 	@texcount -inc -sum -1 $(PAPER).tex 2>/dev/null || echo "install texcount: brew install texcount or use texlive"
 
-# Reproduce all data/aggregated/*.csv from data/raw/*.json
-data:
-	python scripts/aggregate-trim-results.py
+BLACKRIM_REPO ?= /Users/jayse/Code/blackrim
+TELEMETRY_SINCE ?= 2026-05-09T03:17:00-07:00
+
+# Pull live telemetry from the Blackrim repo and regenerate the CSV.
+# Requires git access to BLACKRIM_REPO (default: /Users/jayse/Code/blackrim).
+# Override: make data BLACKRIM_REPO=/path/to/blackrim
+data: data/aggregated
+	python scripts/pull-telemetry.py \
+		--since "$(TELEMETRY_SINCE)" \
+		--repo "$(BLACKRIM_REPO)" \
+		> data/raw/session-telemetry.json
+	python scripts/aggregate-trim-results.py \
+		< data/raw/session-telemetry.json \
+		> data/aggregated/trim-results.csv
+
+data/aggregated:
+	mkdir -p data/aggregated
 
 # Smoke-test the fidelity eval harness (no API key required)
 # Runs dry-run against both the baseline SHA and the Wave-2 SHA recorded
 # in data/aggregated/trim-results.csv.
-BASELINE_SHA := eb8c3d0
+BASELINE_SHA := 6414995
 WAVE2_SHA    := 6c7f3a0
 EVAL_PROMPTS := scripts/eval-fidelity/prompts.yml
 

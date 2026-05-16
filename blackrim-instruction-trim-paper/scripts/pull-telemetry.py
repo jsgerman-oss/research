@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """Pull session telemetry for the trim-paper evaluation section.
 
-Reads from the Blackrim repo's git log + bd lifecycle + per-commit
-CLAUDE.md size and emits a single JSON record per commit. Stdout is
-JSON-lines.
+Reads from the Blackrim repo's git log and emits one JSON record per
+commit that touched CLAUDE.md, with the CLAUDE.md size at each SHA.
+Stdout is JSON-lines, oldest-first (so the first record is the
+baseline for aggregate-trim-results.py).
 
 Usage:
-    python scripts/pull-telemetry.py --since 2026-05-09 \\
+    python scripts/pull-telemetry.py --since 2026-05-08 \\
         --repo /Users/jayse/Code/blackrim \\
         > data/raw/session-telemetry.json
+
+Note: the default --since is 2026-05-09T03:17:00-07:00 so that the
+pre-Wave-1 baseline commit (64149950, timestamped 03:18:45 PDT) is
+the first record. A bare date like 2026-05-09 resolves to midnight UTC
+and would exclude early-morning PDT commits; a post-midnight PDT commit
+that preceded the supervisor commit would otherwise become the baseline.
 """
 
 from __future__ import annotations
@@ -27,7 +34,8 @@ def git(repo: Path, *args: str) -> str:
 
 
 def commits_since(repo: Path, since: str) -> list[str]:
-    out = git(repo, "log", f"--since={since}", "--format=%H", "main")
+    """Return SHAs of commits since `since` that touched CLAUDE.md, oldest first."""
+    out = git(repo, "log", f"--since={since}", "--format=%H", "main", "--", "CLAUDE.md")
     return out.splitlines() if out else []
 
 
@@ -56,7 +64,7 @@ def files_in_commit(repo: Path, sha: str) -> list[str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--since", default="2026-05-09")
+    ap.add_argument("--since", default="2026-05-09T03:17:00-07:00")
     ap.add_argument(
         "--repo", default="/Users/jayse/Code/blackrim", type=Path
     )

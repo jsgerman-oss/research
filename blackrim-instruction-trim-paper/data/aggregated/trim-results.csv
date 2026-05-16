@@ -1,8 +1,18 @@
 sha,date,claude_md_lines,claude_md_chars,delta_lines_vs_baseline,delta_pct_lines,delta_chars_vs_baseline,delta_pct_chars,subject
-eb8c3d0,2026-05-09,708,48840,0,0.0,0,0.0,baseline (pre-trim)
-55ff9e9,2026-05-09,618,45185,-90,-12.7,-3655,-7.5,Wave 1: redundancy removal
-ffaf4e8,2026-05-09,618,45185,-90,-12.7,-3655,-7.5,Wave 2 prereq: worktree-guard.md expansion
-df8e813,2026-05-09,618,45185,-90,-12.7,-3655,-7.5,Wave 2 prereq: agent-merge.md created
-33578e1,2026-05-09,618,45185,-90,-12.7,-3655,-7.5,cache-control investigation (research only)
-6c7f3a0,2026-05-09,556,40492,-152,-21.5,-8348,-17.1,Wave 2: worktree-isolation trim
-aa9ddba,2026-05-09,556,40492,-152,-21.5,-8348,-17.1,multi-agent landscape research (research only)
+6414995,2026-05-09,708,48487,0,0.0,0,0.0,feat(supervisor): GESTALT-1 supervisor-worker pattern (closes blackrim-3og1; supersedes #211 #213) (#214)
+55ff9e9,2026-05-09,618,44974,-90,-12.7,-3513,-7.2,docs(claude): trim Wave 1 redundancy — drop ~90 lines of duplicate content (closes blackrim-tp8c)
+6c7f3a0,2026-05-09,556,40309,-152,-21.5,-8178,-16.9,"docs(claude): Wave 2 — trim worktree-isolation section + fix script name (closes blackrim-qgn8, blackrim-18xn)"
+624f1fe,2026-05-09,558,41014,-150,-21.2,-7473,-15.4,docs(research): pricing-rate-sheets — user-facing rate-sheet system reference (closes blackrim-m5q2) (#248)
+29a56ac,2026-05-10,644,44776,-64,-9.0,-3711,-7.7,docs(claude): Layer 1 spawn brief contract — task_type frontmatter required (closes blackrim-vlqb) (#257)
+0f39f7e,2026-05-10,644,44912,-64,-9.0,-3575,-7.4,feat(merge-agent): default to --local in vacuum mode; --push-pr opt-in for hand-off (closes blackrim-1apy) (#313)
+0456619,2026-05-10,644,44796,-64,-9.0,-3691,-7.6,fix(merge-agent): vacuum default = push+create-PR+no-merge (corrects blackrim-1apy per user feedback) (closes blackrim-hkvp) (#318)
+a241b55,2026-05-10,644,44801,-64,-9.0,-3686,-7.6,chore(repo): rename canonical remote jsgerman-oss/blackrim.dev → auditidentity/blackrim.dev (#4)
+0cb671d,2026-05-10,659,44816,-49,-6.9,-3671,-7.6,chore(lint): ruff + markdownlint auto-fix sweep + 18 manual ruff fixes (#21)
+73f8154,2026-05-10,693,46794,-15,-2.1,-1693,-3.5,docs(claude.md): fix Gestalt-opus regression — harness mapping + auto-mode override (#48)
+331cc18,2026-05-10,692,53349,-16,-2.3,4862,10.0,chore(ci): pre-commit auto-fix sweep + markdownlint MD040 inference (v2) (#75)
+ae45c79,2026-05-10,708,55011,0,0.0,6524,13.5,docs(research): MOA-8 model-optimization-advisor manual + CLAUDE.md pointer (closes blackrim-fcg1) (#88)
+623ee0f,2026-05-11,621,50380,-87,-12.3,1893,3.9,docs(claude-md): Wave 3 progressive disclosure — 10.4% trim (closes blackrim-oi3d) (#109)
+e429e49,2026-05-11,624,51148,-84,-11.9,2661,5.5,feat(codeindex): CODEINDEX-3 explore tool + CLAUDE.md delegation pattern (closes blackrim-n2jt) (#208)
+940a4b2,2026-05-13,459,39068,-249,-35.2,-9419,-19.4,docs(claude-md): trim 621→456 lines (~24% size cut) (#216)
+19d7c44,2026-05-13,467,40248,-241,-34.0,-8239,-17.0,docs(claude-md): add breadcrumbs for hosting + impeccable (post-trim restoration) (#230)
+a2a4d19,2026-05-14,471,40772,-237,-33.5,-7715,-15.9,Phase 1a: gt outline + outline-discipline hook + read-with-outline skill (blackrim-qa16) (#237)

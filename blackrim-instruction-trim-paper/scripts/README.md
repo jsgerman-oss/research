@@ -1,10 +1,23 @@
 # Scripts
 
-Reproduce `data/aggregated/*.csv` from `data/raw/*.json`. The full pipeline:
+## How to refresh data
+
+Run `make data` from the paper root to pull live telemetry from the
+Blackrim repo and regenerate `data/aggregated/trim-results.csv`:
 
 ```bash
-# 1. Pull session telemetry from the Blackrim repo
-python scripts/pull-telemetry.py --since 2026-05-09 \
+make data
+# or, pointing at a different Blackrim checkout:
+make data BLACKRIM_REPO=/path/to/blackrim
+```
+
+This runs the two-step pipeline below and is idempotent.
+
+### Manual pipeline
+
+```bash
+# 1. Pull session telemetry from the Blackrim repo (CLAUDE.md commits only)
+python scripts/pull-telemetry.py \
   --repo /Users/jayse/Code/blackrim \
   > data/raw/session-telemetry.json
 
@@ -16,6 +29,12 @@ python scripts/aggregate-trim-results.py \
 # 3. Build the PDF
 make
 ```
+
+The default `--since` in `pull-telemetry.py` is `2026-05-09T03:17:00-07:00`,
+chosen so the pre-Wave-1 baseline commit (64149950, the supervisor pattern
+commit that brought CLAUDE.md to 708 lines) is always the first record.
+A bare date like `2026-05-09` would resolve to midnight UTC and exclude
+early-morning PDT commits.
 
 ## What each script does
 
