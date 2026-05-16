@@ -36,7 +36,11 @@ each scorer present in the record, and unions them into a deduplicated set of
 **Schema note — actual data vs. brief expectation:**
 The production `queries.jsonl` contains two scorers (`keyword` and
 `depgraph`), not the four originally anticipated (`bm25`, `splade`, `dense`,
-`keyword`). The `scorers` dict has shape:
+`keyword`). This reflects the current prototype deployment
+(see `blackrim-retriever-paper/sections/04-system.tex §Current production
+prototype`); BM25, SPLADE, and dense scorers are implemented in-tree but not
+yet deployed. The paper's §04 frames this as "prototype vs. proposed full stack."
+The `scorers` dict has shape:
 
 ```json
 {

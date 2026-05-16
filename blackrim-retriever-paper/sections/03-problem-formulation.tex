@@ -16,12 +16,35 @@ concept-bridge ($\queryclass_5$), exact-id-or-slug ($\queryclass_6$).
 
 Let $\armset = \{\arm_1, \ldots, \arm_{|\armset|}\}$ be a finite set of
 \emph{fusion-config arms}. Each arm $\arm$ is a tuple specifying a
-first-stage scorer set, a fusion operator, optional decay/MMR/rerank
-wrappers, and the per-component weights. \tothink{enumerate the canonical
-arms; in v1 these are: BM25-only; BM25+decay; hybrid-RRF (BM25+SPLADE);
+first-stage scorer set $\scorerset(\arm) \subseteq \scorers$, a fusion
+operator, optional decay/MMR/rerank wrappers, and the per-component
+weights.
+
+The scorer vocabulary $\scorers$ is deployment-dependent.  In the
+current production prototype (\S\ref{sec:system-prototype}):
+\[
+  \scorers_{\text{prototype}} = \{\texttt{keyword},\; \texttt{depgraph}\}.
+\]
+In the proposed full stack (\S\ref{sec:system-proposed}):
+\[
+  \scorers_{\text{proposed}} = \{\texttt{BM25},\; \texttt{SPLADE},\;
+                                  \texttt{dense},\; \texttt{depgraph}\}.
+\]
+
+The bandit problem formulation, arm enumeration, and conservative
+constraint below hold for \emph{any} finite $\scorers$; the two
+concrete vocabularies are instances.  Quantitative results in
+\cref{sec:eval} use $\scorers_{\text{prototype}}$ (the set available
+from paper-stream telemetry at the time of writing); results against
+$\scorers_{\text{proposed}}$ are deferred pending the deployment of
+SPLADE and dense retrieval.
+
+\tothink{enumerate the canonical arms for the prototype (keyword-only;
+keyword+decay; keyword+depgraph-RRF; keyword+depgraph-RRF+decay) and for
+the proposed stack (BM25-only; BM25+decay; hybrid-RRF (BM25+SPLADE);
 hybrid-RRF (BM25+dense); hybrid-RRF (BM25+SPLADE+dense); hybrid-CC
 (BM25+dense, $\alpha$ tuned); hybrid-RRF + decay; hybrid-RRF + MMR;
-hybrid-RRF + rerank.}
+hybrid-RRF + rerank).}
 
 \subsection{Reward}
 
@@ -48,13 +71,18 @@ below:
 
 \begin{itemize}[leftmargin=*]
   \item $\baseline(\queryclass_1, \queryclass_3, \queryclass_5, \queryclass_6) = $
-        BM25-only.
-  \item $\baseline(\queryclass_4) = $ BM25+decay.
-  \item $\baseline(\queryclass_2) = $ keyword + failure-tag boost.
+        BM25-only (proposed stack); keyword-only (prototype).
+  \item $\baseline(\queryclass_4) = $ BM25+decay (proposed stack);
+        keyword+decay (prototype).
+  \item $\baseline(\queryclass_2) = $ keyword + failure-tag boost
+        (both stacks; this scorer ships in the prototype).
 \end{itemize}
 
-The choice of per-class baseline is the substantive deviation from
-the model-advisor paper's tier-cost-ratio framing
+The prototype baselines use \texttt{keyword} where the proposed stack
+uses BM25 because BM25 is not yet deployed (see \S\ref{sec:system}).
+Empirical baseline measurements in \cref{sec:eval} use the prototype
+vocabulary.  The choice of per-class baseline is the substantive
+deviation from the model-advisor paper's tier-cost-ratio framing
 \cite{blackrim_moa1c}. The conservative-bandit constraint at confidence
 level $1 - \alpha$ (we use $\alpha = 0.05$) is
 \begin{equation}

@@ -120,6 +120,27 @@ are direct corollaries of \cite{wu2016conservative,kazerouni2017conservative}
 applied to the discrete-arm contextual bandit with
 side-information ($\queryclass$).}
 
+\subsection{Deployment status and prototype scope}
+
+The CCBandit-Retriever algorithm is scorer-agnostic: \cref{alg:ccbandit}
+operates over whatever arm set $\armset$ is enumerated for the active scorer
+vocabulary $\scorers$ (\S\ref{sec:problem}).  The current production prototype
+ships $\scorers_{\text{prototype}} = \{\texttt{keyword}, \texttt{depgraph}\}$,
+giving a 2-arm base from which fusion-config arms are drawn.  The algorithm has
+been deployed against this prototype in the Blackrim paper-stream telemetry
+pipeline: per-recall events flowing to
+\texttt{data/raw/queries.jsonl} carry both scorer contributions, and the
+conservative-bandit policy selects among keyword-only, depgraph-only, and
+keyword+depgraph-RRF arms per query class.
+
+Scaling to the proposed 5-scorer vocabulary
+$\scorers_{\text{proposed}} = \{\texttt{BM25}, \texttt{SPLADE}, \texttt{dense},
+\texttt{depgraph}\}$ requires shipping SPLADE and dense retrieval into
+\texttt{internal/bdmemory/}; no changes to the algorithm are needed.  All
+quantitative results in \cref{sec:eval} are measured against the
+prototype vocabulary; results against the proposed stack are marked
+\tothink{} pending that deployment.
+
 \subsection{Implementation notes}
 
 \tothink{the policy lives at \texttt{cmd/gt/contextrecall/cb\_policy.go}

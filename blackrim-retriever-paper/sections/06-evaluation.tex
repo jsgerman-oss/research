@@ -22,19 +22,36 @@ worker with spot-check against operator labels, plus a sample held-out
 human-judged set for calibration. Discuss inter-rater agreement.}
 
 \paragraph{Baselines.}
+
+\noindent\textbf{Note on prototype vs.\ proposed stack.}  Measured
+results use the current production prototype
+($\scorers_{\text{prototype}} = \{\texttt{keyword}, \texttt{depgraph}\}$,
+\S\ref{sec:system-prototype}).  Baselines requiring BM25, SPLADE, or
+dense retrieval are marked \tothink{} below; they will be populated
+once those scorers ship in \texttt{internal/bdmemory/}
+(\S\ref{sec:system-proposed}).
+
 \begin{itemize}[leftmargin=*]
-  \item \textbf{Keyword} --- legacy bd-memory scorer (the historical
-        Blackrim default).
-  \item \textbf{BM25} --- the canonical IR baseline; the
+  \item \textbf{Keyword} --- the historical \blackrim default (legacy
+        weighted-overlap scorer; ships in prototype). Measured.
+  \item \textbf{Keyword + depgraph-RRF} --- 2-arm RRF fusion over the
+        current prototype scorers. Measured.
+  \item \textbf{BM25} \tothink{} --- the canonical IR baseline; the
         per-class safety floor for $\queryclass_1, \queryclass_3,
-        \queryclass_5, \queryclass_6$.
-  \item \textbf{BM25 + decay} --- per-class safety floor for
-        $\queryclass_4$ (continuity).
-  \item \textbf{Hybrid-RRF (BM25+SPLADE+dense)} --- the literature default
-        \cite{cormack2009reciprocal}.
+        \queryclass_5, \queryclass_6$ in the proposed stack.
+        Pending BM25 deployment.
+  \item \textbf{BM25 + decay} \tothink{} --- per-class safety floor for
+        $\queryclass_4$ (continuity) in the proposed stack.
+        Pending BM25 deployment.
+  \item \textbf{Hybrid-RRF (BM25+SPLADE+dense)} \tothink{} --- the
+        literature default \cite{cormack2009reciprocal}.  Pending SPLADE
+        and dense deployment.
   \item \textbf{Hybrid-CC (BM25+dense, $\alpha$ tuned per class)}
-        --- Bruch et al.\ 2023 \cite{bruch2023analysis} prescription.
-  \item \textbf{CCBandit-Retriever (ours)} --- \cref{alg:ccbandit}.
+        \tothink{} --- Bruch et al.\ 2023 \cite{bruch2023analysis}
+        prescription.  Pending dense deployment.
+  \item \textbf{CCBandit-Retriever (ours)} --- \cref{alg:ccbandit}
+        operating over $\scorers_{\text{prototype}}$. Measured against
+        prototype scorers; to be re-evaluated against proposed stack.
 \end{itemize}
 
 \subsection{Per-class NDCG@10}
@@ -49,7 +66,10 @@ exactly what the conservative-bandit constraint guarantees.
 \centering
 \caption{Per-class NDCG@10. Errors are paired-bootstrap 95\% CIs
 \cite{smucker2007comparison}. Bold indicates per-column winner.
-\tothink{populate from data/aggregated/perclass-ndcg.csv}.}
+Rows marked \tothink{} require BM25/SPLADE/dense deployment before
+they can be measured; remaining rows are from the current prototype
+($\scorers_{\text{prototype}} = \{\texttt{keyword}, \texttt{depgraph}\}$).
+\tothink{populate measured rows from data/aggregated/perclass-ndcg.csv}.}
 \label{tab:perclass-ndcg}
 \begin{tabular}{lcccccc}
 \toprule
@@ -57,12 +77,13 @@ exactly what the conservative-bandit constraint guarantees.
 & \textbf{$\queryclass_3$} & \textbf{$\queryclass_4$}
 & \textbf{$\queryclass_5$} & \textbf{$\queryclass_6$} \\
 \midrule
-keyword            & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
-BM25               & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
-BM25 + decay       & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
-Hybrid-RRF         & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
-Hybrid-CC          & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
-CCBandit (ours)    & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
+keyword                     & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
+keyword + depgraph-RRF      & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
+BM25 \tothink{}             & ---         & ---         & ---         & ---         & ---         & ---         \\
+BM25 + decay \tothink{}     & ---         & ---         & ---         & ---         & ---         & ---         \\
+Hybrid-RRF \tothink{}       & ---         & ---         & ---         & ---         & ---         & ---         \\
+Hybrid-CC \tothink{}        & ---         & ---         & ---         & ---         & ---         & ---         \\
+CCBandit (ours)             & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} & \tothink{x} \\
 \bottomrule
 \end{tabular}
 \end{table}

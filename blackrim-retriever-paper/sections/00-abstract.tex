@@ -21,23 +21,30 @@ the five mandatory bullet points it must hit:
         BM25+decay) baseline. This is structurally distinct from the
         model-advisor paper's tier-cost-ratio framing because the cost axis
         is local latency, not LLM-token cost.
-  \item \textbf{Algorithm.} The proposed system stacks BM25 + SPLADE +
-        dense + RRF + decay + MMR + optional cross-encoder reranker,
-        gated by a SPLADE corpus-size threshold and a Critical-tier
-        reranker hook. The contextual-bandit policy on top selects per-class
-        fusion weights subject to a conservative-bandit
-        \cite{wu2016conservative,kazerouni2017conservative} constraint.
+  \item \textbf{Algorithm.} The \emph{proposed} system stacks BM25 +
+        SPLADE + dense + depgraph + RRF + decay + MMR + optional
+        cross-encoder reranker, gated by a SPLADE corpus-size threshold
+        and a Critical-tier reranker hook. The contextual-bandit policy
+        on top selects per-class fusion weights subject to a
+        conservative-bandit \cite{wu2016conservative,kazerouni2017conservative}
+        constraint. The \emph{current prototype} ships two of these
+        scorers (keyword and depgraph); BM25, SPLADE, and dense are
+        implemented in-tree but not yet deployed.
   \item \textbf{Evaluation.} Empirical evaluation uses paper-stream
         telemetry (\texttt{internal/bdmemory/paper\_stream.go}) flowing to
         \texttt{data/raw/queries.jsonl}, with held-out per-class NDCG@10
-        and recall@k against a labeled relevance set. Baselines: keyword,
-        BM25, hybrid-RRF, hybrid-CC, and the proposed adaptive policy.
+        and recall@k against a labeled relevance set. Measured baselines
+        use the current 2-scorer prototype (keyword, depgraph); baselines
+        requiring BM25, SPLADE, or dense are deferred pending deployment
+        of the proposed full stack.
   \item \textbf{Finding.} \tothink{headline finding once data accumulates --
-        per-class no-regression preserved at $\budget = 0$; total NDCG@10
-        improvement of $\tothink{X\%}$ over BM25 baseline; SPLADE
-        corpus-size gate triggers correctly at $\tothink{N}$ documents.}
+        per-class no-regression preserved at $\budget = 0$ over the
+        prototype 2-scorer arm set; total NDCG@10 improvement of
+        $\tothink{X\%}$ over keyword baseline; SPLADE corpus-size gate
+        expected to trigger at $\tothink{N}$ documents once deployed.}
 \end{itemize}
 
 \textbf{Keywords:} hybrid retrieval, contextual bandits, conservative
-exploration, agent memory, BM25, SPLADE, RRF, recency decay, NDCG.
+exploration, agent memory, BM25, SPLADE, RRF, recency decay, NDCG,
+depgraph retrieval.
 \end{abstract}

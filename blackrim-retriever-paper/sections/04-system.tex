@@ -16,28 +16,85 @@ memories: every agent spawn calls \texttt{gt context recall} or
 \texttt{gt context budget}, and the retrieved memories enter the
 prompt prefix that determines cache-hit behaviour.
 
-\subsection{The four-scorer + fusion + post-process stack}
+\subsection{Current production prototype}
+\label{sec:system-prototype}
 
-\tothink{describe the architecture from the algorithms doc Section D
-recommended stack: BM25 + SPLADE + dense + RRF + decay + MMR +
-optional cross-encoder reranker. Per-component pointers below.}
+The version of \bdmemory shipped at the time of writing
+(commit \texttt{8908fdf}; \texttt{internal/bdmemory/}) operates
+two scorers fused via Reciprocal Rank Fusion
+\cite{cormack2009reciprocal}.
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Keyword scorer} (\texttt{internal/bdmemory/retriever.go},
+        \texttt{internal/bdmemory/reader.go}) --- the \blackrim-default
+        retriever.  Query tokenisation drops stop-tokens shorter than
+        three characters; scoring is case-insensitive substring
+        matching: $+1$ per token matched in the memory body, $+2$ per
+        token matched in the memory slug, and a $\times 1.5$ multiplier
+        when the body opens with the \texttt{[failure]} tag and at least
+        one body token matched.  The scorer is purely in-memory (no
+        I/O), runs in $O(|\text{corpus}| \times |\text{tokens}|)$ time,
+        and is fully deterministic.  It is the Blackrim-default retriever
+        because it requires no external service and degrades gracefully
+        on an empty corpus.
+
+  \item \textbf{Depgraph scorer} (\texttt{internal/bdmemory/depgraph.go};
+        RETRIEVER-V1.2, bd blackrim-n92w) --- a typed-edge BFS over the
+        \texttt{bd} dependency graph.  The scorer extracts \texttt{bd}
+        issue-slug seeds from the query string via regular expression,
+        then expands those seeds along four typed edge classes
+        (\texttt{blocks}, \texttt{discovered-from}, \texttt{validates},
+        \texttt{parent}) up to a configurable hop budget (default
+        $h_{\max} = 3$, per the empirical sweet-spot identified in the
+        KG-RAG literature \cite{blackrim_ijl0_landscape}).  Memories
+        whose slug appears in the resulting frontier are scored at
+        $1 / (h + 1)$, where $h$ is the minimum hop at which the slug
+        was reached, so structurally closer memories rank higher.  When
+        the query contains no \texttt{bd} slug the scorer returns an
+        empty result and the keyword arm owns the response; this makes
+        depgraph engagement implicit in the query structure rather than
+        a separate classification step.  The scorer contributes
+        \emph{structural} relevance to the fused ranking; lexical
+        relevance is delegated to the keyword arm.
+\end{itemize}
+
+The two scorers are fused via RRF with equal per-arm weights and the
+fused list is optionally post-processed by recency decay
+(\texttt{decay.go}, 30-day exponential half-life) and MMR
+(\texttt{mmr.go}, $\lambda = 0.7$ \cite{carbonell1998mmr}).
+Paper-stream telemetry (\S\ref{sec:system-telemetry}) records both
+scorer contributions for every recall call.
+
+\subsection{Proposed full stack}
+\label{sec:system-proposed}
+
+The prototype's two-scorer design is a stepping stone.  The proposed
+architecture described in the remainder of this section and in
+\cref{sec:algorithm} extends the arm space to five independently
+tunable scorers, matching the recommendations in the KG-RAG landscape
+survey \cite{blackrim_ijl0_landscape}:
 
 \begin{itemize}[leftmargin=*]
   \item \textbf{BM25} (\texttt{internal/bdmemory/bm25.go}) --- canonical
         sparse first stage; $k_1 = 1.5$, $b = 0.75$ defaults; per-corpus
-        IDF cache. The lexical floor.
+        IDF cache.  Replaces the keyword scorer as the lexical floor for
+        the full stack.
   \item \textbf{SPLADE} (\texttt{internal/bdmemory/splade.go}) --- learned
-        sparse with explicit corpus-size gate. Today the Ollama adapter
-        falls back to a TF-IDF approximation when no SPLADE-shaped
-        endpoint is available; the gate ensures SPLADE is only engaged
-        when the corpus exceeds a threshold (\tothink{state threshold;
-        landscape doc suggests $\sim 10{,}000$ docs}).
+        sparse with an explicit corpus-size gate. The gate ensures SPLADE
+        is engaged only when the corpus exceeds a minimum size threshold
+        (\tothink{state threshold; landscape doc suggests
+        $\sim 10{,}000$ docs}); below that threshold a TF-IDF
+        approximation is substituted.  \emph{Not yet shipped in
+        production.}
   \item \textbf{Dense retrieval} (\texttt{tinyembed.go} +
         \texttt{ollamaDenseAdapter}) --- 128-d hash-based deterministic
-        for development; Ollama \texttt{nomic-embed-text} for
+        embeddings for development; Ollama \texttt{nomic-embed-text} for
         production. \tothink{HNSW vs flat-index threshold.}
-  \item \textbf{RRF fusion} (\texttt{rrf.go}) --- Cormack
-        $k = 60$ \cite{cormack2009reciprocal}.
+        \emph{Not yet shipped in production.}
+  \item \textbf{Depgraph scorer} (same as prototype; see
+        \S\ref{sec:system-prototype}).  Already shipped.
+  \item \textbf{RRF fusion} (\texttt{rrf.go}) --- Cormack $k = 60$
+        \cite{cormack2009reciprocal}.
   \item \textbf{Recency decay} (\texttt{decay.go}) --- exponential decay
         with 30-day half-life; multiplicative on the fused score.
   \item \textbf{MMR} (\texttt{mmr.go}) --- $\lambda = 0.7$
@@ -49,7 +106,15 @@ optional cross-encoder reranker. Per-component pointers below.}
         \texttt{ms-marco-MiniLM-L-6-v2}.
 \end{itemize}
 
+Shipping SPLADE and dense retrieval into \blackrim's \texttt{bdmemory}
+package is tracked as future work (\cref{sec:future}).  Until those
+scorers ship, the CCBandit arm space is the 2-scorer prototype set;
+the conservative-bandit policy in \cref{sec:algorithm} is designed to
+be scorer-agnostic and will extend to the full proposed stack
+without algorithmic change.
+
 \subsection{Paper-stream telemetry}
+\label{sec:system-telemetry}
 
 The paper-side measurement infrastructure is the
 \texttt{internal/bdmemory/paper\_stream.go} \emph{paper-stream} writer:
