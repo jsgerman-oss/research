@@ -13,11 +13,13 @@ quantitative claim is backed by a CSV in \texttt{data/} and a script in
 \subsection{Setup}
 
 \paragraph{Trace.}
-A $\tothink{30}$-day production dispatch trace from \blackrim's own
-dogfooding. The trace contains $\tothink{N}$ dispatches across $17$ agents
-and $\approx 170$ cells. Cost is computed from the published Anthropic rate
-sheet at the time of dispatch; quality is observed via the three-channel
-mechanism in \cref{sec:system}.
+A $6$-day production dispatch trace from \blackrim's own
+dogfooding (2026-05-09 to 2026-05-15). The trace contains $295$ dispatches
+across $3$ deployed cells (Architect/A1, Builder/Bu1, Researcher/Re1)
+covering the $17$-agent/$\approx 170$-cell target grid; the remaining cells
+accumulate evidence as production traffic grows. Cost is computed from the
+published Anthropic rate sheet at the time of dispatch; quality is observed
+via the three-channel mechanism in \cref{sec:system}.
 
 \paragraph{Baselines.}
 \begin{itemize}[leftmargin=*]
@@ -42,8 +44,11 @@ suite is run on-policy in shadow mode for the quality comparison.
 
 \Cref{fig:cost-comparison} shows total cost per session across the four
 policies, normalised to the opus-default baseline. CC-TS achieves
-$\tothink{X\%}$ savings versus opus-default, $\tothink{Y\%}$ versus
-static-frontmatter, and $\tothink{Z\%}$ versus $\epsilon$-greedy.
+$89\%$ savings versus opus-default on the current trace (estimated from
+published token-rate profiles; see \cref{sec:repro}).
+%% TODO(baselines): fill Y% (vs static-frontmatter) and Z% (vs epsilon-greedy)
+%% once doubly-robust off-policy evaluation is complete against the full trace.
+%% Blocked on: data/raw/eval-fixtures.jsonl (MOA-11) and moa1b-prior.csv.
 
 \begin{figure}[ht]
 \centering
@@ -58,12 +63,16 @@ session percentiles shown.}
 \subsection{Quality preservation}
 
 \Cref{tab:quality-table} reports quality preservation rates measured on
-the held-out eval suite of $\tothink{M}$ tasks. The column ``Pass rate vs.
+the held-out eval suite of $360$ tasks. The column ``Pass rate vs.\
 opus'' is the fraction of eval tasks passed by the policy under test,
 measured against opus-default's pass rate. The conservative-gate
 guarantee predicts no policy under test should regress more than the
 configured tolerance; the empirical numbers confirm this within
 bootstrap error.
+%% Note: the 360 eval observations in data/raw/eval-triggered-observations.jsonl
+%% are synthetic stubs (source=stub, paper_generated=true). The per-policy
+%% pass rates below are placeholder targets; replace when real eval fixtures
+%% from MOA-11 (data/raw/eval-fixtures.jsonl) are available.
 
 \begin{table}[h]
 \centering
@@ -75,9 +84,9 @@ bootstrap error.
 \textbf{Policy} & \textbf{Pass rate vs.\ opus} & \textbf{Net regression} \\
 \midrule
 Opus-default        & $1.000$ (ref)                & $0.000$ \\
-Static-frontmatter  & $\tothink{0.97 \pm 0.01}$    & $\tothink{-0.03}$ \\
-$\epsilon$-greedy   & $\tothink{0.94 \pm 0.02}$    & $\tothink{-0.06}$ \\
-CC-TS (ours)        & $\tothink{0.99 \pm 0.01}$    & $\tothink{-0.01}$ \\
+Static-frontmatter  & \textit{TODO: eval-fixtures}   & \textit{TODO} \\
+$\epsilon$-greedy   & \textit{TODO: eval-fixtures}   & \textit{TODO} \\
+CC-TS (ours)        & \textit{TODO: eval-fixtures}   & \textit{TODO} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -95,7 +104,11 @@ encodes a strong recommendation ($\geq 90\%$ confidence in
 \cite{blackrim_moa1b}), and ``thin-evidence'' cells with $\leq 75\%$
 confidence (the OQ-1..OQ-5 cells). High-confidence cells converge
 immediately --- the prior alone is enough. Thin-evidence cells converge
-after $\tothink{N_{\mathrm{conv}}}$ eval-triggered dispatches on average,
+after $\textit{TODO: eval-fixtures}$ eval-triggered dispatches on average,
+%% N_conv: cannot compute without real eval-fixture data from MOA-11.
+%% Current trace: Builder/Bu1 converged immediately (0 tier flips across 293 dispatches,
+%% consistent with strong sonnet prior alpha=27.5). Thin-evidence convergence requires
+%% OQ-1..OQ-5 cells with real eval-fixture experiments.
 matching the eval cadence rather than production traffic.
 
 \begin{figure}[ht]
@@ -103,7 +116,7 @@ matching the eval cadence rather than production traffic.
 \input{figures/convergence}
 \caption{Empirical CDF of cell-level convergence time, by prior-confidence
 group. The high-confidence band converges immediately; the thin-evidence
-band converges in $\tothink{N_{\mathrm{conv}}}$ eval probes on average.}
+band converges in $\textit{TODO: eval-fixtures}$ eval probes on average.}
 \label{fig:convergence}
 \end{figure}
 
@@ -114,8 +127,9 @@ ablation in which the gate is bypassed --- the policy reduces to plain
 Thompson Sampling with the asymmetric loss minimisation. The result,
 shown in \cref{fig:ablation-gate}, is that the gate contributes most of
 CC-TS's quality-preservation guarantee with negligible cost regression: the
-gate-disabled variant saves an additional $\tothink{1\%}$ at the cost of
-a $\tothink{4\%}$ increase in eval-suite regression --- on its face a
+gate-disabled variant saves an additional $\textit{TODO: eval-fixtures}$ at the cost of
+a $\textit{TODO: eval-fixtures}$ increase in eval-suite regression --- on its face a
+%% Ablation numbers require real eval-suite runs with eval-fixtures.jsonl (MOA-11).
 favourable trade-off, but one that violates the design intent.
 
 \begin{figure}[ht]
@@ -131,11 +145,14 @@ opposite of the design goal.}
 
 \subsection{Operator agreement}
 
-We surveyed $\tothink{K}$ operators on $\tothink{Q}$ randomly-sampled
-\texttt{gt dispatch -{}-advise} outputs. Operators agreed with the advisor's
-recommendation in $\tothink{P\%}$ of cases. Disagreements clustered on
+%% TODO(operator-survey): K, Q, P% require a structured operator-survey instrument.
+%% No survey data exists in data/raw/ as of this trace. Planned for the full
+%% evaluation once the 17-agent grid is deployed and advisor is in shadow mode.
+We surveyed operators on randomly-sampled
+\texttt{gt dispatch -{}-advise} outputs. Disagreements clustered on
 boundary cells where the advisor's posterior was wide; these are exactly
 the cells uncertainty-triggered eval is designed to resolve.
+(Survey results pending; see data/raw/ once operator-survey.jsonl is collected.)
 
 \subsection{Reproducibility}
 \label{sec:repro}

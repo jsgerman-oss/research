@@ -1,0 +1,4 @@
+agent_id,shape_id,model,provider,n_dispatches,cost_total_usd,cost_per_call_mean,success_rate,success_low_95,success_high_95
+Architect,A1,claude-opus-4-7,anthropic,1,0.6300,0.630000,1.0000,0.1581,0.9874
+Builder,Bu1,claude-sonnet-4-6,anthropic,293,20.2170,0.069000,1.0000,0.9875,0.9999
+Researcher,Re1,claude-haiku-4-5,anthropic,1,0.0125,0.012500,1.0000,0.1581,0.9874

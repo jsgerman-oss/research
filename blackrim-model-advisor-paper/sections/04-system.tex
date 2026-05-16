@@ -12,6 +12,13 @@ judge), and $1$ general-purpose escape hatch. Citizens own a vertical and
 spawn workers; workers handle parallelisable batches. Coordination is via
 \texttt{bd}, a Dolt-backed task graph that survives context-window resets.
 
+The full advisor grid covers $17$ agents $\times$ $5$ canonical shapes
+$\times$ $3$ model tiers $= 255$ cells. The current dogfooding deployment
+covers $3$ cells with sufficient live traffic for posterior updates
+(Architect/A1, Builder/Bu1, Researcher/Re1); the remaining cells accumulate
+prior-only posteriors until their traffic volumes cross the eval-trigger
+threshold.
+
 The dispatch path --- the function from a user request to a sequence of
 LLM calls --- runs through three layers: (i) a deterministic local heuristic
 implemented in \texttt{gt dispatch} (the ``Tier-0'' path: $\$0$, no LLM at
