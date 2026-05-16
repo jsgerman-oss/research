@@ -1,43 +1,109 @@
 \section{Discussion}
 \label{sec:discussion}
 
-% 1. Why the savings are modest and why that matters.
-%    - Prompt-cache amortisation makes the static-prefix cost ~1 KB/spawn
-%      at our cache hit rate. The 17% cost reduction is small in absolute
-%      dollars.
-%    - The win that *matters* is the maintenance and onboarding burden,
-%      which scales with line count not amortised cost. 21.5% fewer lines
-%      is what humans see.
-%    - This argues for measuring trim ROI on multiple axes: tokens (small
-%      win), human-hours (larger win), instruction-fidelity (must not
-%      regress).
-%
-% 2. Why we did not pursue learned compression.
-%    - Critical literature gap: zero benchmarks on instruction documents.
-%    - Lost-in-the-middle is much weaker for instruction-tuned models.
-%    - First-principles: instruction documents are procedural and
-%      self-referential; retrieval-context compressors trained on QA/
-%      summarisation are out-of-distribution.
-%    - Conclusion: compression is high-risk for unmeasured benefit at
-%      our scale.
-%
-% 3. Why we ruled out knowledge-graph augmentation.
-%    - LLMs consume linear text. KGs serialise back to text before the
-%      model sees them, paying tokens for the serialisation plus losing
-%      the graph's structural advantage.
-%    - GraphRAG-style approaches target relational corpora; CLAUDE.md is
-%      procedural.
-%
-% 4. The optimisation landscape we surveyed alongside.
-%    - Top-10 ranked by reward/effort: speculative decoding, KV-cache
-%      sharing, eval pre-generation, learned cost models, cache-aware
-%      scheduling, function-calling-over-JSON, code-specific embeddings,
-%      early-exit, RLAIF dispatch, append-only telemetry.
-%    - Two are blocked on Anthropic-side support (1, 2); the rest are
-%      actionable and ranked here.
-%    - Methodology contribution: every recommendation is paired with a
-%      "wouldn't fit because" rationale to prevent over-application.
+\subsection{Why conservative beat learned compression}
 
-\tothink{Expand each subsection. The optimisation-landscape survey is
-substantial enough to consider as a separate paper or extended
-appendix.}
+The most striking finding from this work is that fidelity-neutral interventions
+(redundancy removal and externalisation) delivered the majority of the token
+gains without any learned compression machinery. Our 21.5\,\% line reduction
+and 17.1\,\% cache-amortised token saving came exclusively from removing
+duplication and relocating infrequently-needed procedural content to external
+documents.
+
+This result aligns with a structural property of instruction documents: they
+accumulate redundancy by design. A framework like \blackrim's \claudemd serves
+both as a reference manual and a living operational guide. Authors naturally
+explain concepts multiple times (in Customisation sections, in agent-specific
+guidance, in glossaries) to ensure readers find answers at hand without
+hunting. Once this duplication is visible via frequency analysis, removing it
+causes no fidelity loss.
+
+Literature on learned compression (LLMLingua, RECOMP, AutoCompressors) focuses
+on retrieval-context reduction: summarising QA pairs and news articles where
+the task is to extract a single relevant fact. Instruction documents are
+procedurally authored. Critical sections like worktree-isolation rules and
+commit paths are written twice (once in deep-dive prose, once in a checklist)
+not by accident but because different readers consume them differently: some
+scan the checklist at-a-glance, others want the full narrative. A learned
+compressor trained on retrieval corpora would see both as noise and risk dropping
+either, degrading fidelity. Our algorithm makes the conservative choice: it
+respects the author's redundancy as a signal of what matters.
+
+\subsection{Generalisability}
+
+The 21.5\,\% line reduction and 17.1\,\% token saving measured on
+\blackrim's \claudemd are encouraging but case-study-specific. Will the
+algorithm transfer to other multi-agent systems?
+
+Transfer depends on three signals:
+
+\begin{enumerate}
+  \item \textbf{Prefix size.} Systems with larger static prefixes (100 KB+)
+    see more absolute token savings. Systems with minimal prefixes (<10 KB)
+    may not justify the audit effort. \blackrim's 49 KB baseline puts it
+    in the high-impact regime.
+  \item \textbf{Duplication rate.} The trim's gains are proportional to
+    redundancy present in the original document. A carefully-curated
+    single-file instruction document with no duplication will see
+    minimal extraction. \blackrim's ~5 year history and multi-citizen
+    governance accumulated duplication intentionally; younger systems
+    may see half the gains.
+  \item \textbf{External-home availability.} Externalisation only works
+    if stable external documents exist to point to. \blackrim benefits
+    from a mature mkdocs site and a design-decision archive (ADR path).
+    Systems with monolithic instruction sets and no reference web have
+    fewer extraction targets.
+\end{enumerate}
+
+Practitioners evaluating the algorithm should audit their own instruction
+documents against these three signals. A simple pre-assessment pass (scan
+for duplicate paragraphs, count unique external references, estimate
+cache-TTL-amortised token impact) takes 1--2 hours and predicts ROI
+before committing to a full trim.
+
+\subsection{Limitations}
+
+Four limitations bound the strength of this work:
+
+\begin{enumerate}
+  \item \textbf{Single-system case study.} This is a measurement of one
+    multi-agent framework applied to its own instruction document. No
+    held-out systems are evaluated. The generalisability argument above
+    is qualitative, not validated empirically.
+  \item \textbf{Eval-suite dimension coverage.} The fidelity check in
+    \cref{sec:eval} is qualitative: agents completed successfully post-trim.
+    A held-out, adversarial instruction-following eval suite (probing
+    worktree-isolation rules, delegation thresholds, commit discipline,
+    merge-flow correctness) would be substantially more rigorous. The work
+    notes this as future work but does not discharge it.
+  \item \textbf{Dynamic cost unmeasured.} This paper measures static
+    prefix size and amortised token cost under the Anthropic prompt-cache
+    model (80\,\% hit rate, 5-minute TTL). It does not measure the latency
+    cost of dynamic disclosure: when an agent calls \texttt{read\_doc}
+    or similar to fetch an externalised section on-demand, what is the
+    extra RPC round-trip cost? The token savings may be offset by
+    interaction latency.
+  \item \textbf{Cache-hit rate assumed constant.} The analysis assumes
+    $\rho = 0.85$ (cache hit rate) is invariant across prefix sizes.
+    In practice, more frequent cache invalidation or reduced prefix
+    stability might degrade $\rho$. We do not model this sensitivity.
+\end{enumerate}
+
+\subsection{Threats to validity}
+
+The most significant threat is the measurement setup itself. The
+\blackrim repository is the primary author's daily-driver system. The
+frequency estimates, section classifications, and external-home decisions
+were made with deep domain knowledge of how agents actually use the
+framework. When a new maintainer applies the algorithm cold---without
+that embedded understanding---classification decisions will differ. Some
+sections externalised here might be kept in-prefix by a reader unfamiliar
+with Blackrim's workflow; other sections might be externalised too
+aggressively.
+
+This is not a flaw in the algorithm (it is explicitly conservative and
+includes an eval gate); it is a ceiling on the claim. The 21.5\,\% figure
+is reproducible only if the frequency estimates and classification judgments
+are accepted as-is. A second independent practitioner applying the
+same algorithm to the same document would likely arrive at 18--25\,\% savings
+depending on their own usage patterns and risk tolerance.

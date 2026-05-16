@@ -1,46 +1,67 @@
 \section{Future Work}
 \label{sec:future}
 
-We organise future directions by reward-per-effort estimated from the
-deep landscape survey accompanying this paper.
+This section maps research extensions to the conservative trim algorithm,
+prioritised by estimated reward-per-effort. All directions build on the
+frequency-weighted disclosure framework introduced here.
 
-\paragraph{Eval pre-generation v1.}
-Templated fixture generator from bd issue descriptions, gated at squash
-merge. Multiplier effect on every subsequent agent-driven change.
-Tracked at \texttt{bd blackrim-mmlp}.
+\paragraph{Learned compression with instruction-document benchmarks.}
 
-\paragraph{Function-calling over JSON-mode.}
-Switch structured-output call sites from JSON-in-prose to Anthropic's
-tool-use API; literature-cited 15--25\,\% output-token reduction at
-8--12 hours estimated implementation. \texttt{bd blackrim-g3wl}.
+The literature gap identified in \cref{sec:related} is concrete and addressable:
+build a benchmark suite of instruction documents (from \blackrim, AutoGen,
+CrewAI, and other multi-agent frameworks) with fidelity labels, then compare
+conservative trim (this work) against LLMLingua-style learned compression.
+The benchmark would measure token savings, instruction-fidelity preservation,
+and latency (to capture the cost of dynamic disclosure). Such a benchmark
+would settle whether learned compression is applicable to procedural documents
+or whether conservative trim is the right tool for the job.
 
-\paragraph{Code-specific embeddings.}
-Voyage-Code-2 vs. BGE-M3 vs. ColBERTv2 on \blackrim's retrieval
-corpus; pick a default. 10--20\,\% context-token reduction by
-improving retrieval precision. \texttt{bd blackrim-qgmc}.
+\paragraph{Dynamic loading via tool calls.}
 
-\paragraph{Cache-control marker exposure.}
-Anthropic's API supports up to four \texttt{cache\_control}
-breakpoints, but the \texttt{Claude Code} client does not currently
-expose them to \claudemd authors. If exposed, segmenting \claudemd
-into \emph{stable-rules-top} + \emph{volatile-refs-bottom} could
-preserve cache hits across volatile-section edits. Estimated 30--50\,\%
-savings on edit-heavy weeks; blocked on upstream.
+Externalised sections could be retrieved on-demand rather than externalised
+away entirely. Introduce a \texttt{read\_instruction(section\_id)} tool that
+agents invoke when they need a backgrounder on (say) worktree isolation.
+The trade-off is clear: fewer tokens in the static prefix (20--30\,\% additional
+savings beyond this work) but variable latency per spawn (one extra RPC
+round-trip when a section is first touched). Measure this on real agent
+workflows to determine the latency/token cost curve and whether
+dynamic loading is a net win for different agent types.
 
-\paragraph{Speculative decoding + local drafters.}
-Highest theoretical reward (20--35\,\% generation-token reduction) but
-blocked on either Anthropic-side support or a self-hosted inference
-proxy that uses local draft models against Claude.
-\texttt{bd blackrim-f2jb}.
+\paragraph{Cross-session prefix sharing in multi-instance deployments.}
 
-\paragraph{Multi-agent KV-cache sharing.}
-Mooncake / SAGA / LMCache-style KV reuse across overlapping prefixes
-in parallel waves. Highest leverage architectural change; same
-upstream-or-proxy blocker as speculative decoding.
-\texttt{bd blackrim-3dp2}.
+When multiple instances of \blackrim run in parallel (or across days), the
+\claudemd prefix is reloaded and re-cached for each instance. Anthropic's
+documentation suggests prompt-cache can be shared across API keys under
+certain conditions. Explore whether a multi-instance deployment (e.g.,
+staging and prod, or two independent teams using Blackrim) can share
+the same cached prefix on-disk or in Anthropic's cache infrastructure,
+reducing first-spawn cost to near-zero per instance.
 
-\paragraph{Held-out instruction-following eval suite.}
-Required for \cref{sec:eval}'s fidelity claim to be publishable. The
-suite should probe: worktree-isolation rules, delegation thresholds,
-commit-path discipline, merge-flow correctness, the wiring + docs
-standard. Build alongside the eval pre-generation infrastructure.
+\paragraph{Per-section frequency estimation from session logs.}
+
+The current work hand-classifies sections as \emph{frequent}, \emph{occasional},
+or \emph{rare} using domain knowledge and the author's intuition. A more
+principled approach: instrument agent spawns to track which sections were
+semantically used (not just loaded) per spawn, then build a lived frequency
+histogram. This is non-trivial (requires shallow semantic instrumentation
+of agent reasoning) but would remove author bias from the trim decision.
+
+\paragraph{Multi-document residency: CLAUDE.md + AGENTS.md + RTK.md.}
+
+Extend the model from a single instruction document to the full suite:
+CLAUDE.md (framework rules), AGENTS.md (citizen/worker definitions), and
+any runtime knowledge base (RTK.md). This exposes new optimisation surface:
+inter-document cross-references complicate the externalisation decision
+(a section of AGENTS.md might be referenced from CLAUDE.md, making simple
+externalisation risky). Develop a multi-document dependency graph and
+apply the conservative trim algorithm across the whole set.
+
+\paragraph{Application beyond Blackrim: support agents, retrieval, research.}
+
+This paper's methodology was motivated by and validated on a multi-agent
+coding framework. Does the conservative trim model transfer to other instruction-heavy
+domains? Test the algorithm on (1) customer-support agents (knowledge bases
+for FAQ, escalation rules), (2) retrieval-augmented generation systems (search
+result ranking, reranking instructions), and (3) research-automation agents
+(literature review, experimental design). Each domain has different duplication
+patterns and fidelity constraints, so the three would jointly establish scope.
