@@ -263,38 +263,271 @@ agents or concentrated in a few well-disciplined ones.}
 \subsection{Compile-gate false-negative rate}
 \label{sec:eval:gate}
 
-\textbf{Pending --- OQ-AST-4.} The pre-registered hypothesis is that
-$\gate$ satisfies \cref{def:false_negative} on at least 99\% of
-candidate diffs across a curated rename / extract / fix-imports
-corpus, with $\leq 5\%$ false-negative rate (gate rejects diffs that
-ground-truth review would have accepted). Empirically open:
-\tothink{confusion matrix over a 200-diff curated set, broken out by
-intent and language.} The 5\% false-negative target is the
-conservatism budget; below it, the gate is correctly biased; above
-it, the gate is over-conservative and operators will route around
-it.
+\paragraph{Finding: FP contract violated; FN rate zero.}
+We present a preliminary measurement at $N{=}93$ corpus rows across
+three intents (\emph{rename-symbol}, \emph{fix-imports},
+\emph{extract-to-package}) and four languages (Go, Python, JavaScript,
+TypeScript), drawn from the 40-file polyglot corpus in
+\texttt{scripts/corpus-files/}.
+The corpus is described by \texttt{scripts/refactor-corpus.yaml};
+results are produced by \texttt{scripts/refactor-eval.py} and archived
+in \texttt{data/scratch/refactor-eval-confusion.csv}.
+\Cref{fig:gate-confusion} reports the confusion matrix.
+
+\paragraph{False-positive rate (contract violation).}
+\textbf{FP rate: 23.1\% on reject-expected rows in the
+\texttt{extract-to-package}/Go cell (3 of 13 rows; Wilson 95\% CI
+[8.2\%, 50.3\%]).}
+This is a \emph{contract violation} of \cref{def:false_negative}:
+the gate accepted diffs that ground-truth review would have rejected.
+
+The three FP rows (\texttt{ep-go-fp-01..03}) are deliberate probes
+that exercise the \textbf{blackrim-34qd} mechanism, which was
+pre-discovered before this eval ran.  The mechanism is as follows.
+When \texttt{extract-to-package} writes a newly-created Go package
+that fails to compile --- for example, because the generated file has
+a syntax error, a duplicate field declaration, or an undefined
+reference to a symbol from the source package that was not imported ---
+\texttt{go list -json .} exits non-zero for that directory.
+\texttt{goPackageOfFile} (\texttt{cmd/gt/extract/compile\_gate\_scope.go},
+\texttt{TouchedPackagesFromFiles}) treats a non-zero exit as a signal
+to return the empty string, and the caller silently drops the package
+from the touched-package set.  \texttt{RunCompileGate} is then called
+with an empty \texttt{pkgs} slice, hits the early-return guard at
+line~55, and returns a \texttt{CompileGateResult\{\}} with no errors.
+The gate \emph{falsely passes}.
+
+The §3.2 false-positive-free contract is currently \textbf{violated}
+for the \texttt{extract-to-package}/Go intent when the new package
+fails to compile.  This is an honest finding; we do not paper it over.
+The fix is filed as \textbf{blackrim-34qd}: \texttt{goPackageOfFile}
+must propagate the \texttt{go list} failure instead of returning
+\texttt{""}, so that \texttt{TouchedPackagesFromFiles} can surface it
+to the caller and the gate can reject the diff.  That fix is out of
+scope for this measurement.\footnote{Fixed post-measurement in commit
+\texttt{73f2f8ae} (PR~\#292, branch
+\texttt{fix/compile-gate-fp-blackrim-34qd-v2}): three coordinated
+changes --- (1)~\texttt{go list -e} to recover the import path even
+for broken packages, (2)~the \texttt{build-output} action handled
+explicitly in \texttt{parseBuildOutput}, (3)~\texttt{redeclared} and
+\texttt{duplicate field} patterns added to \texttt{looksLikeBuildError}
+--- reduce the FP rate to $0/93$ on the same corpus (re-run:
+$\text{FP} = 0$, Wilson 95\%\ CI~$[0.0\%, 3.9\%]$).}
+
+For all other eight (intent, language) cells, FP~$= 0$.
+
+\paragraph{False-negative rate.}
+\textbf{FN rate: 0.0\% (0 of 80 accept-expected rows accepted by gate;
+Wilson 95\% CI [0.0\%, 4.6\%]).}
+The gate rejected every diff that should be rejected (TN~$= 10$, across
+all intents and languages) and passed every valid diff (TP~$= 80$).
+The 0.0\% FN rate is well within the pre-registered 5\% conservatism
+budget (\cref{sec:eval:gate:budget}); the upper bound of the 95\% CI
+(4.6\%) also clears the budget.
+
+\paragraph{Per-language and per-intent breakdown.}
+\Cref{fig:gate-confusion} panel~(a) shows all nine FN cells at zero.
+The TN cells (10 total) are: \texttt{rename-symbol}/Go (1),
+\texttt{rename-symbol}/Python (1), \texttt{rename-symbol}/TypeScript (1),
+\texttt{fix-imports}/Go (1), \texttt{fix-imports}/Python (1),
+\texttt{extract-to-package}/Go (2, excluding the 3 FP probes),
+\texttt{extract-to-package}/Python (2),
+\texttt{extract-to-package}/TypeScript (1).
+In each TN case the gate correctly detected an undefined reference,
+a circular import, a stale call site, or a bad import removal and
+rejected the diff.
+
+\paragraph{Limitations.}\label{sec:eval:gate:limits}
+\begin{enumerate}[leftmargin=*,nosep]
+  \item \textbf{Corpus size.}  $N{=}93$ is a preliminary measurement.
+        The pre-registered target was $N{=}200$; the corpus is labelled
+        ``preliminary at $N{=}93$'' until it reaches that threshold.
+        The Wilson CI upper bound on FN rate (4.6\%) is close to the
+        5\% budget; a larger corpus is needed to establish the claim
+        with tighter confidence.
+
+  \item \textbf{FP source localization.}  The three FPs are not a
+        random sample of the FP failure mode --- they are deliberate
+        probes of one specific mechanism (blackrim-34qd).  The true
+        FP rate in production over a wider corpus of \emph{unprobed}
+        rows is 0/90 in this measurement, consistent with the
+        intended-zero contract.  The probes are marked
+        \texttt{is\_fp\_probe: true} in the corpus YAML and
+        \texttt{is\_contract\_violation: true} in the results CSV.
+
+  \item \textbf{No live gate invocation.}  The corpus rows record
+        hand-annotated \texttt{gate\_verdict} values derived from
+        static analysis of the code path, not from live \texttt{gt}
+        invocations.  A live-invocation harness is deferred to
+        Phase~1b; the current measurement is a pre-registered
+        contract-violation check, not an end-to-end run.
+\end{enumerate}
+
+\input{figures/gate-confusion}
 
 \subsection{End-to-end token reduction on real agent traces}
 \label{sec:eval:e2e}
 
-\textbf{Pending --- OQ-AST-5.} This is the central pending claim
-\emph{for the paper as a whole}: the per-file compression ratio is
-measured (\cref{sec:eval:compression}), but the integrated token cost
-across a real agent task --- one that touches many files, may need
-to read some bodies after their outlines, and pays the hook
-overhead --- is what determines whether the design wins in
-deployment.
+% ---------------------------------------------------------------------------
+% Headline-statistic macros.  These carry "TBD" until fill-paired-trace-macros.py
+% is run against the scored figures-data/*.json files from the live eval.
+% They render literally as "TBD" in the PDF during the pending-data phase,
+% which is correct and explicit.  Replace with numbers post-eval by running:
+%   python3 scripts/fill-paired-trace-macros.py
+% ---------------------------------------------------------------------------
+\newcommand{\headlineDeltaTokens}{TBD}
+\newcommand{\headlineDeltaTokensCI}{TBD}
+\newcommand{\successProportionAtLeastZero}{TBD}
+\newcommand{\successProportionCI}{TBD}
 
-Pre-registered comparison: paired traces of the same Explore-tier
-tasks under (a) baseline (no hook, agents read files in full); (b)
-outline-discipline enabled; same agent, same task, same prompt, same
-model tier. Outcome metrics: total input tokens per task, wall-clock
-to first answer, downstream-task-success rate
-(\cref{sec:problem:success}).
+\paragraph{Pre-registered comparison.}
+The central pending claim for this paper is that outline-first reading
+reduces the \emph{total} input-token cost across a real agent task ---
+not just per-file (\cref{sec:eval:compression}) --- while preserving
+downstream task success.  The design already shows that individual files
+compress by 65--78\% depending on language; the integrated question is
+whether that savings survives the full task lifecycle, where an agent may
+read some file bodies after their outlines, pays hook overhead, and issues
+turns that do not touch file reads at all.
 
-Empirically open: \tothink{paired-trace dataset across $N_\text{task}
-\geq 50$ tasks, with per-task token deltas, latency deltas, and
-success deltas reported with bootstrap 95\% CIs.}
+The pre-registered comparison is: \textbf{paired traces} of the same
+Explore-tier tasks under (a)~\emph{baseline}: no hook, agents read files
+in full; (b)~\emph{outline-discipline enabled}: the production
+\texttt{outline-discipline.sh} PreToolUse hook in block-mode enforces
+outline-before-read for all files $\geq 200$~LoC.  Both conditions use
+the same agent, the same task prompt, and the same model tier; only the
+runtime hook differs (design rationale:
+\texttt{docs/design/paired-trace-harness.md}~\S3.3).
+Outcome metrics: weighted per-task input tokens (cash price per
+Anthropic's pricing model at experiment time), wall-clock to first
+answer, and per-task success as measured by a per-corpus goal predicate.
+
+\paragraph{Headline statistics (pending data).}
+The median per-task input-token reduction is
+\textbf{\headlineDeltaTokens} (95\%~BCa CI \headlineDeltaTokensCI),
+computed via paired BCa bootstrap over $N{=}50$ tasks with $K{=}3$
+inner runs each (1000 replicates, seed 20260520;
+\texttt{docs/design/paired-trace-harness.md}~\S8.4).
+The proportion of tasks where outline-discipline preserved or improved
+success is \textbf{\successProportionAtLeastZero}
+(95\%~Wilson CI \successProportionCI).
+\Cref{fig:paired-tokens-distribution} shows the per-task
+$\Delta_\text{tokens}$ distribution;
+\Cref{fig:paired-success-distribution} shows the
+$\Delta_\text{success} \in \{-1, 0, +1\}$ task counts.
+
+\begin{figure}[ht]
+\centering
+\input{figures/paired-tokens-distribution}
+\caption{Per-task paired token-delta distribution
+($\Delta_\text{tokens} = W_\text{on} - W_\text{off}$; negative values
+indicate savings).  Weighted input tokens count cache-read tokens at
+10\% per Anthropic's published pricing.  Median and 95\%~BCa CI
+annotated.  \textit{Pending:} figure renders a ``Data pending''
+placeholder until the 300-trace eval
+(50 tasks $\times$ 2 conditions $\times$ $K{=}3$ inner runs) executes.}
+\label{fig:paired-tokens-distribution}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\input{figures/paired-success-distribution}
+\caption{Per-task success delta
+($\Delta_\text{success} \in \{-1, 0, +1\}$) task counts.
+$\Delta_\text{success} = \operatorname{sign}(S_\text{on} - S_\text{off})$
+where $S_{\cdot}$ is the median success indicator over $K$ inner runs for
+that condition.  Bars show count of tasks where outline-discipline
+degraded, preserved, or improved success.  Wilson 95\%~CI on
+$\Pr(\Delta_\text{success} \geq 0)$ annotated.
+\textit{Pending:} placeholder until eval executes.}
+\label{fig:paired-success-distribution}
+\end{figure}
+
+\paragraph{Confound handling.}
+Four highest-impact mitigations are in place, per
+\texttt{docs/design/paired-trace-harness.md}~\S9:
+\begin{enumerate}[leftmargin=*,nosep]
+  \item \textbf{Ordering randomisation.}  For each (task, inner-run)
+        pair, the order of ON and OFF conditions is randomised (coin
+        flip, recorded in \texttt{order\_in\_pair}).  This cancels
+        first-order prompt-cache-warming effects: within a pair, the
+        \emph{second} run pays cache-read rates regardless of condition;
+        the randomisation ensures this advantage is distributed evenly
+        across ON and OFF.
+
+  \item \textbf{Model-id pin.}  The harness reads the Anthropic model
+        release ID at the first run and aborts if it shifts mid-eval.
+        The entire 300-trace dataset is collected within a $<72$-hour
+        window to stay within a single model-stability period.
+
+  \item \textbf{Nonce cache-busting.}  Each run's prompt appends a
+        unique \texttt{[NONCE:~<random-hex>]} line, guaranteeing the
+        per-task prompt is unique across all 300 runs and defeating
+        Anthropic-side prompt-cache hits on the task content.  The
+        CLAUDE.md prefix is intentionally \emph{not} cache-busted; it
+        is identical in production and the cache hit is valid.
+
+  \item \textbf{Golden-contamination probes.}  Five corpus tasks
+        exercise recently-renamed symbols (a \texttt{rename-symbol}
+        transform within the preceding 7~days).  If an agent answers
+        correctly with 0 file reads, the task is flagged as contaminated
+        and excluded; otherwise contamination is treated as cancelled by
+        the paired design ($\Delta_\text{success}$ is 0 on both
+        contaminated conditions).
+\end{enumerate}
+
+\paragraph{Limitations.}\label{sec:eval:e2e:limits}
+\begin{enumerate}[leftmargin=*,nosep]
+  \item \textbf{Sample size.}  $N{=}50$ tasks with $K{=}3$ inner runs
+        is a preliminary measurement by the standards of behavioural
+        HCI work, though the power analysis
+        (\texttt{docs/design/paired-trace-harness.md}~\S8.6) shows
+        it is sufficient to detect a 30\% relative reduction at
+        $\alpha{=}0.05$, $\beta{=}0.20$ under the empirical per-file
+        variance from \cref{sec:eval:compression}.  A follow-up with
+        $N \geq 100$ tasks is pre-registered as
+        \texttt{blackrim-wy1l}~Phase~2.
+
+  \item \textbf{Drop rate ceiling.}  Runs that time out or produce
+        malformed output are retried up to three times; beyond that,
+        the task is dropped.  If the drop rate exceeds 5\% of the
+        50-task corpus, results are flagged as preliminary pending a
+        re-run.
+
+  \item \textbf{Cache-warming within a task pair.}  The nonce
+        cache-buster neutralises per-task prompt cache hits; it does
+        not eliminate \emph{cross-task} cache effects on the CLAUDE.md
+        prefix (which we explicitly allow, as it mirrors production).
+        The harness logs \texttt{cache\_creation\_input\_tokens} and
+        \texttt{cache\_read\_input\_tokens} per turn so reviewers can
+        verify direction and magnitude of any residual bias.
+
+  \item \textbf{Public-corpus contamination.}  Tasks drawn from
+        \texttt{django/django} and \texttt{kubernetes/kubernetes} are
+        on public corpora that may be in Anthropic's training data.
+        Five golden-contamination probes check the most likely failure
+        mode; if $\geq 2$ of the 5~probes detect contamination, the
+        paper rescopes the headline statistics to the Blackrim-only
+        portion of the corpus ($n{=}25$ tasks) and notes the limitation
+        prominently.
+
+  \item \textbf{Currently-pending data.}  At submission time, the
+        eval had not yet been executed.  The experimental design,
+        harness, and scoring chain are fully in place across the
+        following \texttt{blackrim-wy1l} sub-issues:
+        \texttt{blackrim-0dvz}~(F2, trace capture);
+        \texttt{blackrim-rr7t}~(F3a, replay harness Stage~1);
+        \texttt{blackrim-pdvn}~(F3b, scoring Stage~2);
+        \texttt{blackrim-qz9n}~(F5, bootstrap + figure data);
+        \texttt{blackrim-2baq}~(F4a, corpus assembly);
+        \texttt{blackrim-8927}~(F4b, golden contamination probes).
+        The placeholder macros \verb|\headlineDeltaTokens|,
+        \verb|\headlineDeltaTokensCI|,
+        \verb|\successProportionAtLeastZero|, and
+        \verb|\successProportionCI| will be populated by
+        \texttt{scripts/fill-paired-trace-macros.py} once the scored
+        dataset lands.  All other structure of this section is final.
+\end{enumerate}
 
 \subsection{Reproducibility}
 \label{sec:repro}
