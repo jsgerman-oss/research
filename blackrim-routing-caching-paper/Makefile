@@ -3,7 +3,7 @@ SECTIONS := $(wildcard sections/*.tex)
 BIB := bib/refs.bib
 FIGURES := $(wildcard figures/*.tex)
 
-.PHONY: all clean watch view distclean lint wordcount data
+.PHONY: all clean watch view distclean lint wordcount data data-cache
 
 all: $(PAPER).pdf
 
@@ -32,5 +32,15 @@ wordcount:
 	@texcount -inc -sum -1 $(PAPER).tex 2>/dev/null || echo "install texcount: brew install texcount or use texlive"
 
 # Reproduce all data/aggregated/*.csv from data/raw/*.json
-data:
+data: data-cache
 	python scripts/aggregate-trim-results.py
+
+# Pull + aggregate cache statistics from Blackrim telemetry
+# Writes: data/raw/session-telemetry.json, data/aggregated/cache-stats.csv
+data-cache:
+	python scripts/pull-telemetry.py --since 2026-05-01 \
+	  --repo /Users/jayse/Code/blackrim \
+	  > data/raw/session-telemetry.json
+	python scripts/aggregate-cache-stats.py \
+	  < data/raw/session-telemetry.json \
+	  > data/aggregated/cache-stats.csv

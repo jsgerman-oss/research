@@ -1,0 +1,10 @@
+metric,value
+cache_creation_total_tokens,5807869
+cache_read_total_tokens,60370940
+read_to_creation_ratio,10.39
+cache_enabled_spawn_rate,0.099
+cache_enabled_real_spawn_rate,0.902
+savings_vs_no_caching,0.786
+sample_count,749
+real_spawn_count,82
+cache_enabled_count,74
