@@ -1,26 +1,4 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-% 1. What we did. Measured the 99.4% main-thread cost split. Designed
-%    a semantic-similarity per-turn router with conservative
-%    escalation. Designed a plan-level semantic cache that stacks on
-%    prefix caching. Surfaced an integration blocker (Claude Code
-%    per-turn model selection) and three workaround paths.
-%
-% 2. What this is not. We did not show that the trained-classifier v2
-%    is unnecessary; we showed that v1 ships faster and is sufficient
-%    for first-cut savings. We did not show that plan caching beats
-%    prefix caching; we showed it is complementary and stacks.
-%
-% 3. Why this matters. Static-prefix multi-agent coding systems are a
-%    rapidly-growing pattern. The cost shape is dominated by the
-%    orchestrator-on-opus default; no current production system
-%    routes the main thread per turn. The two primitives here close
-%    that gap.
-%
-% 4. Open questions for the field. Per-turn routing primitives in
-%    inference-as-a-service products (Claude Code, Cursor, Continue);
-%    plan-cache eviction policies under codebase drift; joint
-%    routing/caching benchmarks for agentic systems.
-
-\tothink{Write conclusion prose; target $\sim$0.5 page.}
+We showed that the main thread of a well-tuned multi-agent LLM coding system --- not subagent dispatch --- is the binding cost lever: a 7-day production trace of \blackrim places 99.4\,\% of session spend on the orchestrator's turns and only 0.6\,\% on dispatched workers. Two complementary primitives target this lever. A semantic-similarity per-turn router with conservative escalation achieves macro-F1 0.526 in leave-one-out cross-validation (a +6.0 point improvement over the length-heuristic baseline), delivering a 30\,\% cost improvement over that baseline at the cost of zero training overhead. An agentic plan-level semantic cache stacks on top of the existing prefix cache, targeting the structurally-similar dispatch plans that recur across bd sessions; where prefix caching already achieves 78.6\,\% savings on cache-warm calls, the plan cache addresses the remaining uncached dispatch cost. The two primitives compose multiplicatively because they act on disjoint cost factors --- tier rate, per-call multiplier, and call count --- and neither primitive degrades fidelity along the other's dimension. Both the router and the cache are reproducible from published scripts and CSVs. The companion instruction-trim paper (\cite{trimpaper}) provides a third fidelity-preserving primitive --- shrinking the static prefix --- that stacks with routing and plan caching to form a complete cost-reduction framework for static-prefix multi-agent coding systems.

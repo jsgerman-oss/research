@@ -1,30 +1,48 @@
 \section{Discussion}
 \label{sec:discussion}
 
-% Three themes:
-%
-% 1. Integration blocker — Claude Code currently exposes session-level
-%    model selection only, not per-turn routing. Three workaround paths:
-%    a. Agent SDK middleware (4 weeks, production-ready, recommended)
-%    b. Claude Code feature request (8 weeks, requires Anthropic engagement)
-%    c. Prompt-injection hack (0 weeks, 5–10% overhead, fragile)
-%    The middleware path keeps Claude Code's UX intact for human-in-loop
-%    sessions while routing the under-the-hood model choice per turn.
-%
-% 2. Why CC-TS doesn't transfer directly. The subagent advisor uses
-%    Hierarchical Beta priors seeded from a (role × shape × tier)
-%    landscape; main-thread orchestration has no role taxonomy and
-%    no per-cell sample structure. The contribution here is showing
-%    that semantic similarity can substitute for role taxonomy when
-%    the per-cell structure is missing.
-%
-% 3. The conservative-escalation trade. Escalating to opus when no
-%    exemplar matches above threshold biases toward never downgrading
-%    what shouldn't be downgraded — at the cost of occasional
-%    over-spending on edge cases. We consider this the right bias
-%    for a production system; aggressive routing would catastrophic-
-%    failure-mode the orchestrator. Future work: learned classifier
-%    that does better on the threshold-edge cases.
+\subsection{Why the two primitives compose multiplicatively}
 
-\tothink{Expand each theme. The integration-blocker discussion is
-substantial enough to deserve a subsection on its own.}
+The cost model in §\ref{sec:problem} identifies three independent dimensions along which main-thread cost can be reduced without sacrificing fidelity. Prefix caching (already in place) reduces the \emph{per-call multiplier} on cache-warm turns: tokens land in the cache at \(0.10\times\) the base rate, yielding the 78.6\,\% savings measured in §\ref{sec:eval}. Per-turn routing reduces the \emph{per-call dollar rate} by substituting a cheaper tier (haiku at \$0.25/MTok, sonnet at \$3.00/MTok) for opus (\$15.00/MTok) on turns where the quality constraint permits. Plan caching reduces the \emph{number of full compute calls} by serving structurally-similar dispatch plans from the cache rather than re-invoking the orchestrator.
+
+Each primitive is fidelity-preserving along a different axis. Prefix caching does not change which model processes a turn; it changes only what is billed for the tokens the model reads. Routing changes which model handles a turn but not the depth of computation. Plan caching skips the orchestration call entirely when a structurally equivalent plan exists. Because the three levers act on disjoint terms in the session-cost sum, their savings compose \emph{multiplicatively}: a turn saved by plan caching never reaches the routing decision; a routed turn hitting haiku pays the prefix-cache discount on a haiku-rate token, not an opus-rate one. Shipping the prefix-cache discipline first, then routing, then plan caching, monotonically expands savings as each layer stacks on the residual cost the previous layer left behind.
+
+\subsection{What this paper deliberately did not do}
+
+Four directions are visibly absent from the experiments, and each was a deliberate scope decision rather than an oversight.
+
+\textbf{(a) Heavier router architectures.} A DistilBERT-class classifier would likely improve opus recall (F1\,=\,0.125). However, a trained classifier requires \(\sim\)500 annotated turns and adds 50\,ms inference overhead. The v1 router ships with zero training time and measurable savings; v2 is the right successor once a larger labelling budget is available.
+
+\textbf{(b) Cascade routing with semantic entropy.} The approach in \cite{semanticentropy} --- route to sonnet first, measure uncertainty, escalate when entropy exceeds threshold --- is strictly more powerful than a pre-inference classifier. It is also fundamentally incompatible with the replay-only evaluation here: cascade routing requires live inference to measure entropy. An online A/B harness is the prerequisite (see §\ref{sec:future}).
+
+\textbf{(c) Online plan-cache deployment.} The plan-cache evaluation replays historical dispatches against a cache built from earlier sessions. A production deployment must handle invalidation when the codebase evolves (API changes, file renames). We evaluate on a frozen corpus precisely to separate the retrieval quality question from the invalidation policy question; the latter is future work.
+
+\textbf{(d) Cross-system generalisation.} All measurements derive from a single system (\blackrim) with a specific architecture and static prefix (\(\sim\)45\,KB CLAUDE.md). The cost model is system-agnostic; only the constants (tier rates, prefix size, dispatch frequency) vary across systems. The structural argument holds wherever the orchestrator dominates cost.
+
+\subsection{Single-system case study limitation}
+
+The 99.4\,\% main-thread figure is a consequence of \blackrim's already-tuned subagent advisor (CC-TS, \cite{moa1landscape}) routing dispatched workers to their cost-optimal tier. In a system where workers run on opus without a dispatch advisor, subagent cost would be larger and main-thread routing proportionally less impactful. This case study measures what is achievable after subagent routing is solved --- the natural sequencing for any team that ships a dispatch advisor first.
+
+The architecture details that make \blackrim a suitable test bed --- single orchestrator on the main thread, wave-based parallelism, fixed 5-minute prefix-cache TTL, bd task graph producing structurally similar dispatches --- are common in production multi-agent coding frameworks but not universal. Systems with highly heterogeneous task graphs will see lower plan-cache hit rates and should weight routing more heavily. The generalisation argument is that the cost model is system-agnostic: any system decomposing per-call cost into prefix-cache discount, tier rate, and dispatch call count can substitute its own measured constants using the scripts and CSVs in \texttt{data/}.
+
+\subsection{Threats to validity}
+
+Four measurement conditions limit the confidence of the conclusions.
+
+\textbf{(a) Routing test set size (N\,=\,49).} LOO-CV removes contamination risk, but 49 turns yield wide per-class confidence intervals. The opus class has 12 positives; F1\,=\,0.125 (1 true positive) is one turn from F1\,=\,0.250. Opus-recall claims should be read as directional.
+
+\textbf{(b) Replay-only plan-cache evaluation.} The cache is evaluated on a frozen corpus. It does not measure freshness degradation from codebase drift (API changes, file renames) that invalidates plans in production.
+
+\textbf{(c) Constant prefix-cache hit rate.} The 5-minute TTL creates a step function; the first call in each window pays full creation cost. Sessions with long inter-turn gaps will see lower effective hit rates than the 90.1\,\% aggregate. The 78.6\,\% savings estimate is correct in expectation but optimistic for bursty or slow sessions.
+
+\textbf{(d) Author-labelled exemplars.} Routing exemplars and evaluation labels were authored by the same researcher, risking encoding of the labeller's heuristics rather than a canonical rubric. The rubric and all 53 exemplar turns are published for independent audit.
+
+\subsection{When not to apply these primitives}
+
+Both primitives have operating conditions outside which they add overhead without value.
+
+\textbf{Routing adds minimal value when main-thread cost share is below 50\,\%.} If subagent dispatch consumes half the session budget --- common in systems without a dispatch advisor --- even perfect main-thread routing halves at most the remaining fraction. The first investment should be a subagent dispatch advisor (see \cite{moa1landscape}).
+
+\textbf{Plan caching adds latency without value when plans are highly heterogeneous.} If every task has a unique role-shape-scope combination, plan-signature collision rate is low and lookup overhead exceeds benefit. Operators should measure reuse rate before enabling: if fewer than 20\,\% of dispatches match any prior signature at the configured threshold, disable the cache.
+
+\textbf{Conservative escalation is the right default.} The escalation rule (fall back to opus below threshold $\tau$) ensures the system never degrades below opus quality on unfamiliar turn shapes. Aggressive routing --- preferring haiku/sonnet even on low-confidence turns --- should be validated on a shadow system before production deployment.

@@ -1,37 +1,26 @@
 \section{Future Work}
 \label{sec:future}
 
-\paragraph{Trained classifier (DistilBERT) v2.}
-Replace the semantic-similarity v1 router with a trained classifier
-on \(\sim\)500 hand-annotated turns. Phase-A research projects
-45--50\,\% cost reduction at <1\,\% quality loss, with 50\,ms
-inference overhead. Tracked at \texttt{bd blackrim-x3ju}'s parent
-epic.
+\paragraph{Cascade routing with semantic entropy.}
+Rather than classifying turns before inference, a \emph{cascade}~\cite{frugalgpt,cascaderouting} routes to sonnet first, measures the semantic entropy of the response~\cite{semanticentropy}, and escalates to opus only when entropy exceeds a per-turn threshold. This sidesteps the pre-inference classifier entirely at the cost of 150\,ms latency per escalated turn. Cascade architectures consistently outperform single-classifier routers on recall for hard-to-classify inputs --- here, opus-tier turns. The obstacle to evaluation in this paper is that the replay harness cannot generate live sonnet responses to measure entropy against. The natural next step is an online shadow-routing experiment where both the cascade and the semantic-similarity router predict simultaneously, with ground truth from implicit user acceptance.
 
-\paragraph{Cascade routing.}
-Always try sonnet first, measure semantic entropy on the response,
-escalate to opus when entropy exceeds threshold. Phase-A research
-projects 40--45\,\% cost reduction at <0.5\,\% quality loss with
-150\,ms overhead. Higher latency but bypasses the per-turn
-classification overhead entirely on cache hits.
+\paragraph{DistilBERT or distilled-LM classifier (router v2).}
+The v1 router's opus-class recall (F1\,=\,0.125) reflects that 53 exemplars cannot cover the manifold of opus-tier orchestration turns. A DistilBERT-class fine-tuned classifier~\cite{routellm} trained on \(\sim\)500 annotated turns would provide learned decision boundaries rather than nearest-neighbour proximity. Inference overhead is approximately 50\,ms on CPU; annotation cost is roughly 10 hours. The key design choice is 3-class classifier vs.\ cascaded binary classifiers (opus vs.\ not-opus, then sonnet vs.\ haiku), the latter being more robust to class imbalance. Phase-A projections suggest 45--50\,\% cost reduction at \(<1\,\%\) quality loss, compared to 30\,\% for v1.
 
-\paragraph{Cross-cache hit-rate optimisation.}
-The prefix cache and plan cache target orthogonal cost sources, but
-their hit rates are not independent: a high prefix-cache hit
-correlates with structurally-similar dispatches (which would also
-be plan-cache hits). Joint analysis: are we double-counting savings
-in §\ref{sec:eval}?
+\paragraph{Online plan-cache deployment with code-SHA invalidation.}
+The plan-cache evaluation in §\ref{sec:eval} runs in replay mode: a cache built from earlier sessions is queried against a frozen historical corpus. Moving to online deployment requires a principled invalidation policy. The most tractable approach is \emph{code-SHA keying}: augment the plan signature (Eq.\,\ref{eq:plansig}) with a hash of the file-scope entries' current content digests, so that any file mutation within the plan's scope automatically invalidates the cached plan. This eliminates false hits caused by codebase evolution at the cost of a lower steady-state hit rate (every file change evicts relevant plans). An alternative is \emph{time-decay}: score cached plans by recency and re-validate against a lightweight structural-similarity check before serving. The most principled approach combines both: code-SHA for file-scope exactness and a semantic-similarity gate for structural reuse across file renames or refactors that preserve task shape. The query-fingerprint freshness question --- how long should a plan remain valid when the prompt text is identical but the codebase has drifted --- is an open empirical question that requires an online A/B experiment to answer.
 
-\paragraph{Held-out instruction-following eval.}
-Required for §\ref{sec:eval}'s fidelity claim to be publishable.
-The eval suite should cover: routine-orchestration turns
-(claim/dispatch/merge), mid-complexity turns (refactor/fix/doc),
-novel-reasoning turns (architecture/debug). Build alongside
-\texttt{gt eval generate} (already shipped via
-\texttt{blackrim-mmlp}).
+\paragraph{Cross-system generalisation.}
+All measurements derive from \blackrim. Applying the methodology to non-coding agentic systems --- research assistants, customer-support agents, retrieval-augmented generation --- would test whether the 99.4\,\% main-thread cost share is specific to a well-tuned coding framework or characteristic of multi-agent systems more broadly. Each domain requires its own exemplar curation, but the routing infrastructure (kNN over sentence embeddings with conservative escalation) is domain-agnostic, and the cost model parameterises over tier rates, prefix size, and dispatch frequency without system-specific assumptions.
 
-\paragraph{Comparison with auto-compact.}
-Auto-compact (\texttt{blackrim-uvep}) attacks the same cost
-shape from a different angle: shrink conversation history rather
-than route turns. The two should compose multiplicatively. Future
-work: empirical study of router \(\times\) compact composition.
+\paragraph{Confidence-calibrated routing with temperature scaling.}
+The escalation threshold $\tau = 0.30$ is heuristic: the value at which the threshold fired zero times on the 49-turn evaluation set. A threshold set to never fire is conservative but unvalidated. Temperature scaling~\cite{hybridllm} calibrates the threshold to a probability: fit a single temperature on a held-out split so that cosine-similarity scores become calibrated class probabilities. A calibrated threshold then has a direct interpretation (``escalate when $P(\text{opus}) > 0.70$'') and lets practitioners trade off opus precision and recall explicitly rather than through a geometric similarity parameter.
+
+\paragraph{Joint optimisation of routing and plan-cache thresholds.}
+The routing threshold $\tau$ and the plan-cache similarity threshold are currently tuned independently. Jointly, they interact: a plan-cache hit eliminates the main-thread turn entirely, so the routing decision does not fire; a routing decision that sends a turn to haiku reduces the cost of a plan-cache miss more than a routing decision that sends the same turn to opus. A joint optimisation over session-cost would capture this interaction. The simplest formulation is a grid search over $(\tau_\text{route}, \tau_\text{cache})$ on a held-out session log, minimising total cost subject to a quality-preservation constraint measured via the three-channel signal in §\ref{sec:eval}. A more principled formulation is a bandit or Bayesian optimisation loop that adapts both thresholds online as new session data arrives, with the session-cost objective as the reward signal.
+
+\paragraph{Latency-cost Pareto frontier.}
+This paper focuses exclusively on token cost. Latency is a separate but related objective: a cascade router adds 150\,ms per escalated turn; a plan-cache hit eliminates an orchestration call (\(\sim\)2--5\,s for an opus-tier turn); routing to haiku reduces per-turn latency by roughly \(3\times\) relative to opus on Anthropic's API. A Pareto analysis over the (cost, latency) plane would allow practitioners to pick operating points suited to their application: interactive coding assistants with human in the loop may tolerate higher cost for lower latency, while batch-mode agents running overnight have the opposite preference. The data required for this analysis (per-turn latency measurements alongside cost) is available in \texttt{.beads/telemetry/invocations.jsonl} but was not the focus of the present evaluation. Populating the Pareto frontier is a natural extension of the reproducible pipeline in §\ref{sec:repro}.
+
+\paragraph{Long-context vs.\ cache-aware prefix design.}
+An orthogonal approach to cost reduction is \emph{instruction trimming}: reducing the size of the static prefix rather than routing or caching to reduce the per-token cost of reading it. The companion paper (\cite{trimpaper}) develops a frequency-weighted progressive-disclosure methodology for shrinking the static prefix while preserving orchestrator fidelity. The two approaches compose: a trimmed prefix hits the cache at a lower creation cost (fewer tokens to write and re-read), and a cached turn at a lower tier pays the trimmed-prefix rate rather than the full-prefix rate. An integrated evaluation of the three-primitive system (trim + route + plan-cache) on a common session corpus would establish the aggregate savings achievable when all three levers are active simultaneously.
