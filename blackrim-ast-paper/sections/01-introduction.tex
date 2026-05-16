@@ -109,15 +109,16 @@ open-questions list \texttt{OQ-AST-1..OQ-AST-7} in
 \cref{app:open-questions} pre-registers the empirical questions whose
 answers could promote, demote, or scope the various subsystems.
 
-We are also transparent about where the data does not yet exist.
-\Cref{sec:eval} reports measured compression ratios on a realistic
-benchmark fixture (the existing ADR~0002 floor), and marks five
-further empirical claims (token-budget conformance, latency,
-adoption trajectory, refactor false-negative rate, end-to-end token
-reduction on agent traces) with \texttt{\tothink} placeholders. The
-draft will be updated when those datasets accumulate; an interim
-revision is appropriate when at least the adoption-trajectory and
-end-to-end-reduction datasets are filled.
+We are also transparent about what data exist and what are pending.
+\Cref{sec:eval} reports measured compression ratios (bench fixture),
+token-budget conformance (Go corpus, Phase~1a), and outline emission
+latency (Go corpus, Phase~1a). Three further claims --- adoption
+trajectory, compile-gate false-negative rate, and end-to-end token
+reduction on agent traces --- are pre-registered open questions
+(OQ-AST-3 through OQ-AST-5) whose datasets are still accumulating.
+The draft will be updated when those datasets fill; an interim
+revision is appropriate once the adoption-trajectory and
+end-to-end-reduction datasets are complete.
 
 \subsection{Contributions}
 
@@ -149,11 +150,12 @@ the sections cited:
         particular is normative: two implementations must produce
         identical truncation behaviour on the same input.
   \item \textbf{Empirical evaluation} (\cref{sec:eval}). We report
-        cross-language compression ratios on a $\tothink{N_{\text{bench}}}$-file
-        benchmark corpus (currently measured: Go 82.0\%, Python
-        84.1\%, JavaScript 83.0\%, TypeScript 75.2\%) and a
-        pre-registered empirical programme for the five further
-        claims listed in \cref{sec:stance}.
+        cross-language compression ratios on a 4-file in-tree benchmark
+        fixture (one representative file per language: Go 295~LoC,
+        Python 253~LoC, JavaScript 185~LoC, TypeScript 188~LoC;
+        measured savings: Go 82.0\%, Python 84.1\%, JavaScript 83.0\%,
+        TypeScript 75.2\%) and a pre-registered empirical programme for
+        the five further claims listed in \cref{sec:stance}.
 \end{itemize}
 
 The remainder of the paper is structured as follows.

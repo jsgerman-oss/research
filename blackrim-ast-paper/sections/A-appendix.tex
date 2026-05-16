@@ -130,26 +130,46 @@ the various subsystems. Pre-registered in this paper draft and in
 companion repository.
 
 \begin{itemize}[leftmargin=*]
-  \item \textbf{OQ-AST-1 — Token-budget conformance.} On the
-        broader polyglot corpus, what fraction of outlines satisfy
+  \item \textbf{OQ-AST-1 — Token-budget conformance.}
+        \emph{Status: Phase~1a measured (Go, 3 repos, 600 files);
+        Phase~1b pending.}
+        On the broader polyglot corpus, what fraction of outlines satisfy
         $|\outline(\file)| \leq \budget = 300$? Breakdown by
         language; report $p_{50}$, $p_{95}$, $p_{99}$.
-  \item \textbf{OQ-AST-2 — Emission latency.} Wall-clock latency
-        of \texttt{gt outline} on files 100~LoC to 5000~LoC; what
-        is the user-perceived latency added by the
-        prepend-to-Read hook?
+        Blocker for Phase~1b: corpus run across Python/JS/TS repos
+        pinned in \texttt{scripts/corpus.txt}; tracked in
+        blackrim-d8ya.
+  \item \textbf{OQ-AST-2 — Emission latency.}
+        \emph{Status: Phase~1a measured (Go, Blackrim files only);
+        Phase~1b pending.}
+        Wall-clock latency of \texttt{gt outline} on files
+        100~LoC to 5000~LoC; what is the user-perceived latency
+        added by the prepend-to-Read hook?
+        Blocker for Phase~1b: extension to Python/JS/TS corpus
+        and file sizes up to 5000~LoC (tracked in blackrim-d8ya).
   \item \textbf{OQ-AST-3 — Discipline adoption trajectory.}
+        \emph{Status: pending --- waiting on telemetry accumulation.}
         Hit-rate of outline-discipline over the 14-day rollout;
         does adoption cross 80\% triggering promote-to-block?
+        Blocker: at least 14~days of federated outline-events data
+        in \texttt{\$BLACKRIM\_HOME/.beads/telemetry/\allowbreak outline-events.jsonl}.
   \item \textbf{OQ-AST-4 — Compile-gate false-negative rate.}
+        \emph{Status: pending --- waiting on curated corpus.}
         On a curated 200-diff corpus, what is the false-negative
         rate of $\gate$ (rejected diffs that ground-truth review
         would have accepted)? Is it within the 5\% conservatism
         budget?
-  \item \textbf{OQ-AST-5 — End-to-end token reduction.} On paired
-        Explore-tier traces (with and without discipline), what
-        is the per-task input-token reduction, the wall-clock
+        Blocker: construction of the 200-diff curated rename /
+        extract / fix-imports refactor corpus (not yet started).
+  \item \textbf{OQ-AST-5 — End-to-end token reduction.}
+        \emph{Status: pending --- waiting on paired-trace dataset.}
+        On paired Explore-tier traces (with and without discipline),
+        what is the per-task input-token reduction, the wall-clock
         change, and the task-success delta?
+        Blocker: paired-trace dataset across $N_\text{task} \geq 50$
+        tasks; requires discipline to be running in production for
+        at least one Explore-tier project long enough to accumulate
+        traces (\texttt{.beads/telemetry/invocations.jsonl}).
   \item \textbf{OQ-AST-6 — Pattern-DSL authoring fidelity.} When
         the YAML pattern-DSL is implemented, what is the fidelity
         loss vs. native parser walking, measured by per-intent
@@ -170,8 +190,9 @@ empirical reproducibility:
 \begin{itemize}[leftmargin=*]
   \item \textbf{Code.} The reference implementation is the Blackrim
         repository at the tagged commit cited in
-        \cite{blackrim_paper_repo}. Relevant directories:
-        \texttt{cmd/gt/outline/}, \texttt{cmd/gt/compress\_structure*},
+        \cite{blackrim_paper_repo}. Relevant directories (all under
+        the repo root): \texttt{cmd/gt/outline/},
+        \texttt{cmd/gt/compress\_structure*},
         \texttt{internal/codeindex/refactor/},
         \texttt{internal/codeindex/symbol/}, \texttt{hooks-staging/}.
   \item \textbf{Data.} The benchmark fixture is in
