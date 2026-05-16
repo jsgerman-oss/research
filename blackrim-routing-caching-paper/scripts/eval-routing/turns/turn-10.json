@@ -1,0 +1,10 @@
+{
+  "id": "turn-10",
+  "session_id": "8ef8c571-ad78-48c4-878c-21c1a3607246",
+  "timestamp": "2026-05-08T16:14:27.820Z",
+  "user_prompt": "lets validate that these   - 1iy Memory improvements epic (5 children all closed; this epic itself can probably close)\n  - 4o1 Optimization Tier 1 epic (7r0/csw/07z/xqz all closed; could close)\n  - avu Eval port epic (c0z/csw/eed all closed; could close) can be closed if their work is complete\nlets start working on these till complete: \n  - w3a Coverage gate maturity (updated tonight \u2014 baseline / per-path / codecov delta / 2-week informational period)\n  - jsd Eval-gate maturity (updated tonight \u2014 stable suite list / per-suite SLA / dashboard verdict / --baseline flag)\n  - lok Workflow toggle UX maturity (init wizard / drift CI / dashboard panel)\n  - irw Optimization Tier 2 epic (no children yet)",
+  "prior_context_summary": "Turn index 4331 in session 8ef8c571",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 704
+}

@@ -1,0 +1,10 @@
+{
+  "id": "turn-38",
+  "session_id": "2769a124-f4f8-4fbc-a85a-a9be3ae22ca5",
+  "timestamp": "2026-05-09T04:30:20.323Z",
+  "user_prompt": "the session data in the tokens dashboard cant be correct, also it only shows opus output. Do we not use haiku or sonnet that much? also in the 10 most expensive runs I see agent unattributed but thats maybe not unexpected. Is this related to the issue that I need to reset token data so that it actually shows up correct now?",
+  "prior_context_summary": "Turn index 2357 in session 2769a124",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 325
+}

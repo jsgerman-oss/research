@@ -1,0 +1,10 @@
+{
+  "id": "turn-35",
+  "session_id": "28210c81-eefe-48ab-94f0-2e61176422a1",
+  "timestamp": "2026-05-10T20:47:47.168Z",
+  "user_prompt": "1, confirm 2, no",
+  "prior_context_summary": "Turn index 1114 in session 28210c81",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 16
+}

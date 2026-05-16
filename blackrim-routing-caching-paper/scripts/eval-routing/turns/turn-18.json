@@ -1,0 +1,10 @@
+{
+  "id": "turn-18",
+  "session_id": "5600e765-cf16-477a-bbb5-5ab85c17ddf9",
+  "timestamp": "2026-05-12T18:23:39.576Z",
+  "user_prompt": "<command-message>improve-codebase-architecture</command-message>\n<command-name>/improve-codebase-architecture</command-name>",
+  "prior_context_summary": "Turn index 994 in session 5600e765",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 124
+}

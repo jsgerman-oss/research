@@ -1,0 +1,10 @@
+{
+  "id": "turn-01",
+  "session_id": "83db3313-fdab-48db-a303-e48badb608e2",
+  "timestamp": "2026-05-10T07:43:34.762Z",
+  "user_prompt": "c Where do you land \u2014 explicit thresholds (with the values above as starting points), interrupt-budget weighting, both as separate modes, ... I actually like both as seperate modes and an adaptive function based upon burn as well. Figure out how that integrates.",
+  "prior_context_summary": "Turn index 2227 in session 83db3313",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 262
+}

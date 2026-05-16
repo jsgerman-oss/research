@@ -1,0 +1,10 @@
+{
+  "id": "turn-41",
+  "session_id": "28210c81-eefe-48ab-94f0-2e61176422a1",
+  "timestamp": "2026-05-10T17:52:17.753Z",
+  "user_prompt": "We should be able to push to the github remote I just gave you",
+  "prior_context_summary": "Turn index 20 in session 28210c81",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 62
+}

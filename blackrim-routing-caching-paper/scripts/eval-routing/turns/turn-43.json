@@ -1,0 +1,10 @@
+{
+  "id": "turn-43",
+  "session_id": "0e1759f6-d6c9-4837-8e1b-0f2f3018ad8c",
+  "timestamp": "2026-05-15T08:20:45.765Z",
+  "user_prompt": "Clean the git history locally again, Destructively delete the git repo and recreate with github actions turned off. Push repo again",
+  "prior_context_summary": "Turn index 1175 in session 0e1759f6",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 131
+}

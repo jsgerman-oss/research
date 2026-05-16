@@ -1,0 +1,10 @@
+{
+  "id": "turn-14",
+  "session_id": "83db3313-fdab-48db-a303-e48badb608e2",
+  "timestamp": "2026-05-10T10:46:28.109Z",
+  "user_prompt": "lets take care of the dependabot pr's",
+  "prior_context_summary": "Turn index 4623 in session 83db3313",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 37
+}

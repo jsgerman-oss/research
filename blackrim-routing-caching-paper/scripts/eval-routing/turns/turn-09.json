@@ -1,0 +1,10 @@
+{
+  "id": "turn-09",
+  "session_id": "2769a124-f4f8-4fbc-a85a-a9be3ae22ca5",
+  "timestamp": "2026-05-09T00:32:58.139Z",
+  "user_prompt": "Wave 5 queued: lyqr (Je), jfr4 (Jf) \u2014 last 2 cmd/gt children. The Thread B architecture work (TOK 1, EVAL 1, PERF 1) all landed. The remaining Thread B follow-ups (TOK 2\n   dedup filter, EVAL 2 CI workflow, PERF 2 TTL cache) need TOK 1 / EVAL 1 to be ratified first \u2014 TOK 1 specifically needs your manual ~/.claude/settings.json edit to\n  start populating real subagent_stop records before the dedup filter can be tested with real data. can you check the file and make sure I did it right",
+  "prior_context_summary": "Turn index 1335 in session 2769a124",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 488
+}

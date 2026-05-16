@@ -1,0 +1,10 @@
+{
+  "id": "turn-22",
+  "session_id": "8ef8c571-ad78-48c4-878c-21c1a3607246",
+  "timestamp": "2026-05-08T09:04:22.681Z",
+  "user_prompt": "for auto-formatting, if the user has a formatting standard, they submit it and our system here will retain that per project. Same for linting standards. If there are any other tools that standards are something that teams normally configure or set. Lets make sure we can adapt to that standard",
+  "prior_context_summary": "Turn index 2351 in session 8ef8c571",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 293
+}

@@ -1,0 +1,10 @@
+{
+  "id": "turn-19",
+  "session_id": "5600e765-cf16-477a-bbb5-5ab85c17ddf9",
+  "timestamp": "2026-05-12T20:27:00.483Z",
+  "user_prompt": "<command-message>loop</command-message>\n<command-name>/loop</command-name>\n<command-args>Drain the bd ready queue using the Blackrim standard pace of work (CLAUDE.md \"Standard pace\"). Each iteration:\n\n1. Run `bd ready --json` to survey work; if empty, exit the loop.\n2. Group by file-conflict scope; size the next wave dynamically (3\u20138 agents, default 5).\n3. Claim atomically (`bd update <id> --claim`) before any spawn.\n4. Spawn workers in parallel \u2014 one Agent-tool call per scope group, all in a single response, each with `isolation: \"worktree\"`, `run_in_background: true`. Brief each tightly: bd ID(s), file scope, acceptance criteria, constraints, worktree-isolation reminder, wiring + docs standard.\n5. Route by advisor \u2014 let the dispatch rules pick tier; default sonnet for builds, haiku for research/writes, opus only when `opus_required=true` is justified. Goal is minimum LLM token cost; do not run mechanical work directly on Gestalt-opus.\n6. As agents finish (ta[REDACTED]), merge with `bin/blackrim-merge-agent` and spawn replacements to sustain ~5 in flight.\n7. Self-pace via ScheduleWakeup: while agents are running, sleep ~270s (under cache TTL). Between waves with idle time, sleep 1200\u20131800s. Wake earlier on agent-completion notifications.\n\nStop conditions: `bd ready` returns empty, OR user sends a message in chat, OR a real merge conflict / unknown verdict requires opus judgment. On stop, report queue status + insights worth capturing.</command-args>",
+  "prior_context_summary": "Turn index 1105 in session 5600e765",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 1474
+}

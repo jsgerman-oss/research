@@ -1,0 +1,10 @@
+{
+  "id": "turn-15",
+  "session_id": "0e1759f6-d6c9-4837-8e1b-0f2f3018ad8c",
+  "timestamp": "2026-05-14T17:45:17.353Z",
+  "user_prompt": "I actually like all of these lets do it.",
+  "prior_context_summary": "Turn index 778 in session 0e1759f6",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 40
+}

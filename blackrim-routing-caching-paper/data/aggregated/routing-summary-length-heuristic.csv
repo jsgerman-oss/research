@@ -1,0 +1,5 @@
+router,tier,precision,recall,f1,tp,fp,fn
+length-heuristic,haiku,0.3571,0.3571,0.3571,5,9,9
+length-heuristic,sonnet,0.8,0.6957,0.7442,16,4,7
+length-heuristic,opus,0.2667,0.3333,0.2963,4,11,8
+length-heuristic,overall,,,,25,24,

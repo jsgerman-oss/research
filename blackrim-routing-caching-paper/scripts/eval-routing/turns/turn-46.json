@@ -1,0 +1,10 @@
+{
+  "id": "turn-46",
+  "session_id": "cccf8427-d989-4473-933c-edc19bede6db",
+  "timestamp": "2026-05-16T06:38:50.495Z",
+  "user_prompt": "lets loop through all of it optimally and fill these beads with the work contracted.",
+  "prior_context_summary": "Turn index 863 in session cccf8427",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 84
+}

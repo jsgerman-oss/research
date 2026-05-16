@@ -1,0 +1,10 @@
+{
+  "id": "turn-20",
+  "session_id": "83db3313-fdab-48db-a303-e48badb608e2",
+  "timestamp": "2026-05-10T11:44:45.069Z",
+  "user_prompt": "INFO:     127.0.0.1:60007 - \"GET /api/approval/pending HTTP/1.1\" 404 Not Found\nINFO:     127.0.0.1:60008 - \"GET /api/prs HTTP/1.1\" 404 Not Found\nINFO:     127.0.0.1:60024 - \"GET /api/session-cost HTTP/1.1\" 200 OK\nINFO:     127.0.0.1:60028 - \"GET /api/tokens/usage HTTP/1.1\" 200 OK on gt chart, Also I had mentioned there were changes to the default pages of the dashboard and I dont see the sageox portal view enabled is there a reason for that?",
+  "prior_context_summary": "Turn index 4973 in session 83db3313",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 445
+}

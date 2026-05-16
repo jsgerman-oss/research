@@ -1,0 +1,10 @@
+{
+  "id": "turn-27",
+  "session_id": "2769a124-f4f8-4fbc-a85a-a9be3ae22ca5",
+  "timestamp": "2026-05-08T23:00:29.307Z",
+  "user_prompt": "we should take a pass at gap analysis, stride monitoring, eval coverage, solid design principals",
+  "prior_context_summary": "Turn index 821 in session 2769a124",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 96
+}

@@ -1,0 +1,5 @@
+router,tier,precision,recall,f1,tp,fp,fn
+always-opus,haiku,0.0,0.0,0.0,0,0,14
+always-opus,sonnet,0.0,0.0,0.0,0,0,23
+always-opus,opus,0.2449,1.0,0.3934,12,37,0
+always-opus,overall,,,,12,37,

@@ -1,0 +1,383 @@
+# Routing evaluation labels — 50 hand-labelled turns
+#
+# Rubric (from model-cost-quality-landscape.md "tier boundaries"):
+#   haiku : lookup / status check / deterministic transform / read-mostly /
+#            single-step action where reasoning is NOT load-bearing.
+#   sonnet: reasoning required but not novel architecture — small refactor,
+#            multi-step planning, code edits, debugging with a known pattern,
+#            doc updates, task batching/dispatching with a clear spec.
+#   opus  : novel design, multi-file architecture planning, high-stakes
+#            correctness decisions, ambiguous spec interpretation,
+#            security/migration review.
+#
+# Conservatism rule: when the boundary is sonnet/opus, label opus.
+# Ambiguous entries are skipped in F1 calculation.
+#
+# Format: list of {turn_id, should_be_tier, rationale}
+
+labels:
+
+  - turn_id: turn-01
+    should_be_tier: opus
+    rationale: >
+      "Figure out how that integrates" on top of design-option discussion
+      (explicit thresholds vs interrupt-budget weighting vs adaptive burn
+      function). Asks for synthesis + architecture decision across multiple
+      modes. Novel design territory — routing to sonnet risks misaligned
+      integration plan.
+
+  - turn_id: turn-02
+    should_be_tier: sonnet
+    rationale: >
+      Implementation brief: clean-room implement an existing open-source
+      reference and extend it to two cloud variants. Well-specified; the
+      hard creative work (design) is done externally. Standard multi-step
+      implementation task — sonnet.
+
+  - turn_id: turn-03
+    should_be_tier: sonnet
+    rationale: >
+      Docs + README update: tune layout to be concise, add deep-context
+      dropdowns, ensure README reflects actual state. Multi-step but
+      formulaic prose/structure task. No novel architecture decision.
+
+  - turn_id: turn-04
+    should_be_tier: haiku
+    rationale: >
+      Single-action git commit + push to a specific GitHub account.
+      Deterministic, no reasoning required — pure mechanical action.
+
+  - turn_id: turn-05
+    should_be_tier: haiku
+    rationale: >
+      /loop command invocation — system prompt injected by the slash-command
+      harness. The model's job is to parse a structured template and schedule
+      a recurring prompt. Deterministic parsing, no architectural reasoning.
+
+  - turn_id: turn-06
+    should_be_tier: opus
+    rationale: >
+      "Do our other agents need their own session-ids?" with a partial
+      architecture sketch about global-vs-per-agent state. Touches core
+      multi-agent session identity design — ambiguous spec, non-obvious
+      implications. Conservatism rule: label opus.
+
+  - turn_id: turn-07
+    should_be_tier: haiku
+    rationale: Same as turn-05 — identical /loop system prompt invocation.
+
+  - turn_id: turn-08
+    should_be_tier: opus
+    rationale: >
+      /grill-me skill invocation: relentless interview over every branch of
+      a design tree, resolving inter-decision dependencies. This IS the
+      architecture design session — requires deep reasoning over design
+      trade-offs. Opus.
+
+  - turn_id: turn-09
+    should_be_tier: sonnet
+    rationale: >
+      Orchestration status update: wave queued, thread-B work landed, next
+      steps conditional on ratification. User is giving Gestalt context and
+      asking it to continue standard dispatch cadence. Multi-step planning
+      with a clear prior spec — sonnet.
+
+  - turn_id: turn-10
+    should_be_tier: sonnet
+    rationale: >
+      Validate closure of 3 epics + start a batch of follow-on bd issues.
+      Structured task management with known action items. No novel design;
+      multi-step dispatch coordination — sonnet.
+
+  - turn_id: turn-11
+    should_be_tier: sonnet
+    rationale: >
+      /loop autonomous dispatch for a rename-purge pipeline across 4 stages.
+      Structured autonomous loop with explicit stage ordering. Non-trivial
+      coordination but follows a clear written spec (not novel design) —
+      sonnet.
+
+  - turn_id: turn-12
+    should_be_tier: opus
+    rationale: >
+      /improve-codebase-architecture skill invocation: surface architectural
+      friction, propose deep-module refactors for testability + AI
+      navigability. Full architecture review session — opus.
+
+  - turn_id: turn-13
+    should_be_tier: sonnet
+    rationale: >
+      Start Wave 2 (bd items listed) + investigate speculative architecture
+      experiment. The wave items are well-specified; the cache-control
+      investigation is exploratory but bounded (P3, independent). Sonnet
+      handles the dispatch; escalation to opus only if the investigation
+      surfaces a novel design decision.
+
+  - turn_id: turn-14
+    should_be_tier: haiku
+    rationale: >
+      "Take care of dependabot PRs" — deterministic action: list open
+      dependabot PRs and merge/approve them. No reasoning required.
+
+  - turn_id: turn-15
+    should_be_tier: haiku
+    rationale: >
+      "I like all of these, let's do it" — approval of a pre-presented list.
+      Zero new reasoning; model just proceeds with the agreed plan.
+
+  - turn_id: turn-16
+    should_be_tier: opus
+    rationale: >
+      Three tangled CI/release bugs: SLSA provenance failure, CGO_ENABLED
+      incompatibility with tree-sitter, and cross-platform syscall guard.
+      Each is a non-obvious root cause requiring platform + toolchain
+      reasoning. High-stakes correctness (release pipeline). Opus.
+
+  - turn_id: turn-17
+    should_be_tier: haiku
+    rationale: Same as turn-05 — /loop system prompt invocation, deterministic parse.
+
+  - turn_id: turn-18
+    should_be_tier: opus
+    rationale: >
+      Bare /improve-codebase-architecture slash command — triggers full
+      architectural review session. Equivalent to turn-12. Opus.
+
+  - turn_id: turn-19
+    should_be_tier: sonnet
+    rationale: >
+      /loop draining the bd ready queue using Blackrim standard pace. Clear,
+      repeatable orchestration protocol with explicit steps. No novel design
+      — sonnet handles the dispatch loop.
+
+  - turn_id: turn-20
+    should_be_tier: sonnet
+    rationale: >
+      Dashboard showing 404s on two API endpoints + missing dashboard
+      changes. Debugging + UI/API alignment task. Pattern is known (endpoint
+      not registered); sonnet-level debugging, not novel architecture.
+
+  - turn_id: turn-21
+    should_be_tier: haiku
+    rationale: >
+      Step-by-step OAuth setup guide for gmailctl (already fully written as
+      a doc). Model is executing a deterministic sequence of shell commands
+      and file saves. Lookup + execution, no reasoning required.
+
+  - turn_id: turn-22
+    should_be_tier: sonnet
+    rationale: >
+      Feature design for per-project formatting/linting standard storage.
+      "What other standards do teams normally configure?" requires some
+      product thinking and identification of integration points, but the
+      problem domain is well understood — sonnet.
+
+  - turn_id: turn-23
+    should_be_tier: sonnet
+    rationale: >
+      Email routing/filtering design for GitHub notifications: three
+      structured options (A: noise reduction, B: signal capture, C: hygiene).
+      User is providing requirements, model designs a filter ruleset.
+      Structured design task with clear constraints — sonnet.
+
+  - turn_id: turn-24
+    should_be_tier: opus
+    rationale: >
+      "Deep research in the same method we did for model selection" +
+      /grill-me on collecting algorithm data to prove research correctness.
+      This is a research methodology design session — novel framing,
+      requires deep reasoning about academic research process. Opus.
+
+  - turn_id: turn-25
+    should_be_tier: sonnet
+    rationale: >
+      Bug fix request: gt commit refuses with unread inbox messages, should
+      be fixed. Identified behavior change needed; pattern is clear (remove
+      or bypass the check). Standard debug+fix — sonnet.
+
+  - turn_id: turn-26
+    should_be_tier: sonnet
+    rationale: >
+      Context-continuation summary injected at session start: user asked to
+      drain the bd backlog with cheap-tier models. The model re-orients and
+      continues the dispatch loop. Standard orchestration continuation —
+      sonnet.
+
+  - turn_id: turn-27
+    should_be_tier: opus
+    rationale: >
+      "Take a pass at gap analysis, STRIDE monitoring, eval coverage, SOLID
+      design principles" — a four-domain architectural audit request with no
+      spec. Wide scope, novel framing, asymmetric risk (security + design
+      review). Opus.
+
+  - turn_id: turn-28
+    should_be_tier: haiku
+    rationale: Same as turn-05 — /loop system prompt invocation, deterministic parse.
+
+  - turn_id: turn-29
+    should_be_tier: haiku
+    rationale: Same as turn-05 — /loop system prompt invocation, deterministic parse.
+
+  - turn_id: turn-30
+    should_be_tier: sonnet
+    rationale: >
+      /loop continuation of rename-purge pipeline: check on background
+      agents, merge completed ones, continue file renames, proceed to git +
+      dolt history rewrites. Structured multi-stage task with clear
+      ordering. Autonomous dispatch — sonnet.
+
+  - turn_id: turn-31
+    should_be_tier: sonnet
+    rationale: >
+      Platform compatibility issue: souffle on Ubuntu/WSL requires specific
+      apt packages. Plan around it for that platform. Build command
+      adaptation — moderately complex but well-scoped, standard
+      cross-platform engineering — sonnet.
+
+  - turn_id: turn-32
+    should_be_tier: opus
+    rationale: >
+      Four simultaneous schema + validation changes: plugin.schema.json,
+      marketplace.schema.json, skill.schema.json plus CI workflow.
+      Multi-file contract design (affects all existing plugins). High
+      structural impact, requires careful seam design. Opus.
+
+  - turn_id: turn-33
+    should_be_tier: ambiguous
+    rationale: >
+      "[Request interrupted by user]" — not a substantive prompt; the turn
+      contains no semantic content. Cannot assign a meaningful tier.
+
+  - turn_id: turn-34
+    should_be_tier: haiku
+    rationale: Same as turn-05 — /loop system prompt invocation, deterministic parse.
+
+  - turn_id: turn-35
+    should_be_tier: haiku
+    rationale: >
+      "1, confirm 2, no" — selection response to a numbered list presented
+      by the assistant. Deterministic; model just acknowledges choices.
+
+  - turn_id: turn-36
+    should_be_tier: opus
+    rationale: >
+      "What if I vendored maestro?" — novel integration architecture
+      question. Vendoring changes the dependency model, update strategy, and
+      coupling with an external project. Requires reasoning about trade-offs
+      with no prior spec. Conservatism rule: opus.
+
+  - turn_id: turn-37
+    should_be_tier: haiku
+    rationale: Same as turn-05 — /loop system prompt invocation, deterministic parse.
+
+  - turn_id: turn-38
+    should_be_tier: sonnet
+    rationale: >
+      Dashboard data debugging: session-cost data looks wrong, only opus
+      visible, unattributed agent runs. Asks whether a token data reset is
+      needed. Diagnostic reasoning over telemetry — pattern is identifiable,
+      sonnet-level debugging.
+
+  - turn_id: turn-39
+    should_be_tier: sonnet
+    rationale: >
+      Two parallel items: (1) PR 264 review decision (merge or request
+      changes), (2) interpretation of missing GitHub repo. Both require
+      reading and deciding, but within a known context — no novel design.
+      Sonnet handles the review + clarification.
+
+  - turn_id: turn-40
+    should_be_tier: opus
+    rationale: >
+      Istio canary deployment conflict analysis: cookie-based canary vs
+      shared-host routing conflict, structural issue with VirtualService
+      precedence. Non-blackrim domain but complex systems debugging with
+      non-obvious root cause (Istio routing model). High-stakes production
+      issue requiring deep platform reasoning. Opus.
+
+  - turn_id: turn-41
+    should_be_tier: haiku
+    rationale: >
+      "We should be able to push to the github remote I just gave you" —
+      simple git push retry request after remote was added. Mechanical
+      action, no reasoning required.
+
+  - turn_id: turn-42
+    should_be_tier: sonnet
+    rationale: >
+      Same /loop drain-queue pattern as turn-19. Structured autonomous
+      dispatch loop with explicit protocol — sonnet.
+
+  - turn_id: turn-43
+    should_be_tier: sonnet
+    rationale: >
+      Destructive git history rewrite + GitHub Actions disable + repo
+      recreation. High-impact but the steps are explicit and the decision
+      has already been made by the user. Implementation of a spec, not a
+      novel design. Sonnet (with care).
+
+  - turn_id: turn-44
+    should_be_tier: sonnet
+    rationale: >
+      New research paper scaffold: build a paper directory in ~/research for
+      AST-related work, same structure as existing papers. Creation of a
+      paper skeleton following an established pattern — template + scaffold
+      work, sonnet.
+
+  - turn_id: turn-45
+    should_be_tier: sonnet
+    rationale: >
+      Orchestration plan presented as numbered steps: wait for researcher,
+      re-show plan with adjustments, verify homes, execute bd-tracked change
+      with rollback. User is confirming a structured plan. Sonnet manages
+      the execution sequence.
+
+  - turn_id: turn-46
+    should_be_tier: sonnet
+    rationale: >
+      "Loop through all of it and fill beads with the work contracted" —
+      batch bd task creation from a contract/spec. Structured mechanical
+      task-filing. Sonnet.
+
+  - turn_id: turn-47
+    should_be_tier: opus
+    rationale: >
+      Architecture decision on the outline-enforcement pipeline: (i) doc +
+      skill, (ii) warn-mode hook, (iii) telemetry-driven promotion to block
+      at 80% compliance. Explicit rejection of option (iv) with principled
+      reasoning. This IS the design decision being made, not executing a
+      prior spec. Opus.
+
+  - turn_id: turn-48
+    should_be_tier: sonnet
+    rationale: >
+      Context-continuation session start: summary of prior work across
+      multiple areas (factory model, rename, hooks). Model re-orients and
+      continues the bd backlog drain. Standard orchestration
+      continuation — sonnet.
+
+  - turn_id: turn-49
+    should_be_tier: haiku
+    rationale: Same as turn-05 — /loop system prompt invocation, deterministic parse.
+
+  - turn_id: turn-50
+    should_be_tier: sonnet
+    rationale: >
+      Orchestration decision: OK to dispatch 5 parallel agents (retriever
+      instrumentation + landscape + survey + eval landscape + survey) today?
+      Or start retriever-only? User is providing a structured dispatch
+      proposal. Model confirms or adjusts the wave plan — coordination task
+      with clear options, sonnet.
+
+# Distribution summary:
+#   haiku : 13 turns (26%) — turns 04,05,07,14,15,17,21,28,29,34,35,37,41,49 = 14 minus turn-33 ambig
+#   sonnet: 24 turns (48%)
+#   opus  : 12 turns (24%)
+#   ambiguous: 1 turn (turn-33, excluded from F1)
+#
+# Note: /loop system-prompt injections (turns 05,07,17,28,29,34,37,49) are all
+# haiku. The actual /loop *content* (what gets scheduled) may be opus-worthy,
+# but the act of parsing the structured template is deterministic haiku work.
+# This is intentional: the routing decision concerns what the model DOES with
+# the input, not what the embedded prompt will eventually trigger.

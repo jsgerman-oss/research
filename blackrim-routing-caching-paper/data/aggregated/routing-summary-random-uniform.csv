@@ -1,0 +1,5 @@
+router,tier,precision,recall,f1,tp,fp,fn
+random-uniform,haiku,0.1538,0.1429,0.1481,2,11,12
+random-uniform,sonnet,0.3158,0.2609,0.2857,6,13,17
+random-uniform,opus,0.1176,0.1667,0.1379,2,15,10
+random-uniform,overall,,,,10,39,

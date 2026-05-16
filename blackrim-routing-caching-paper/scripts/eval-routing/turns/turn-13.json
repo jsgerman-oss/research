@@ -1,0 +1,10 @@
+{
+  "id": "turn-13",
+  "session_id": "83db3313-fdab-48db-a303-e48badb608e2",
+  "timestamp": "2026-05-10T02:50:35.434Z",
+  "user_prompt": "lets start   - Wave 2 (blackrim-qgn8) \u2014 needs two new mkdocs docs first (worktree-guard.md expansion + new agent-merge.md), then trims CLAUDE.md worktree section. Estimated additional ~3 KB / ~45\n  lines.\n  - Cache-control investigation (blackrim-18xn) \u2014 speculative architecture experiment, P3, independent of Wave\u00a02.",
+  "prior_context_summary": "Turn index 199 in session 83db3313",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 318
+}

@@ -1,0 +1,10 @@
+{
+  "id": "turn-36",
+  "session_id": "28210c81-eefe-48ab-94f0-2e61176422a1",
+  "timestamp": "2026-05-12T04:22:04.971Z",
+  "user_prompt": "instead of integraing in this fashion what if I vendored maestro, could we use it with blackrim, That would allow us to keep up with their development easily",
+  "prior_context_summary": "Turn index 9928 in session 28210c81",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 157
+}

@@ -1,0 +1,10 @@
+{
+  "id": "turn-47",
+  "session_id": "1a6dcbcd-b820-4fee-818c-f99771661919",
+  "timestamp": "2026-05-14T17:39:15.735Z",
+  "user_prompt": "(i) + (ii) + (iii). Ship the doc + skill and a warn-mode hook on day one. Telemetry tracks outline-hit-rate. Promote to block when\n  \u226580% of agent-Reads on large files already had a prior outline call (i.e., the rule is already followed, the block just catches drift). Do not do (iv) \u2014\n  substituting Read silently is too invasive; it'll surprise agents and humans both, and the failure mode (agent thinks it has the file but only has a summary) is\n   exactly the kind of subtle wrong-state clj-surgeon's hard-refuse principle warns against. and really Where does the outline come from? Re-parse on every call (gt compress structure is already there), or read from a persistent codeindex (already exists in\n  internal/codeindex/symbol/)? The codeindex is faster and gives you cross-file dep graph; the on-the-fly parse is always-fresh but slower and per-file only., then Does outline include the dep graph and reverse-call graph, or just the symbol list with line ranges? Clj-surgeon emits both (:ls is symbols, :deps is the\n  in-ns adjacency). then What's the LoC threshold for \"large file\"? Clj-surgeon's win was on a 2768-line file, but the curve probably bends much earlier \u2014 at ~300 LoC you've already\n  saved tokens",
+  "prior_context_summary": "Turn index 63 in session 1a6dcbcd",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 1221
+}

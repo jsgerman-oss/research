@@ -1,0 +1,10 @@
+{
+  "id": "turn-23",
+  "session_id": "28210c81-eefe-48ab-94f0-2e61176422a1",
+  "timestamp": "2026-05-10T20:44:40.089Z",
+  "user_prompt": "- A \u2014 Too much noise. Inbox is flooded with CI completions, your own activity confirmations, push notifications. The few signals you care about (review requests,\n  mentions, security alerts) get drowned.\n  - B \u2014 Missing signal. You're worried that CI failures or security advisories slip past unnoticed because they look like every other GitHub email.\n  - C \u2014 Inbox hygiene. You want a clean filing system so old GitHub threads aren't cluttering search, even though you don't currently miss anything.\n All three equally, I know you are going to push back. Noise is probably the biggest convern, I want to make sure I dont miss signals and I want to have better hygiene according to best practices",
+  "prior_context_summary": "Turn index 1089 in session 28210c81",
+  "observed_response_summary": "[no assistant response captured]",
+  "tools_used": [],
+  "prompt_char_length": 696
+}
