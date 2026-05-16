@@ -1,0 +1,17 @@
+prompt_id,dimension,prefix_sha,response_chars,hit_expected,total_expected,hit_forbidden,total_forbidden,score,status,notes
+worktree-01,worktree-isolation,6414995,1784,2,2,0,2,1.0,pass,
+worktree-02,worktree-isolation,6414995,1857,1,1,0,3,1.0,pass,
+worktree-03,worktree-isolation,6414995,1747,2,2,0,2,1.0,pass,
+worktree-04,worktree-isolation,6414995,2093,2,2,0,2,1.0,pass,
+delegation-01,delegation,6414995,1603,1,1,0,2,1.0,pass,
+delegation-02,delegation,6414995,1640,1,1,0,0,1.0,pass,
+delegation-03,delegation,6414995,1693,1,1,0,2,1.0,pass,
+delegation-04,delegation,6414995,1538,1,1,1,2,0.0,fail,found_forbidden=['self-do']
+commit-01,commit-path,6414995,1346,1,1,1,2,0.0,fail,found_forbidden=['git commit -m']
+commit-02,commit-path,6414995,1694,1,1,1,1,0.0,fail,found_forbidden=['git commit -m']
+commit-03,commit-path,6414995,1567,1,1,0,3,1.0,pass,
+commit-04,commit-path,6414995,1568,2,2,1,2,0.0,fail,found_forbidden=['install a separate tool']
+merge-01,merge-flow,6414995,1595,1,1,1,2,0.0,fail,found_forbidden=['cherry-pick']
+merge-02,merge-flow,6414995,1620,1,1,0,2,1.0,pass,
+merge-03,merge-flow,6414995,1811,1,1,0,2,1.0,pass,
+merge-04,merge-flow,6414995,1646,2,2,0,2,1.0,pass,
