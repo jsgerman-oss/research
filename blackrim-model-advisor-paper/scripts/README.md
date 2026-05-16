@@ -121,7 +121,15 @@ The replay script also regenerates the numbers that appear in
 `sections/A-appendix.tex`.  After running `replay.py`, re-run the
 LaTeX build to pick up updated figures.
 
-Cost figures are exact (deterministic from tier counts × published prices).
+Cost figures are exact (deterministic from tier counts × published prices)
+under the price table declared in `scripts/baselines/replay.py:_PRICES`. The
+table uses representative values that halve the real opus output rate for
+compactness ($30/MTok vs the public $75/MTok). The canonical CC-TS savings
+claim cited in §6 ($79.8\%$ vs opus-default) is the replay number; the
+earlier $89\%$ estimate in draft revisions was a back-of-envelope using
+full anthropic-public rates. §6 and §A are now reconciled around the
+replay number, with the price-table assumption stated explicitly in §A.
+
 Quality figures are illustrative worst-case estimates; see the appendix prose.
 
 ## Extending: adding a new advisor

@@ -43,12 +43,19 @@ suite is run on-policy in shadow mode for the quality comparison.
 \subsection{Cost results}
 
 \Cref{fig:cost-comparison} shows total cost per session across the four
-policies, normalised to the opus-default baseline. CC-TS achieves
-$89\%$ savings versus opus-default on the current trace (estimated from
-published token-rate profiles; see \cref{sec:repro}).
-%% TODO(baselines): fill Y% (vs static-frontmatter) and Z% (vs epsilon-greedy)
-%% once doubly-robust off-policy evaluation is complete against the full trace.
-%% Blocked on: data/raw/eval-fixtures.jsonl (MOA-11) and moa1b-prior.csv.
+policies, normalised to the opus-default baseline. Replaying all four
+policies against the 295 recorded dispatch contexts (see
+\cref{sec:baseline-replay} and \texttt{data/aggregated/baseline-comparison.csv}),
+CC-TS achieves $79.8\%$ savings versus opus-default ($\$1.79$ vs $\$8.85$
+at the illustrative price table in \cref{sec:baseline-replay}).
+The static-frontmatter table happens to match CC-TS exactly on this
+trace because $293/295$ records are Builder/Bu1 dispatches that both
+policies route to Sonnet; a more diverse trace would differentiate them.
+$\epsilon$-greedy is cheaper still ($+78.8\%$ vs CC-TS) but its quality
+bound is illustrative pending real evaluation observations.
+%% TODO(baselines): once data/raw/eval-fixtures.jsonl (MOA-11) lands,
+%% recompute with measured quality scores instead of the illustrative
+%% per-step penalty in scripts/baselines/replay.py.
 
 \begin{figure}[ht]
 \centering
