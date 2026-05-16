@@ -134,6 +134,47 @@ def generate_dry_run_responses(prompt_ids: list[str]) -> dict[str, str]:
     return {pid: _DRY_RUN_RESPONSE for pid in prompt_ids}
 
 
+def load_responses_from_jsonl(path: str, prompt_ids: list[str]) -> dict[str, str]:
+    """
+    Read pre-collected responses from a JSONL file. Each line is a JSON object
+    with at least `id` and `response` keys. Missing prompts are filled with the
+    empty string and reported via stderr.
+
+    Source-agnostic: lets responses come from any provider — direct Anthropic
+    API, Claude Code sub-agent dispatch (no API key needed), or a manual run.
+    """
+    import json
+    p = Path(path)
+    if not p.exists():
+        print(f"ERROR: responses JSONL not found: {path}", file=sys.stderr)
+        sys.exit(1)
+    out: dict[str, str] = {}
+    with open(p) as fh:
+        for ln, raw in enumerate(fh, start=1):
+            raw = raw.strip()
+            if not raw or raw.startswith("//"):
+                continue
+            try:
+                rec = json.loads(raw)
+            except json.JSONDecodeError as e:
+                print(f"ERROR: invalid JSON at line {ln}: {e}", file=sys.stderr)
+                sys.exit(1)
+            pid = rec.get("id") or rec.get("prompt_id")
+            text = rec.get("response") or rec.get("response_text") or ""
+            if pid:
+                out[pid] = text
+    missing = [pid for pid in prompt_ids if pid not in out]
+    if missing:
+        print(
+            f"WARNING: {len(missing)} prompts missing from responses JSONL: "
+            f"{missing}. Scored as empty.",
+            file=sys.stderr,
+        )
+        for pid in missing:
+            out[pid] = ""
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Live API calls
 # ---------------------------------------------------------------------------
@@ -304,6 +345,16 @@ def parse_args() -> argparse.Namespace:
         help="Skip API calls; use 'DRY_RUN' as synthetic response for all prompts.",
     )
     parser.add_argument(
+        "--responses-jsonl",
+        metavar="PATH",
+        help=(
+            "Path to a JSONL file with pre-collected responses (one "
+            "{id, response} per line). Bypasses both --dry-run and the live "
+            "API path; lets responses come from any provider (e.g. Claude "
+            "Code sub-agent dispatch — no API key required)."
+        ),
+    )
+    parser.add_argument(
         "--api-key-env",
         default="ANTHROPIC_API_KEY",
         metavar="ENV_VAR",
@@ -368,8 +419,12 @@ def main() -> None:
         prefix_text = load_prefix_from_file(args.prefix)
     print(f"  prefix length: {len(prefix_text):,} chars")
 
-    # --- Dry-run or live ---
-    if args.dry_run:
+    # --- Dry-run, pre-collected responses, or live ---
+    if args.responses_jsonl:
+        print(f"Loading pre-collected responses from {args.responses_jsonl} …")
+        prompt_ids = [p["id"] for p in prompts if p.get("id")]
+        responses = load_responses_from_jsonl(args.responses_jsonl, prompt_ids)
+    elif args.dry_run:
         print("Dry-run mode — skipping API calls.")
         prompt_ids = [p["id"] for p in prompts if p.get("id")]
         responses = generate_dry_run_responses(prompt_ids)
@@ -405,7 +460,7 @@ def main() -> None:
     print(f"  rows: {len(results)}")
 
     # --- Summary ---
-    print_summary(results, dry_run=args.dry_run)
+    print_summary(results, dry_run=args.dry_run and not args.responses_jsonl)
 
 
 if __name__ == "__main__":
