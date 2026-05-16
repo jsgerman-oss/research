@@ -1,26 +1,55 @@
 \section{System: Blackrim Multi-Agent Architecture}
 \label{sec:system}
 
-% Blackrim's architecture and how CLAUDE.md fits in.
-%
-% 1. Gestalt-opus orchestrator + 8 citizens (opus, domain leads) + 7 workers
-%    (sonnet/haiku, shared pool).
-% 2. bd (beads) — Dolt-backed task graph for coordination across context-window
-%    resets.
-% 3. Static prefix layer:
-%    - ~/.claude/CLAUDE.md (global, thin)
-%    - <project>/CLAUDE.md (project, thick — the focus of this paper)
-%    - agents/citizens/*.md, agents/workers/*.md (per-agent overlays)
-% 4. Agent dispatch pattern:
-%    - bd ready → claim atomically → spawn N parallel agents in worktrees
-%      → squash-merge via bin/merge-agent → close bd
-%    - Per Anthropic prompt cache: cache_creation on first spawn of window;
-%      cache_read on subsequent.
-% 5. Telemetry capture:
-%    - .beads/telemetry/invocations.jsonl per spawn
-%    - cache_creation_input_tokens vs cache_read_input_tokens fields
-%    - gt invocations record / gt context budget orchestration metrics
+\subsection{Multi-agent architecture}
 
-\tothink{Add architecture diagram (figures/blackrim-architecture.tex)
-and reference \cref{fig:arch}. Cite the dogfooding instance: this
-paper's data was collected from the Blackrim repo itself.}
+\blackrim is a multi-agent framework for software engineering tasks organized
+as a crew of domain-specialized agents. The orchestrator (``Gestalt'') is a
+single opus-class model that routes work to the appropriate citizen based on
+domain. Eight citizens—each an opus-class model and domain lead (Engineering,
+Frontend, Infrastructure, Security, Product, Data, ML, Knowledge)—own vertical
+slices and dispatch workers for parallel or specialized work. Seven workers
+(sonnet/haiku, shared pool) execute functional tasks: architecture review,
+code building, testing, code review, research, writing, and scoring.
+
+Coordination across agents happens via \texttt{bd} (beads), a Dolt-backed task
+graph that assigns issue IDs, tracks dependencies, and survives context-window
+resets. The dispatch pattern is atomic: scan ready tasks, claim one or more
+tasks, spawn parallel agents in isolated worktrees, await completion, merge
+results, and close tasks. Because multiple agents may spawn in parallel within a
+single 5-minute prompt-cache window, the cost model in \cref{sec:problem}
+reflects the empirical hit-rate structure observed during multi-agent waves.
+
+\subsection{Static-prefix instruction document layers}
+
+\blackrim's instruction architecture is three-tiered. A global \texttt{CLAUDE.md}
+at \texttt{\~{}/.claude/} is thin and rarely changes; it loads automatically
+into every Claude Code session across all projects. The project-level
+\texttt{CLAUDE.md} (the focus of this paper) is thick and project-specific,
+defining domain roles, dispatch discipline, skill definitions, and agent
+coordination patterns. Per-agent overlays—\texttt{agents/citizens/*.md} and
+\texttt{agents/workers/*.md}—are prepended to the base prefix at dispatch,
+allowing agents to declare their specific capabilities and constraints.
+
+The project \texttt{CLAUDE.md} is the single source of truth for instruction
+codification. Its content directly affects agent behavior (which skills are
+available, how dispatch routes work, what coordination patterns are expected),
+making it a critical operational document. Consequently, static-prefix loading
+cost is dominated by the project-level document, measured at 708 lines and
+48\,487 characters at the baseline commit.
+
+\subsection{Telemetry and measurement}
+
+Every agent spawn in \blackrim logs to \texttt{.beads/telemetry/invocations.jsonl},
+recording the spawn timestamp, agent role, task ID, input token count, output
+token count, and crucially, Anthropic's cache-state fields:
+\texttt{cache\_creation\_input\_tokens} (first spawn of a window) and
+\texttt{cache\_read\_input\_tokens} (subsequent spawns). These fields enable
+direct measurement of prompt-cache behavior under real workloads.
+
+The evaluation in \cref{sec:eval} derives its measurements from git history
+(CLAUDE.md size trajectory at commit-level granularity) paired with post-trim
+agent execution traces (confirming fidelity through successful task completion).
+The reproducibility setup (\cref{sec:repro}) documents the data pipeline that
+regenerates measurements from live Blackrim repository state, enabling future
+verification and refresh as the framework evolves.

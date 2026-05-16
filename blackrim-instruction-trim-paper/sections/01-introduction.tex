@@ -1,42 +1,101 @@
 \section{Introduction}
 \label{sec:intro}
 
-% TODO: full prose. Outline below captures the intended argument.
-%
-% 1. Cost shape of static-prefix multi-agent systems.
-%    - CLAUDE.md (or system prompt equivalent) loaded into every spawn.
-%    - Anthropic prompt cache amortises 80--90% within a 5-minute TTL window,
-%      but every cache invalidation pays full prefill again.
-%    - At Blackrim's scale (~50 spawns/day, 5 parallel agents per wave),
-%      a 49 KB prefix amortises to ~1 KB/spawn but still costs $X/year on
-%      first-spawn-of-window.
-%
-% 2. The temptation: compress.
-%    - LLMLingua, RECOMP, AutoCompressors, ICAE — all proven on retrieval
-%      contexts (QA, summarisation).
-%    - Critical gap in literature: zero papers benchmark compression on
-%      instruction documents specifically.
-%    - Lost-in-the-middle (Liu et al.) is U-shaped for retrieval (15--25%
-%      degradation in middle position) but only 3--8% for instruction-tuned
-%      models. Static-prefix CLAUDE.md at the start of context is already
-%      structurally optimal.
-%
-% 3. Our contribution.
-%    a. A frequency-weighted residency model that decides what stays in-prefix.
-%    b. An applied conservative trim of Blackrim's CLAUDE.md (-35.2% lines /
-%       -19.4% chars across three waves) without instruction-fidelity loss.
-%    c. An integrated literature review surfacing which retrieval-context
-%       optimisations transfer (progressive disclosure, code-specific
-%       embeddings) and which do not (knowledge graphs, learned compression).
-%    d. A ranked optimisation landscape (10 directions) for static-prefix
-%       multi-agent coding systems.
-%
-% 4. Roadmap of the paper. \cref{sec:related} surveys related work;
-%    \cref{sec:problem} formalises the cost minimisation problem;
-%    \cref{sec:system} describes Blackrim's architecture; \cref{sec:algo}
-%    presents the trim algorithm; \cref{sec:eval} reports the empirical
-%    deltas; \cref{sec:discussion} situates the broader landscape;
-%    \cref{sec:future} maps next directions.
+\subsection*{Cost of static-prefix multi-agent systems}
 
-\tothink{Write introduction prose from outline above; target $\sim$1.5
-pages.}
+Multi-agent LLM applications that coordinate via a single orchestrator
+load a canonical instruction document—typified by \claudemd in
+\blackrim—into every agent spawn as a cached prefix. At operational
+scale, this becomes a substantial cost driver. \blackrim executes
+approximately 50 agent spawns per day across five parallel agent waves,
+each loading a 708-line, 48\,487-character instruction document before
+task execution begins. Anthropic's prompt cache mitigates this cost by
+amortizing repeated prefixes within a 5-minute TTL window, compressing
+cache hits to approximately 10\,\% of the input token cost of a cache
+miss. However, TTL expiration and configuration changes invalidate
+the cache and trigger full prefill charges. At observed cache hit rates
+of 0.80--0.90, the effective cost per spawn remains substantial; worse,
+every cache miss resets the window, creating a sawtooth cost pattern
+where initial spawns pay full prefix cost and subsequent spawns within
+the window pay amortized rates.
+
+\subsection*{The compression trap}
+
+The natural response is lossy compression. The literature offers mature
+techniques: LLMLingua and LongLLMLingua aggressively compress retrieval
+contexts \cite{llmlingua,longllmlingua}; RECOMP selectively augments
+\cite{recomp}; AutoCompressors and ICAE train specialized models
+\cite{autocompressors,icae}. All report fidelity preservation on QA and
+retrieval benchmarks. However, instruction documents are structurally
+different from retrieval contexts: they encode procedural rules,
+dispatch logic, and governance constraints that are brittle to missing or
+abbreviated context in ways QA passages are not. The critical gap is
+that no prior work benchmarks lossy compression specifically on
+instruction documents. The field therefore lacks measurement to assure
+that compression techniques that preserve QA accuracy also preserve
+instruction-following fidelity.
+
+Meanwhile, empirical work on attention patterns offers a second reason
+for caution. Liu et al.'s ``Lost in the Middle'' finding established
+that models attend preferentially to early and late positions in long
+contexts, with degradation in the middle. However, this U-shaped effect
+is pronounced for retrieval tasks (15--25\,\% quality loss at middle
+positions) but modest for instruction-tuned models (3--8\,\% only)
+\cite{lostinmiddle}. Static-prefix instruction documents placed at
+context start already align with the optimal attention pattern,
+removing a key motivation for compression.
+
+\subsection*{Our approach: conservative frequency-weighted disclosure}
+
+Rather than compression, we propose frequency-weighted progressive
+disclosure: partitioning the instruction document into sections and
+deciding residency (in-prefix) versus externalization (on-demand Read)
+based on per-section access frequency under the cost model derived in
+\cref{sec:problem}. The decision rule is conservative: we restrict
+ourselves to two fidelity-preserving interventions with no literature
+risk: (i) removal of redundant content, and (ii) externalization of
+content to permanent external documentation, replaced in-prefix by a
+one-line pointer. No section is rewritten or compressed; only
+unnecessary duplication is removed and stable content is moved to
+dedicated external homes where it already belongs.
+
+We apply this algorithm to \blackrim's \claudemd across three waves of
+revision. The conservative approach removes 249 lines (35.2\,\%)
+and 9\,419 characters (19.4\,\%), measurably reducing static-prefix
+cost while maintaining instruction-following fidelity across the
+post-trim agent runs. The second wave alone delivered a 21.5\,\% line
+reduction (152 lines) and 16.9\,\% character reduction (8\,178 characters).
+
+\subsection*{Contributions}
+
+This work makes four contributions:
+
+\begin{enumerate}
+  \item \textbf{Cost model.} A formal cost-minimization model decomposing
+    static-prefix loading under cache hit rate $\cachehit$ and per-section
+    access frequency, yielding a decision rule for in-prefix residency
+    (\cref{eq:decision}).
+  \item \textbf{Conservative algorithm.} A trim procedure restricted to
+    redundancy removal and externalization, deferring lossy compression
+    until measurement bridges the instruction-fidelity gap (\cref{sec:algo}).
+  \item \textbf{Measured deltas.} Application to \blackrim across three
+    committed waves, confirming 35.2\,\% line reduction and 19.4\,\%
+    character reduction without observed instruction-fidelity degradation
+    (\cref{sec:eval}).
+  \item \textbf{Reproducibility artifacts.} Full data pipeline from live
+    repository state, enabling refresh of results as the codebase evolves
+    (\cref{sec:repro}).
+\end{enumerate}
+
+\subsection*{Paper roadmap}
+
+\cref{sec:related} surveys prompt compression, hierarchical context design,
+caching architectures, and multi-agent coordination systems, situating our
+approach relative to adjacent work. \cref{sec:problem} formalizes the
+cost-minimization problem and derives the core decision rule. \cref{sec:system}
+describes \blackrim's architecture and how static prefixes are instantiated in
+practice. \cref{sec:algo} presents the conservative trim algorithm and
+justifies its restrictions. \cref{sec:eval} reports empirical measurements
+and reproducibility setup. \cref{sec:discussion} surveys ten further
+optimisation directions and discusses which are compatible with static-prefix
+architecture. \cref{sec:future} identifies open questions and next steps.
