@@ -1,6 +1,55 @@
-% Placeholder eval-flow figure — replaced by the real TikZ diagram when filled in.
-\fbox{\parbox{0.9\linewidth}{\centering\itshape
-  [eval-flow diagram placeholder — task input → scorer (heuristic /
-  embedding / LLM-classifier / LLM-rubric / trajectory) → per-cell
-  calibration + agreement + bias-bound axes → suite verdict]
-}}
+% eval-flow.tex — eval-suite data-flow diagram (Figure 1)
+%
+% Compileable standalone:
+%   \documentclass{standalone}
+%   \usepackage{tikz}
+%   \usetikzlibrary{positioning,arrows.meta,shapes,fit,backgrounds}
+%   \begin{document}\input{figures/eval-flow}\end{document}
+%
+% When \input{}-ed from main.tex the \documentclass wrapper is omitted;
+% main.tex already loads tikz + \usetikzlibrary{positioning,arrows.meta,...}.
+
+\begin{tikzpicture}[
+  node distance = 8mm and 14mm,
+  every node/.style = {font=\small},
+  box/.style = {
+    draw, rectangle, rounded corners=2pt,
+    minimum width=30mm, minimum height=8mm,
+    text centered, align=center
+  },
+  arrow/.style = {-{Stealth[length=4pt]}, thick},
+]
+
+% --- Pipeline nodes (top to bottom) -----------------------------------------
+\node[box] (yaml)   {Suite YAML config};
+\node[box, below=of yaml]   (runner) {Runner / scorer\\[-1pt]registry dispatch};
+\node[box, below=of runner] (judge)  {LLM judge\\[-1pt](log-probs)};
+\node[box, below=of judge]  (agg)    {Per-cell\\[-1pt]aggregation};
+
+% --- Three-axis gate (dashed border subgroup) --------------------------------
+\node[box, below=of agg,  xshift=-22mm] (cal)  {Calibration\\[-1pt]no-regression};
+\node[box, right=of cal]                (agree){Agreement\\[-1pt]no-regression};
+\node[box, right=of agree]              (bias) {Bias-bound\\[-1pt]precondition};
+
+\begin{scope}[on background layer]
+  \node[draw=black!60, dashed, rounded corners=4pt,
+        fit=(cal)(agree)(bias),
+        inner sep=5pt,
+        label={[font=\scriptsize,text=black!60]above:Three-axis gate}] (gate) {};
+\end{scope}
+
+% --- Telemetry sink ----------------------------------------------------------
+\node[box, below=12mm of agree] (sink) {Telemetry sink\\[-1pt](\texttt{cases.jsonl})};
+
+% --- Arrows ------------------------------------------------------------------
+\draw[arrow] (yaml)   -- (runner);
+\draw[arrow] (runner) -- (judge);
+\draw[arrow] (judge)  -- (agg);
+\draw[arrow] (agg.south) -- ++(0,-5mm) -| (cal.north);
+\draw[arrow] (agg.south) -- ++(0,-5mm) -| (agree.north);
+\draw[arrow] (agg.south) -- ++(0,-5mm) -| (bias.north);
+\draw[arrow] (cal.south)   |- (sink.west);
+\draw[arrow] (agree.south) -- (sink.north);
+\draw[arrow] (bias.south)  |- (sink.east);
+
+\end{tikzpicture}
