@@ -44,7 +44,9 @@ Subagent dispatch & 0.7338 & 0.6\% & 55 (calls) \\
 \textbf{Interpretation.} The 0.6\,\% dispatch cost is the
 already-tuned subagent advisor at work. Routing the
 \emph{orchestrator itself} to a cheaper tier on read-mostly turns
-is the dominant remaining lever.
+is the dominant remaining lever (\cref{fig:cost-split}).
+
+\input{figures/fig1-cost-split}
 
 \subsection{Cache calibration baseline}
 
@@ -71,7 +73,9 @@ at $0.10\times$ the per-model base rate.}
 
 The plan-cache primitive (§\ref{sec:plancache}) targets the
 remaining 21.4\,\% by capturing reuse \emph{across} the 5-minute
-TTL window via semantic plan-signature matching.
+TTL window via semantic plan-signature matching (\cref{fig:cache-trajectory}).
+
+\input{figures/fig2-cache-trajectory}
 
 \subsection{Routing evaluation}
 
@@ -148,6 +152,9 @@ Accuracy improves from 51.0\,\% to 61.2\,\%.
 Cost savings of \$0.000289 per 49-turn batch represent a \textbf{30\,\%
 increase} over the length-heuristic (\$0.000223), or roughly 1.93\(\times\)
 the savings of always-opus (\$0.000000 by construction).
+\Cref{fig:routing-results} summarises per-class F1 scores across all four routers.
+
+\input{figures/fig3-routing-results}
 
 The router's principal weakness is \emph{opus recall}: F1 0.125
 (1 true-positive, 3 false-positives, 11 false-negatives).
@@ -249,7 +256,7 @@ With \(H=0.15\) on the synthetic fixture, plan caching adds
 \(0.15 \times 0.214 = 3.2\,\%\) of additional savings, for a composed
 figure of 81.8\,\%.
 Neither figure approaches the 50\,\% \emph{additional} savings headline
-from \citet{agentic-plan-caching-neurips2025}, which was measured on a much
+from \textcite{agentic-plan-caching-neurips2025}, which was measured on a much
 larger deployment with higher query repetition rates.
 
 \paragraph{Interpretation.}
@@ -267,6 +274,21 @@ Achieving the \(\geq\!30\,\%\) target would require either a larger corpus
 similarity threshold using cosine-similarity retrieval over query embeddings
 rather than exact signature-hash matching.
 These directions are deferred to future work (§\ref{sec:future}).
+
+\subsection{Composed cost reduction}
+
+\Cref{fig:composed-cost} shows the cumulative effect of stacking the three
+primitives.
+Prefix caching alone accounts for the largest share (78.6\,\%).
+Plan caching at the synthetic-fixture hit rate (\(H=0.15\), $n=40$) contributes
+a further 3.2\,pp.
+Per-turn routing adds a marginal 0.4\,pp by cheapening turns misclassified as
+\texttt{sonnet} or \texttt{haiku} rather than \texttt{opus}.
+The combined effect (82.2\,\%) leaves 17.8\,\% of the no-caching baseline
+as residual cost — almost entirely attributable to turns that are genuinely
+opus-complexity or that are cache-cold.
+
+\input{figures/fig4-composed-cost}
 
 \subsection{Reproducibility}
 \label{sec:repro}

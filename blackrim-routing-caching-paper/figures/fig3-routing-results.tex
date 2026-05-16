@@ -1,0 +1,56 @@
+% fig3-routing-results.tex — §7 routing evaluation bar chart (RC-07)
+% Data source: data/aggregated/routing-baseline-results.csv
+% Columns: router,accuracy,macro_f1,haiku_f1,sonnet_f1,opus_f1,total_cost_saved_usd,total_cost_of_mistakes_usd
+% Style: print-safe, grouped bars for accuracy/macro_f1/haiku_f1/sonnet_f1, width=0.85\textwidth
+
+\begin{figure}[ht]
+\centering
+\pgfplotstableread[col sep=comma]{data/aggregated/routing-baseline-results.csv}{\routingtable}
+
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  width=0.85\textwidth,
+  height=6cm,
+  bar width=5pt,
+  ylabel={Score},
+  ymin=0, ymax=1.05,
+  ytick={0,0.2,0.4,0.6,0.8,1.0},
+  yticklabel style={font=\small},
+  xtick=data,
+  xticklabels={Always-opus, Random, Length, \textbf{Semantic-sim}},
+  xticklabel style={font=\small, align=center},
+  enlarge x limits=0.15,
+  legend style={
+    at={(0.97,0.97)},
+    anchor=north east,
+    legend columns=2,
+    font=\small,
+    draw=black,
+  },
+  nodes near coords,
+  nodes near coords style={font=\tiny, rotate=90, anchor=west},
+  every node near coord/.append style={/pgf/number format/.cd, fixed, precision=2},
+]
+% Accuracy
+\addplot+[fill=black!80, draw=black] table[x expr=\coordindex, y=accuracy] {\routingtable};
+% Macro F1
+\addplot+[fill=black!50, draw=black] table[x expr=\coordindex, y=macro_f1] {\routingtable};
+% Haiku F1
+\addplot+[fill=black!20, draw=black] table[x expr=\coordindex, y=haiku_f1] {\routingtable};
+% Sonnet F1
+\addplot+[fill=white, draw=black, pattern=north east lines] table[x expr=\coordindex, y=sonnet_f1] {\routingtable};
+
+\legend{Accuracy, Macro-F1, Haiku-F1, Sonnet-F1}
+\end{axis}
+\end{tikzpicture}
+
+\caption{%
+  Routing evaluation on N\,=\,49 held-out turns (LOO-CV for semantic-similarity).
+  The proposed semantic-similarity router achieves 61.2\,\% accuracy
+  (macro-F1\,=\,0.526), with strong haiku-F1 (0.786) and solid sonnet-F1 (0.667),
+  saving \$0.000289 per 49-turn batch vs.\ \$0 for always-opus by construction.
+  Source: \texttt{data/aggregated/routing-baseline-results.csv}.%
+}
+\label{fig:routing-results}
+\end{figure}
