@@ -95,6 +95,35 @@ override. The published version of the paper anchors to a tagged commit of
 the upstream Blackrim repo and the corresponding telemetry snapshot in
 `data/raw/`.
 
+## Baseline-policy replay
+
+Three fixed-policy comparators in `scripts/baselines/` provide reference
+points for §A (\cref{app:baselines}):
+
+| Module | Policy | Tier logic |
+|---|---|---|
+| `static_frontmatter.py` | static-fm | Fixed (agent → tier) table; shape ignored |
+| `epsilon_greedy.py` | ε-greedy (ε=0.10) | Explore/exploit by per-shape success rate |
+| `opus_default.py` | opus-default | Always opus |
+
+Run the replay:
+
+```bash
+# From repo root:
+python scripts/baselines/replay.py
+# Reads  data/raw/advisor-decisions.jsonl
+#        data/raw/eval-triggered-observations.jsonl  (optional; seeds ε-greedy)
+# Writes data/aggregated/baseline-comparison.csv
+```
+
+The replay script also regenerates the numbers that appear in
+`figures/baseline-table.tex`, which is `\input{}`-ed by
+`sections/A-appendix.tex`.  After running `replay.py`, re-run the
+LaTeX build to pick up updated figures.
+
+Cost figures are exact (deterministic from tier counts × published prices).
+Quality figures are illustrative worst-case estimates; see the appendix prose.
+
 ## Extending: adding a new advisor
 
 Add a `_select_<name>` function in `run-eval-suite.py`, register it in the

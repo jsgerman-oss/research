@@ -147,3 +147,72 @@ reproducibility:
   \item \textbf{Hardware.} Production deployment runs in user terminals
         on \texttt{darwin} and \texttt{linux}; no special hardware.
 \end{itemize}
+
+\section{Baseline-policy replay}
+\label{app:baselines}
+
+To contextualise cc-ts performance, we replay three fixed policies
+against the same 295 dispatch contexts recorded in
+\texttt{data/raw/advisor-decisions.jsonl}.
+
+\paragraph{Policies.}
+
+\begin{description}[leftmargin=*]
+  \item[static-fm.]  A static lookup table mapping agent role to tier:
+        Architect $\to$ opus, Builder/Reviewer/Tester $\to$ sonnet,
+        Writer/Researcher $\to$ haiku.  No per-dispatch adaptation.
+        This is the implicit policy encoded in the project \texttt{CLAUDE.md}
+        delegation-discipline table, applied rigidly without any
+        posterior update.
+
+  \item[$\varepsilon$-greedy ($\varepsilon = 0.10$).]  At each dispatch,
+        explores (uniform random tier) with probability $\varepsilon$;
+        exploits (highest Laplace-smoothed success rate within the task
+        shape) with probability $1 - \varepsilon$.  Per-shape success rates
+        are seeded from \texttt{data/raw/eval-triggered-observations.jsonl}
+        when available.  The exploration parameter $\varepsilon = 0.10$
+        matches the value in \cref{app:hyperparams}.
+
+  \item[opus-default.]  Always dispatches to opus regardless of agent or
+        task shape.  This is the conservative upper-capability baseline
+        that most users implicitly apply before any advisor is in place.
+\end{description}
+
+\paragraph{Cost model.}
+All cost figures use the same published Anthropic per-token prices as
+\texttt{scripts/aggregate-by-shape.py}: haiku \$0.25/MTok input
+(\$0.50 output), sonnet \$3.00/MTok (\$6.00), opus \$15.00/MTok
+(\$30.00).  Because the per-dispatch JSONL records do not carry exact
+token counts, we apply a \emph{synthetic representative token budget}:
+1\,200 input tokens and 400 output tokens per dispatch.  These are
+rounded illustrative figures chosen for exposition — they are \textbf{not}
+measured per-call averages.  Given a fixed budget the cost numbers are
+\textbf{exact} (deterministic arithmetic, no estimation).
+
+\paragraph{Quality model (illustrative, not measured).}
+cc-ts quality is normalised to $1.000$ per dispatch.  For any dispatch
+where a baseline policy chose a tier \emph{below} the cc-ts recommendation
+we apply a conservative $5\,\mathrm{pp}$ degradation per tier step down.
+For dispatches at or above the cc-ts tier no penalty is applied.  This
+worst-case model is \textbf{illustrative only}: real quality data requires
+running the held-out eval fixtures (\texttt{eval-fixtures.jsonl}, a
+pipeline TODO), which are not yet available.
+
+\paragraph{Results.}
+
+\input{figures/baseline-table}
+
+\noindent
+The replay reveals two key contrasts.  \emph{opus-default} achieves the
+same quality score as cc-ts (no penalty — it always meets or exceeds the
+cc-ts tier) but at nearly $5\times$ the cost (\$8.85 vs.\ \$1.79).
+\emph{static-fm} happens to match cc-ts exactly on this trace because the
+295 records are dominated by Builder (shape \texttt{Bu1}) dispatches that
+the static table also routes to sonnet; cost savings versus opus-default
+are identical.  \emph{$\varepsilon$-greedy} achieves the lowest nominal
+cost (\$0.38, a $78.8\%$ reduction vs.\ cc-ts) through aggressive
+exploration toward haiku, but incurs a $4.7\,\mathrm{pp}$ illustrative
+quality penalty — a reminder that raw exploration without the
+conservative-guarantee gate is not free.  These figures must be
+interpreted with caution given the illustrative quality model; they are
+presented to frame the design space, not as measured head-to-head results.
