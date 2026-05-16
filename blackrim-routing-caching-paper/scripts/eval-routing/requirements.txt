@@ -1,0 +1,9 @@
+# Dependencies for the routing evaluation harness.
+# Install with: pip install -r scripts/eval-routing/requirements.txt
+
+# YAML parsing (labels.yml)
+pyyaml>=6.0
+
+# Semantic-similarity router (RC-04)
+# all-MiniLM-L6-v2 (~80 MB) downloads on first use; CPU-only, no CUDA required.
+sentence-transformers>=2.0

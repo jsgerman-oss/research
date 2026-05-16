@@ -162,6 +162,87 @@ baseline at 51% accuracy, mainly due to reasonable sonnet F1 (0.744).
 
 ---
 
+## Semantic-similarity router (RC-04)
+
+The `semantic-similarity` router is a k-nearest-neighbour classifier over
+sentence embeddings.  It is the headline router described in §7 of the paper.
+
+### How it works
+
+1. At construction, each exemplar in `labels.yml` (excluding `ambiguous` turns
+   and, in LOO-CV mode, the held-out turn) is encoded with a
+   sentence-transformers model by concatenating `user_prompt` and
+   `observed_response_summary`.
+2. At routing time the query turn is encoded the same way, cosine similarity is
+   computed against all exemplar embeddings (L2-normalised dot product), and the
+   majority-vote tier of the top-`k` neighbours (`k=5` default) is returned.
+3. **Conservative escalation**: if the maximum cosine similarity to any
+   exemplar is below `min_similarity` (default `0.30`), the router returns
+   `opus` unconditionally — treating the turn as out-of-distribution and
+   preferring the safest, most capable tier.
+
+The implementation lives in `routers/semantic_similarity.py`.
+`run.py` imports it through the `routers/` package (added to `sys.path` at
+load time, so it works regardless of the caller's working directory).
+
+### Dependency
+
+```bash
+pip install sentence-transformers
+```
+
+The default model is `all-MiniLM-L6-v2` (~80 MB download on first use, CPU-only,
+no GPU required).
+
+### Swapping models
+
+Set the `SEMANTIC_ROUTER_MODEL` environment variable to any
+[sentence-transformers model identifier](https://www.sbert.net/docs/pretrained_models.html)
+before running:
+
+```bash
+SEMANTIC_ROUTER_MODEL=paraphrase-multilingual-MiniLM-L12-v2 \
+  python scripts/eval-routing/run.py --router semantic-similarity --cv-loo \
+  --turns-dir scripts/eval-routing/turns/ \
+  --labels scripts/eval-routing/labels.yml \
+  --out data/aggregated/routing-eval-semantic-multilingual.csv
+```
+
+Or pass `model_name` when constructing `SemanticSimilarityRouter` directly.
+
+### Leave-one-out cross-validation
+
+Use `--cv-loo` to run LOO-CV (only supported for `semantic-similarity`):
+
+```bash
+python scripts/eval-routing/run.py \
+  --router semantic-similarity \
+  --cv-loo \
+  --turns-dir scripts/eval-routing/turns/ \
+  --labels scripts/eval-routing/labels.yml \
+  --out data/aggregated/routing-eval-semantic.csv
+```
+
+Each of the 50 turns is evaluated with that turn excluded from the exemplar
+set, producing an unbiased generalisation estimate.  The run takes roughly
+60–90 seconds on a modern laptop CPU (50 model re-instantiations × ~50
+exemplar encodings each, with cached model weights).
+
+### Results (LOO-CV, N=49 non-ambiguous turns)
+
+| Router                   | Accuracy | Macro-F1 | Haiku F1 | Sonnet F1 | Opus F1 | Cost saved vs opus |
+|--------------------------|----------|----------|----------|-----------|---------|--------------------|
+| always-opus              | 24.5%    | 0.131    | 0.000    | 0.000     | 0.393   | $0.000000 |
+| random-uniform           | 20.4%    | 0.191    | 0.148    | 0.286     | 0.138   | $0.000210 |
+| length-heuristic         | 51.0%    | 0.466    | 0.357    | 0.744     | 0.296   | $0.000223 |
+| **semantic-similarity**  | **61.2%**| **0.526**| **0.786**| **0.667** | 0.125   | **$0.000289** |
+
+The semantic router's main weakness is opus recall (F1 0.125): short,
+design-pivoting opus turns are superficially similar to routine sonnet queries
+and the 53-exemplar set lacks sufficient opus prototype coverage.
+
+---
+
 ## Adding a new router
 
 1. Subclass `Router` in `run.py`:
@@ -197,7 +278,3 @@ baseline at 51% accuracy, mainly due to reasonable sonnet F1 (0.744).
 
 4. The new router's summary row is appended to
    `data/aggregated/routing-baseline-results.csv` automatically.
-
-RC-04 will replace the `SemanticSimilarityRouter` stub with an
-embedding-based cosine-similarity classifier, enabling the headline result
-reported in §7 of the paper.

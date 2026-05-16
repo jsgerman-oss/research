@@ -31,6 +31,10 @@ from typing import Literal
 
 import yaml  # PyYAML — stdlib-free fallback below if missing
 
+# Ensure the routers/ package (sibling of this file) is importable regardless
+# of the working directory the caller uses.
+sys.path.insert(0, str(Path(__file__).parent))
+
 # ---------------------------------------------------------------------------
 # Pricing (USD per million input tokens — illustrative)
 # ---------------------------------------------------------------------------
@@ -130,18 +134,52 @@ class LengthHeuristicRouter(Router):
 
 
 class SemanticSimilarityRouter(Router):
-    """Stub for the RC-04 semantic-similarity router.
+    """k-NN semantic router using sentence-transformers embeddings.
 
-    Currently returns haiku for every turn so the harness can run
-    end-to-end without a live model.  RC-04 will replace this body with
-    an embedding-based classifier.
+    Encodes each turn (user_prompt + observed_response_summary) with
+    all-MiniLM-L6-v2, finds the k nearest exemplars from labels.yml by
+    cosine similarity, and returns the majority-vote tier.
+
+    Conservative escalation: if max cosine similarity < min_similarity
+    (default 0.30), returns "opus" regardless of vote (out-of-distribution
+    escape hatch).
+
+    In leave-one-out CV mode (--cv-loo), this router is re-instantiated per
+    turn with the held-out turn excluded from the exemplar set; see main().
+
+    Requires: pip install sentence-transformers
     """
 
     name = "semantic-similarity"
 
-    def route(self, turn: dict) -> str:  # noqa: ARG002
-        # TODO(RC-04): replace with embedding cosine-similarity lookup.
-        return "haiku"
+    def __init__(
+        self,
+        labels_path: Path | None = None,
+        turns_dir: Path | None = None,
+        loo_turn_id: str | None = None,
+    ) -> None:
+        self._labels_path = labels_path
+        self._turns_dir = turns_dir
+        self._loo_turn_id = loo_turn_id
+        self._impl: "routers.SemanticSimilarityRouter | None" = None
+
+    def _ensure_impl(self) -> "routers.SemanticSimilarityRouter":
+        if self._impl is None:
+            if self._labels_path is None or self._turns_dir is None:
+                raise RuntimeError(
+                    "SemanticSimilarityRouter requires labels_path and turns_dir. "
+                    "Use get_router_with_paths() or --cv-loo mode."
+                )
+            from routers import SemanticSimilarityRouter as _Impl
+            self._impl = _Impl(
+                labels_path=self._labels_path,
+                turns_dir=self._turns_dir,
+                loo_turn_id=self._loo_turn_id,
+            )
+        return self._impl
+
+    def route(self, turn: dict) -> str:
+        return self._ensure_impl().route(turn)
 
 
 # ---------------------------------------------------------------------------
@@ -288,7 +326,20 @@ def main() -> None:
             "data/aggregated/routing-eval-<router>.csv"
         ),
     )
+    parser.add_argument(
+        "--cv-loo",
+        action="store_true",
+        default=False,
+        help=(
+            "Leave-one-out cross-validation mode (semantic-similarity router only). "
+            "For each turn, re-instantiates the router with that turn excluded from "
+            "the exemplar set, then predicts.  Produces unbiased CV estimates."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.cv_loo and args.router != "semantic-similarity":
+        sys.exit("--cv-loo is only supported for the semantic-similarity router.")
 
     turns_dir = Path(args.turns_dir)
     labels_path = Path(args.labels)
@@ -311,30 +362,70 @@ def main() -> None:
         with tf.open() as f:
             turns.append(json.load(f))
 
-    # Build router
-    router = get_router(args.router)
+    # Build router (non-LOO path: construct once for all turns)
+    if not args.cv_loo:
+        if args.router == "semantic-similarity":
+            router: Router = SemanticSimilarityRouter(
+                labels_path=labels_path,
+                turns_dir=turns_dir,
+            )
+        else:
+            router = get_router(args.router)
 
     # Run evaluation
+    # LOO path: re-instantiate the semantic router per turn, excluding that turn.
     rows: list[dict] = []
-    for turn in turns:
-        tid = turn["id"]
-        gold_tier = gold.get(tid, "ambiguous")
-        pred_tier = router.route(turn)
-
-        correct = pred_tier == gold_tier and gold_tier != "ambiguous"
-        saved = cost_saved_vs_opus(pred_tier) if gold_tier != "ambiguous" else 0.0
-        mistake = cost_of_mistake(gold_tier, pred_tier) if gold_tier != "ambiguous" else 0.0
-
-        rows.append(
-            {
-                "turn_id": tid,
-                "gold_tier": gold_tier,
-                "pred_tier": pred_tier,
-                "correct": int(correct),
-                "cost_saved_vs_opus_usd": round(saved, 8),
-                "cost_of_mistake_usd": round(mistake, 8),
-            }
+    if args.cv_loo:
+        from routers import SemanticSimilarityRouter as _SemRouter
+        print(
+            f"Running leave-one-out CV with semantic-similarity router "
+            f"({len(turns)} iterations)..."
         )
+        for i, turn in enumerate(turns):
+            tid = turn["id"]
+            gold_tier = gold.get(tid, "ambiguous")
+            # Re-instantiate router excluding this turn from exemplars
+            loo_router = _SemRouter(
+                labels_path=labels_path,
+                turns_dir=turns_dir,
+                loo_turn_id=tid,
+            )
+            pred_tier = loo_router.route(turn)
+            correct = pred_tier == gold_tier and gold_tier != "ambiguous"
+            saved = cost_saved_vs_opus(pred_tier) if gold_tier != "ambiguous" else 0.0
+            mistake = cost_of_mistake(gold_tier, pred_tier) if gold_tier != "ambiguous" else 0.0
+            rows.append(
+                {
+                    "turn_id": tid,
+                    "gold_tier": gold_tier,
+                    "pred_tier": pred_tier,
+                    "correct": int(correct),
+                    "cost_saved_vs_opus_usd": round(saved, 8),
+                    "cost_of_mistake_usd": round(mistake, 8),
+                }
+            )
+            status = "OK" if correct else f"WRONG (pred={pred_tier}, gold={gold_tier})"
+            print(f"  [{i+1:2d}/{len(turns)}] {tid}  {status}")
+    else:
+        for turn in turns:
+            tid = turn["id"]
+            gold_tier = gold.get(tid, "ambiguous")
+            pred_tier = router.route(turn)
+
+            correct = pred_tier == gold_tier and gold_tier != "ambiguous"
+            saved = cost_saved_vs_opus(pred_tier) if gold_tier != "ambiguous" else 0.0
+            mistake = cost_of_mistake(gold_tier, pred_tier) if gold_tier != "ambiguous" else 0.0
+
+            rows.append(
+                {
+                    "turn_id": tid,
+                    "gold_tier": gold_tier,
+                    "pred_tier": pred_tier,
+                    "correct": int(correct),
+                    "cost_saved_vs_opus_usd": round(saved, 8),
+                    "cost_of_mistake_usd": round(mistake, 8),
+                }
+            )
 
     # Write per-turn CSV
     out_path.parent.mkdir(parents=True, exist_ok=True)

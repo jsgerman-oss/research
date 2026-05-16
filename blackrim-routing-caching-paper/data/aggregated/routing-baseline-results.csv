@@ -2,3 +2,4 @@ router,accuracy,macro_f1,haiku_f1,sonnet_f1,opus_f1,total_cost_saved_usd,total_c
 always-opus,0.2449,0.1311,0.0,0.0,0.3934,0.0,0.0
 random-uniform,0.2041,0.1906,0.1481,0.2857,0.1379,0.209875,0.075125
 length-heuristic,0.5102,0.4659,0.3571,0.7442,0.2963,0.22325,0.060375
+semantic-similarity,0.6122,0.5258,0.7857,0.6667,0.125,0.28925,0.070125
