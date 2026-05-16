@@ -49,6 +49,7 @@ is the dominant remaining lever (\cref{fig:cost-split}).
 \input{figures/fig1-cost-split}
 
 \subsection{Cache calibration baseline}
+\label{sec:prefixcache-eval}
 
 Prefix-cache statistics computed from \texttt{cache\_creation\_input\_tokens}
 and \texttt{cache\_read\_input\_tokens} in
@@ -78,14 +79,6 @@ TTL window via semantic plan-signature matching (\cref{fig:cache-trajectory}).
 \input{figures/fig2-cache-trajectory}
 
 \subsection{Routing evaluation}
-
-% Baseline numbers from scripts/eval-routing/run.py (RC-03, 50-turn hand-labelled set,
-% 1 ambiguous excluded → N=49).  Proposed-router numbers TBD in RC-04.
-%
-% Baseline summary (illustrative pricing: haiku $0.25, sonnet $3.00, opus $15.00 /MTok):
-%   always-opus      accuracy=24.5%  macro-F1=0.131  opus-recall=1.00
-%   random-uniform   accuracy=20.4%  macro-F1=0.191
-%   length-heuristic accuracy=51.0%  macro-F1=0.466  sonnet-F1=0.744
 
 We evaluate routing accuracy on a 50-turn hand-labelled test set sampled from
 real Blackrim main-thread session transcripts.
@@ -256,7 +249,7 @@ With \(H=0.15\) on the synthetic fixture, plan caching adds
 \(0.15 \times 0.214 = 3.2\,\%\) of additional savings, for a composed
 figure of 81.8\,\%.
 Neither figure approaches the 50\,\% \emph{additional} savings headline
-from \textcite{agentic-plan-caching-neurips2025}, which was measured on a much
+from \citeauthor{plancache}~\cite{plancache}, which was measured on a much
 larger deployment with higher query repetition rates.
 
 \paragraph{Interpretation.}

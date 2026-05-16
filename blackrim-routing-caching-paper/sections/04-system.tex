@@ -72,8 +72,9 @@ offline eval runs.
 
 \subsection{Integration points for the new primitives}
 
-Figure~\ref{fig:arch} illustrates where the router and plan cache
-integrate into the existing architecture.
+The two primitives each intercept a distinct step in the session lifecycle:
+the router acts before the first LLM call for each turn, and the plan cache
+acts before the orchestration-plan composition step for each dispatch.
 
 \paragraph{Per-turn router.}
 The router sits between the operator turn arriving and Gestalt's

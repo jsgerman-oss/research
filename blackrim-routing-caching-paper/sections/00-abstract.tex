@@ -1,42 +1,37 @@
 \begin{abstract}
 \noindent
 In a static-prefix multi-agent LLM coding system with a well-tuned
-subagent dispatch tier---16 static rules routing each subagent role
-to haiku, sonnet, or opus---dispatched subagents account for only
-\textbf{0.6\,\%} of total session cost. The orchestrator's main
-thread accounts for the remaining \textbf{99.4\,\%}. Once dispatch
-is tuned, further dispatch optimisation yields negligible savings;
-the orchestrator itself is the binding cost lever. We present two
-complementary primitives that target this lever.
+subagent dispatch tier, dispatched subagents account for only
+\textbf{0.6\,\%} of total session cost (445 main-thread turns,
+55 subagent calls, 7-day production window on claude-opus-4-7).
+The orchestrator's main thread accounts for the remaining
+\textbf{99.4\,\%}. Once dispatch is tuned, the orchestrator itself
+is the binding cost lever---every main-thread turn pays opus rates
+regardless of whether the turn requires opus-level capability.
 
-The first is a \emph{semantic-similarity per-turn router}: each
-main-thread turn is embedded and matched against a hand-curated
-exemplar set (\(\sim\)150 labeled turns, 50 per tier); the top
-nearest neighbour's tier label is returned, with conservative
-escalation to opus when no exemplar clears a similarity threshold
-\(\tau\). Evaluated via leave-one-out cross-validation on a 49-turn
-held-out test set drawn from real \blackrim session transcripts, the
-router achieves macro-F1 0.526 (+6.0 points over the
-length-heuristic baseline), haiku-F1 0.786, and estimated per-batch
-cost savings 30\,\% above the baseline.
+We present two complementary primitives targeting this lever.
+The first is a \emph{per-turn semantic-similarity router}: each turn
+is embedded and matched against a curated exemplar set
+(\(\sim\)150 labeled turns); the top-\(k\) neighbours are
+majority-voted, with conservative escalation to opus below a
+similarity threshold~\(\tau\). Leave-one-out cross-validation on
+49 hand-labelled turns yields macro-F1 0.526 (+6.0 points over the
+length-heuristic baseline of 0.466), accuracy 61.2\,\%, haiku-F1 0.786,
+and an estimated 30\,\% cost improvement over the length-heuristic.
 
-The second is an \emph{agentic plan-level semantic cache}, following
-\citeauthor{plancache}~\cite{plancache}: plans for structurally
-equivalent bd dispatches are keyed on a stable semantic signature
+The second is an \emph{agentic plan-level semantic cache}: plans for
+structurally equivalent dispatches are keyed on a stable signature
 (role, task shape, normalised file scope, deliverable kind) and
-their outputs cached with LRU eviction and a 30-day TTL. The cache
-stacks atop the existing prefix cache rather than replacing it.
-We characterise the calibration baseline: a 10.44\(\times\)
+cached with LRU eviction and a 30-day TTL. The cache stacks atop
+the existing prefix cache. The prefix cache achieves a 10.44\(\times\)
 read-to-creation ratio, 90.1\,\% hit rate, and 78.6\,\% estimated
-savings on real-API spawns from Anthropic's \texttt{cache\_control}
-layer. Plan caching targets the remaining 21.4\,\% by capturing
-reuse across the 5-minute prefix-cache TTL window.
+savings on real-API spawns. Plan caching on real production data
+(\(n=3\)) yields 0\,\% hit rate---a small-\(n\) result we report
+transparently; a 40-dispatch synthetic fixture achieves 15\,\% hit
+rate and zero false hits, confirming harness correctness.
+Composed savings range from 78.6\,\% (prefix only) to 81.8\,\%
+(synthetic fixture with plan cache).
 
-Per-turn routing and plan caching are independent in the cost
-equation; their savings compound multiplicatively. We derive a
-closed-form composed-cost bound and document an integration
-blocker---the current Claude Code interface exposes session-level
-model selection only, not per-turn routing---with three evaluated
-workaround paths. All evaluation data, scripts, and labels are
-released to support reproducibility.
+The two primitives compose multiplicatively because they act on
+disjoint cost factors. All scripts, CSVs, and labels are released.
 \end{abstract}
