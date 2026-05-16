@@ -1,0 +1,4 @@
+repo,n_files,mean_outline_tokens,p50,p95,p99,within_budget_pct
+golang__go__release-branch.go1.22,200,269.1,247.0,616.4,868.1,67.5
+jsgerman-oss__blackrim.dev__HEAD,200,246.3,239.5,387.0,776.0,76.5
+kubernetes__kubernetes__release-1.30,200,521.5,413.0,1250.6,1880.3,34.0
