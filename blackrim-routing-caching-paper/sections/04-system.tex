@@ -1,24 +1,97 @@
-\section{System: \blackrim Main-Thread + Dispatch Architecture}
+\section{System: \blackrim Main-Thread and Dispatch Architecture}
 \label{sec:system}
 
-% Sketch of \blackrim's relevant architecture:
-%
-% 1. The main-thread orchestrator (Gestalt) runs on opus and processes
-%    operator turns, decomposing them into routable subtasks.
-% 2. Subagent dispatch goes through the existing (role × signal) cascade
-%    rules in internal/dispatch/model.go (MOA-3, blackrim-fasf).
-% 3. Static prefix layer: ~/.claude/CLAUDE.md (global, thin),
-%    <project>/CLAUDE.md (project, thick — focus of the trim paper),
-%    agents/citizens/*.md, agents/workers/*.md (per-agent overlays).
-% 4. Telemetry capture: .beads/telemetry/invocations.jsonl per spawn,
-%    cache_creation_input_tokens vs cache_read_input_tokens fields,
-%    gt invocations record + gt context budget orchestration metrics.
-% 5. Where the new primitives integrate:
-%    - Per-turn router: replaces the implicit "main-thread = opus"
-%      assumption; needs Agent SDK middleware OR Claude Code feature.
-%    - Plan cache: sits BETWEEN gt orchestrate plan and gt context budget;
-%      cache-hits short-circuit the briefing-composition step.
+\subsection{Main-thread orchestrator}
 
-\tothink{Add architecture diagram (figures/blackrim-routing-caching.tex)
-showing Gestalt main thread, dispatch path, plan-cache location, and
-router placement. Reference \cref{fig:arch}.}
+\blackrim's orchestrator, Gestalt, runs on the main conversation
+thread and processes operator turns in sequence.  In the baseline
+configuration, Gestalt runs on \texttt{claude-opus-4-7} for every
+turn.  It decomposes operator requests into subtasks, selects the
+appropriate citizen or worker agent, composes a brief, and dispatches
+via the \texttt{Agent} tool.  Dispatches spawn into isolated
+git worktrees (one per agent invocation) so that parallel agents do
+not clobber each other's file edits.
+
+The main thread is architecturally distinct from the dispatch path in
+two ways relevant to this paper.  First, the main thread carries the
+full static prefix (\claudemd instructions, citizen definitions,
+project context) on every turn, making per-turn context lengths
+consistently large (typically 4\,000–20\,000 tokens).  Second, the
+main thread has no role taxonomy: the same Gestalt instance handles
+clarification questions, architectural decisions, code review,
+orchestration planning, and status summaries within a single session.
+This heterogeneity is precisely what makes per-turn routing
+non-trivial.
+
+\subsection{Crew architecture}
+
+Below Gestalt, eight \emph{citizens} (opus-tier domain leads) own
+vertical domains: engineering, frontend, infrastructure, security,
+product, data, ML, and knowledge.  Seven \emph{exoselves} (sonnet or
+haiku) are functional workers — builder, reviewer, tester, researcher,
+writer, judge, and supervisor — available to any citizen.  The
+assignment of citizens and workers to tiers is fixed by domain
+expertise: architect decisions stay on opus; file search and data
+gathering route to haiku; code generation routes to sonnet.  This
+dispatch-side routing is handled by the subagent advisor described
+next; it is not the subject of this paper.
+
+\subsection{Existing dispatch-side routing: the 16-rule cascade}
+
+The companion paper~\cite{moa1landscape} describes the subagent
+advisor (\emph{CC-TS}) that routes dispatched agents.
+\texttt{internal/dispatch/model.go} implements a 16-rule
+role-\(\times\)-signal cascade: rules fire in priority order, the
+first match wins, and the default is sonnet.  Selected rules include:
+architect role always receives opus; read-only research receives haiku;
+most edit and planning work receives sonnet; novel design or
+load-bearing decisions override to opus via frontmatter flag.  This
+cascade is the existing baseline; it explains the 0.6\,\% dispatch
+share of total session cost (§\ref{sec:eval}).
+
+This paper's contribution is the \emph{main-thread analog} of that
+cascade: a per-turn router that operates on the operator–assistant
+conversation stream rather than on a structured (role, signal) pair.
+Unlike the dispatch cascade, the main-thread router cannot rely on an
+explicit role label; it must classify from turn content alone.
+
+\subsection{Telemetry instrumentation}
+
+\blackrim records per-call telemetry to
+\texttt{.beads/telemetry/invocations.jsonl}.  Each record contains:
+model identifier, input and output token counts, the
+\texttt{cache\_creation\_input\_tokens} and
+\texttt{cache\_read\_input\_tokens} fields returned by the Anthropic
+API, source tag (\texttt{subagent\_stop}, \texttt{dispatch},
+\texttt{gt-cache-warm}, or \texttt{estimated-stub}), and a UTC
+timestamp.  This log is the substrate for §\ref{sec:eval}'s
+measurements.  The 2026-05-09 through 2026-05-15 window analysed
+below contains 744 spawn records, of which 81 are real-API calls with
+non-zero cache fields and 663 are estimated stubs generated during
+offline eval runs.
+
+\subsection{Integration points for the new primitives}
+
+Figure~\ref{fig:arch} illustrates where the router and plan cache
+integrate into the existing architecture.
+
+\paragraph{Per-turn router.}
+The router sits between the operator turn arriving and Gestalt's
+first LLM call for that turn.  In production, it would be implemented
+as middleware in the Agent SDK before the \texttt{client.messages.create}
+call.  In the current Claude Code environment, per-turn tier selection
+is blocked by the platform: Claude Code exposes only session-level
+model selection, not call-level routing.  §\ref{sec:discussion}
+analyses three workaround paths.  For the evaluation in
+§\ref{sec:eval}, routing decisions are replayed offline against the
+hand-labelled exemplar set.
+
+\paragraph{Plan cache.}
+The plan cache sits between the \texttt{gt orchestrate plan} call
+and the \texttt{gt context budget} briefing-composition step.
+On a cache hit, the briefing-composition LLM call is bypassed entirely;
+the cached plan output is injected directly into the dispatch path.
+This short-circuit is why plan-cache savings are orthogonal to
+prefix-cache savings: the prefix cache discounts the static-prefix
+portion of LLM calls that \emph{do} fire; the plan cache prevents
+certain LLM calls from firing at all.

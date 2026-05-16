@@ -1,73 +1,112 @@
 \section{Algorithm: Semantic-Similarity Per-Turn Router}
 \label{sec:routing}
 
-\subsection{Inputs}
+\subsection{Approach}
 
-\begin{itemize}
-  \item Operator's most-recent turn text \(\turn_i\) and the
-    rolling-window context \(\turn_{i-K}, \ldots, \turn_{i-1}\)
-    (default \(K = 3\)).
-  \item Exemplar set \(E = \{(\turn_e, \tier_e)\}_{e=1}^{|E|}\) ---
-    hand-curated turns labeled with the right tier (50 per tier in v1).
-  \item A code-aware embedder \(\phi: \text{turn} \to \mathbb{R}^d\)
-    (selected by \texttt{blackrim-qgmc}; defaulting to BGE-M3 or
-    Voyage-Code-2 per the bake-off result).
-  \item Similarity threshold \(T\) (escalation parameter).
-\end{itemize}
+The per-turn router assigns each main-thread turn to a tier in
+\(\tierset = \{\text{haiku}, \text{sonnet}, \text{opus}\}\) without
+access to role labels or structured signal.  We adopt a
+\emph{semantic-similarity} approach: embed the turn into a shared
+representation space, retrieve the most similar labelled exemplars,
+and return the majority-vote tier of the top-\(k\) neighbours.
+
+The exemplar set contains 50 turns per tier (150 total), drawn from
+real \blackrim main-thread session transcripts and annotated following
+the tier-boundary rubric in \texttt{docs/research/model-cost-quality-landscape.md}
+(annotation: $\sim$2--4 hours).  Turns are encoded as the concatenation of
+\texttt{user\_prompt} and \texttt{observed\_response\_summary} using
+\texttt{all-MiniLM-L6-v2} (L2-normalised, \(d\!=\!384\); selected by RC-04
+bake-off; swappable via \texttt{SEMANTIC\_ROUTER\_MODEL}).
+
+At construction time, each exemplar is encoded once; the embedding
+matrix \(\mathbf{E} \in \mathbb{R}^{|E| \times d}\) persists for the
+session lifetime.
 
 \subsection{Algorithm}
 
 \begin{algorithm}[H]
 \SetAlgoLined
-\KwIn{$\turn_i$, exemplars $E$, threshold $T$, escalation tier $\tier_{\text{esc}} = \text{opus}$}
-\KwOut{$\tier_i$}
-\(\mathbf{v} \gets \phi(\turn_i \mid \turn_{i-K}, \ldots, \turn_{i-1})\)\;
-\For{each \((\turn_e, \tier_e) \in E\)}{
-  \(s_e \gets \cos(\mathbf{v}, \phi(\turn_e))\)\;
+\DontPrintSemicolon
+\KwIn{turn string $s(\turn_i)$,
+      exemplar matrix $\mathbf{E}$, exemplar tiers $\{t_e\}$,
+      $k$, $\tau$, escalation tier $\tier_{\text{esc}} = \text{opus}$}
+\KwOut{predicted tier $\tier_i$}
+\BlankLine
+$\mathbf{v} \gets \phi\bigl(s(\turn_i)\bigr)$
+\tcp*[r]{embed query (L2-normalised)}
+$\mathbf{s} \gets \mathbf{E}\,\mathbf{v}$
+\tcp*[r]{cosine similarities, $\mathbf{s} \in \mathbb{R}^{|E|}$}
+\If{$\max(\mathbf{s}) < \tau$}{
+  \Return{$\tier_{\text{esc}}$}
+  \tcp*[r]{conservative escalation: OOD turn}
 }
-\((\turn^{*}, \tier^{*}) \gets \arg\max_{e} s_e\)\;
-\uIf{\(s^{*} \geq T\)}{\Return{$\tier^{*}$}\;}
-\Else{\Return{$\tier_{\text{esc}}$}\;}
+$I \gets \operatorname{top-}k(\mathbf{s})$
+\tcp*[r]{indices of $k$ largest similarities}
+$\hat\tier \gets \operatorname{majority\_vote}\bigl(\{t_e : e \in I\}\bigr)$
+\tcp*[r]{ties resolved toward higher tier}
+\Return{$\hat\tier$}\;
 \caption{Semantic-similarity per-turn router (conservative escalation)}
 \label{alg:router}
 \end{algorithm}
 
-\subsection{Why \emph{conservative escalation}}
+Default parameters: \(k = 5\), \(\tau = 0.30\).  Tie-breaking in
+majority vote prefers the more capable tier (opus over sonnet over
+haiku), making the router conservative by design.
 
-When no exemplar matches above threshold, the safe move is to
-escalate to opus rather than guess. This biases the router toward
-\emph{never downgrading what shouldn't be downgraded} at the cost
-of occasionally over-spending on edge cases that could have run on
-sonnet. The fidelity-preservation constraint (Eq.~\ref{eq:routing})
-is satisfied with high probability when \(T\) is calibrated
-on a held-out exemplar set.
+\subsection{Inference overhead}
 
-\subsection{Calibration}
+Encoding a 512-token turn with \texttt{all-MiniLM-L6-v2} on CPU takes
+approximately 10\,ms; the matrix-vector product over 150 exemplars
+adds under 1\,ms.  Total routing overhead is $\sim$10--15\,ms per turn.
+This compares favourably with LLM-as-classifier approaches (50--150\,ms
+network round-trip plus API cost) and trained classifiers
+(20--40\,ms for a DistilBERT-style forward pass~\cite{routellm},
+plus the annotation and retraining pipeline).
 
-\(T\) is selected on a held-out validation set to maximise
-\(\precision\) on the "should-be-opus" class subject to overall
-recall. Phase-A research recommends \(T \approx 0.85\) for
-BGE-M3 on the operator-turn distribution, but this is
-data-dependent and re-tuned per session profile.
+\subsection{Conservative escalation policy}
 
-\subsection{Why semantic similarity (not trained classifier) for v1}
+When the maximum cosine similarity across all exemplars falls below
+\(\tau\), the router returns opus unconditionally.  The design reflects
+the asymmetric cost of misrouting in a coding-agent context: a false
+tier-down routes an architectural decision to a weaker model, risking
+a broken commit or misarchitected module; a false tier-up routes a
+status query to opus, wasting tokens but producing a correct answer.
+Given this asymmetry, the router is calibrated to minimise
+false-negative rate on the \emph{should-be-opus} class at the cost of
+occasional over-spend.
 
-\begin{itemize}
-  \item \textbf{Faster shipping} --- exemplar curation (150 turns)
-    is hours, not the days needed to annotate + train DistilBERT.
-  \item \textbf{Interpretable failure modes} --- a misroute traces
-    back to a specific exemplar; debugging is direct.
-  \item \textbf{Lower overhead} --- inference is one embedder pass +
-    k-NN, not a forward pass through a trained model.
-  \item \textbf{Easy to update} --- add an exemplar, re-vectorise,
-    redeploy. No retraining loop.
-\end{itemize}
+In LOO-CV over the 49-turn evaluation set (§\ref{sec:eval}),
+the escalation hatch (\(\tau = 0.30\)) fired on zero turns, meaning
+all 49 turns found at least one exemplar with cosine similarity above
+0.30.  The hatch guards against truly out-of-distribution queries
+(unfamiliar natural-language domains) rather than frequent inputs.
 
-The trained-classifier alternative (DistilBERT, RouteLLM-style;
-\cite{routellm}) is faster at inference but more expensive to ship;
-we defer to v2.
+\subsection{Why semantic similarity for v1}
 
-\tothink{Add a worked example: a sample bd close + dispatch turn →
-embedded → matched to exemplar X → routed to haiku. Plus the
-counter-example: an architecture-decision turn → no match above
-threshold → escalates to opus.}
+Four considerations favour the exemplar-similarity approach over a
+trained classifier at this stage:
+(i) \textbf{faster iteration} — adding or correcting a mislabelled
+    exemplar requires editing one YAML record, not retraining;
+(ii) \textbf{interpretable failures} — a misroute traces to a specific
+    exemplar, enabling direct correction;
+(iii) \textbf{lower overhead} — one embedder pass plus a dot-product
+    is cheaper than any classifier forward pass;
+(iv) \textbf{label efficiency} — 50 exemplars per tier is plausible
+    for k-NN when classes are geometrically clustered (haiku turns
+    cluster around slash-command invocations; sonnet turns cluster
+    around implementation requests).
+The trained-classifier path (RouteLLM-style~\cite{routellm}) is the
+natural v2 direction as the annotation corpus grows (§\ref{sec:future}).
+
+\subsection{Theoretical remark}
+
+Under standard k-NN analysis, if the exemplar set \(E\) is an
+i.i.d.\ sample from the operator-turn distribution and class boundaries
+are well-separated in embedding space, the expected false-tier-down
+rate is bounded by \(1 - \text{Acc}_{k\text{-NN}}\).  In our
+LOO-CV evaluation (§\ref{sec:eval}), accuracy is 61.2\,\%, implying
+an aggregate misclassification rate of 38.8\,\% — driven primarily by
+the opus class (F1 0.125), whose 12 of 49 turns are distributionally
+close to sonnet.  Haiku (F1 0.786) and sonnet (F1 0.667) are
+better separated.  Closing the opus-recall gap is the primary v2 target
+(§\ref{sec:future}).

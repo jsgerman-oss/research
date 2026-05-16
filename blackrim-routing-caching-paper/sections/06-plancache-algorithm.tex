@@ -1,77 +1,155 @@
 \section{Algorithm: Agentic Plan Caching}
 \label{sec:plancache}
 
-\subsection{Setting}
+\subsection{Approach}
 
-Following \cite{plancache}, a \emph{plan} is the strategy-level
-artefact emitted by the orchestrator before subagent dispatch:
-agent role, task shape (extract / refactor / scaffold / review),
-file scope, expected deliverable. Plans for structurally-similar
-tasks share most of these fields; the cache exploits this structural
-reuse.
+Agentic plan caching~\cite{plancache} exploits the observation that
+orchestration plans for structurally similar tasks share most of their
+strategy-level content.  In \blackrim, the orchestrator emits a plan
+before each subagent dispatch: the plan specifies agent role, task
+shape (e.g., extract, refactor, scaffold, review), file scope, and
+expected deliverable kind.  Two dispatches may differ in surface text
+(different bd issue IDs, different file names) while being identical
+at the structural level.  If the plan for the earlier dispatch was
+successful, its output is a valid starting point for the later dispatch
+with minimal adaptation.
 
-\subsection{Plan signature}
+The plan cache indexes these structural outputs by a
+\emph{semantic signature} \(\plan\) (Eq.~\ref{eq:plansig}).  On a new
+dispatch query, the cache is consulted before the plan-composition
+LLM call fires; a hit short-circuits the \texttt{gt context budget}
+/ \texttt{gt orchestrate plan} path entirely.  This is the sense in
+which plan caching is orthogonal to prefix caching: prefix caching
+discounts the static-prefix portion of LLM calls that do execute;
+plan caching prevents certain LLM calls from executing at all.
+
+\subsection{Plan signature design}
 
 \begin{equation}
-  \plan = h\big(
-    \text{role},
-    \text{task\_shape},
-    \text{normalised\_file\_scope},
-    \text{deliverable\_kind}
-  \big)
+  \plan = h\bigl(
+    \textit{role},\;
+    \textit{task\_shape},\;
+    \textit{normalised\_file\_scope},\;
+    \textit{deliverable\_kind}
+  \bigr)
   \label{eq:plansig}
 \end{equation}
 
-where \(h\) is a stable hash. The signature is intentionally
-coarser than the full plan text --- many bd dispatches with
-different surface text reduce to the same signature (e.g., "find
-the worktree-isolation hook" and "locate the bash guard for agent
-worktrees" both reduce to
-\((\text{Researcher}, \text{file-search}, \text{hooks/}, \text{path-list})\)).
+where \(h\) is a stable hash (SHA-256 of the canonicalised tuple).
+The signature is intentionally coarser than the full plan text.
+File names are normalised to their directory prefix
+(\texttt{internal/dispatch/} rather than
+\texttt{internal/dispatch/model.go}) to increase hit rate across
+dispatches that touch different files in the same module.  Deliverable
+kinds are one of a closed vocabulary: \texttt{path-list},
+\texttt{code-edit}, \texttt{prose}, \texttt{analysis},
+\texttt{test-suite}.
 
-\subsection{Cache lookup}
+\paragraph{The abstraction-level trade-off.}
+Coarser signatures (fewer fields, broader normalisation) increase the
+hit rate but also increase the false-hit rate: the cache may return a
+plan that is structurally similar but contextually wrong.  Finer
+signatures (more fields, exact file names) decrease both rates.  For
+the evaluation in §\ref{sec:eval}, we use the four-field signature
+above.  The false-hit guard (similarity threshold \(\theta_{\text{hit}}\)
+on the plan embedding, not just the signature hash) provides a second
+filter: even when two dispatches hash to the same signature, we verify
+that their plan embeddings are similar above threshold before returning
+the cached output.
+
+\subsection{Algorithm}
 
 \begin{algorithm}[H]
 \SetAlgoLined
-\KwIn{plan signature $\plan$, cache $\cache$, similarity threshold $T_p$}
+\DontPrintSemicolon
+\KwIn{query plan signature $\plan_q$, query embedding $\phi(\plan_q)$,
+      cache $\cache$, similarity threshold $\theta_{\text{hit}}$,
+      confidence threshold $\theta_{\text{conf}}$}
 \KwOut{cached plan output $o$ or \textsc{miss}}
-\If{$\plan \in \cache$}{\Return{$\cache[\plan]$}\;}
-$N \gets \{\plan' \in \cache : \cos(\phi(\plan), \phi(\plan')) \geq T_p\}$\;
-\uIf{$N \neq \emptyset$}{
-  \Return{$\cache[\arg\max_{\plan' \in N} \cos(\phi(\plan), \phi(\plan'))]$}\;
+\BlankLine
+\If{$\plan_q \in \cache$ and $\cache[\plan_q].\textit{confidence} \geq \theta_{\text{conf}}$}{
+  \Return{$\cache[\plan_q].\textit{output}$}
+  \tcp*[r]{exact signature hit}
 }
-\Else{\Return{\textsc{miss}}\;}
-\caption{Plan-cache lookup with semantic fallback}
+$N \gets \bigl\{\plan' \in \cache :
+  \cos\!\bigl(\phi(\plan_q),\, \phi(\plan')\bigr) \geq \theta_{\text{hit}}\bigr\}$
+\tcp*[r]{semantic fallback}
+\uIf{$N \neq \emptyset$}{
+  $\plan^{*} \gets \arg\max_{\plan' \in N}
+    \cos\!\bigl(\phi(\plan_q), \phi(\plan')\bigr)$\;
+  \Return{$\cache[\plan^{*}].\textit{output}$}\;
+}
+\Else{
+  \Return{\textsc{miss}}\;
+}
+\caption{Plan-cache lookup with exact-match and semantic fallback}
 \label{alg:plancache}
 \end{algorithm}
 
-\subsection{Cache fill}
+On a miss, the orchestrator runs the standard plan-composition path
+(\texttt{gt context budget} / \texttt{gt orchestrate plan}) and inserts
+\((\plan_q, o)\) into \(\cache\) upon successful completion, i.e.,
+the dispatch closed with a success verdict.  Cache fills on
+success-only avoids poisoning the cache with failed or partial plans.
 
-On miss, the orchestrator runs the standard plan-composition path
-(\texttt{gt context budget} / \texttt{gt orchestrate plan}) and
-inserts \((\plan, o)\) into \(\cache\) post-completion --- only if
-the plan succeeded (the dispatch closed with success). Cache fills
-on success-only avoid poisoning the cache with failed plans.
+\subsection{Invalidation policy}
 
-\subsection{Eviction}
+This paper's evaluation uses the simplest possible invalidation policy:
+\emph{no invalidation} within a replay evaluation run.  This is
+appropriate for a controlled replay study where the codebase does not
+change between dispatches.
 
-LRU eviction at fixed capacity (default 1024 entries; configurable
-via \texttt{ship.toml [cache.plan]}). TTL secondary: 30-day expiry
-to handle gradual codebase drift. Plan-version-based invalidation
-on schema changes (e.g., new agent role added) clears the entire
-cache.
+For production deployment, three invalidation policies are natural:
 
-\subsection{Why plan caching stacks on prefix caching}
+\begin{enumerate}[noitemsep]
+  \item \textbf{Time-based TTL.} Entries expire after \(T_{\text{ttl}}\)
+    days (e.g., 30 days).  This handles gradual codebase drift but
+    does not respond to schema changes.
+  \item \textbf{Code-version keying.} Each cache entry is keyed by a
+    composite of \(\plan\) and the HEAD commit SHA of the repo at fill
+    time.  A new commit invalidates entries whose file scope intersects
+    the changed paths.  This is the most precise policy but requires a
+    changed-file index.
+  \item \textbf{Schema-change invalidation.} When the agent role
+    vocabulary or deliverable-kind vocabulary changes (e.g., a new
+    worker type is added), the entire cache is cleared.
+\end{enumerate}
 
-Prefix caching reduces the cost of \emph{recomputing the same
-prefix} across spawns within a 5-minute window. Plan caching
-reduces the cost of \emph{recomputing equivalent plans} across
-spawns at any horizon (within TTL). They target orthogonal cost
-sources: prefix-cache savings come from the static instruction
-prefix; plan-cache savings come from the briefing-composition step
-(retrieval, similar-cases lookup, prompt assembly).
+We note these as future-work directions (§\ref{sec:future}).  In the
+evaluation (§\ref{sec:eval}), the no-invalidation assumption is
+appropriate: the 30 historical bd dispatches are replayed in their
+original sequence against a fixed codebase snapshot.
 
-\tothink{Add a worked example: bd \texttt{blackrim-foo} dispatch
-hashes to plan signature S1, miss; bd \texttt{blackrim-bar}
-dispatch (different bd, same shape) hashes to S1, hit. Show the
-short-circuit at the \texttt{gt context budget} layer.}
+\subsection{Composition with prefix caching}
+
+The interaction between plan caching and prefix caching is the key
+source of superadditive savings.  The two mechanisms operate at
+different layers and on different cost sources:
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Prefix caching} (Anthropic's prompt cache,
+    ~\cite{anthropic-cache}) discounts cache-read tokens at \(0.10\times\)
+    the base rate within a 5-minute TTL window.  Savings accrue on the
+    static-prefix portion (\claudemd, citizen definitions) of LLM
+    calls that do fire.  The measured baseline across
+    \blackrim's production telemetry: 10.44\(\times\) read-to-creation
+    ratio, 90.1\,\% hit rate, 78.6\,\% estimated cost savings
+    (§\ref{sec:eval}).
+  \item \textbf{Plan caching} fires \emph{before} the LLM call:
+    a plan-cache hit bypasses the \texttt{gt context budget} briefing
+    step, so the briefing-composition LLM call is never made.  There
+    is no cache-creation token cost and no cache-read token cost ---
+    the entire call cost is eliminated.
+\end{itemize}
+
+Formally, for a plan-cache-hit dispatch the total token cost is
+\(\cost_{\text{lookup}} \approx 0\) (hash lookup + embedding
+comparison), versus the baseline
+\(\cost_{\text{compose}}(\plan) = \alpha_{\tier} \cdot |\text{ctx}(\text{brief})| +
+\beta_{\tier} \cdot |\text{out}(\text{plan})|\).  The prefix cache
+cannot reduce a cost that is not incurred.  This is why the composed
+savings of routing + plan caching exceed the sum of their individual
+savings: plan caching saves entire calls (not just portions of calls),
+and those calls are the ones on which prefix-cache savings would have
+been largest (briefing compositions are long and share a common static
+prefix).

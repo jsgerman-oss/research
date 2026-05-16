@@ -5,20 +5,39 @@
 
 A multi-agent LLM coding session is a sequence of \emph{turns}
 \(\turn_1, \turn_2, \ldots, \turn_N\) on the orchestrator's main
-thread, interleaved with subagent dispatches. Each turn is processed
+thread, interleaved with subagent dispatches.  Each turn is processed
 on a model tier \(\tier \in \tierset = \{\text{haiku}, \text{sonnet},
-\text{opus}\}\). Per-call cost \(\cost(\turn, \tier)\) decomposes
-into input-token cost (with cache discount) and output-token cost,
-both indexed by tier rate-sheet. Total session cost is
-\(\sum_{i=1}^{N} \cost(\turn_i, \tier_i)\).
+\text{opus}\}\), ordered by capability and price.  Let
+\(\alpha_{\tier}\) and \(\beta_{\tier}\) denote the input- and
+output-token rates (USD per token) for tier \(\tier\).  For a turn
+\(\turn_i\) with context length \(|\text{ctx}(\turn_i)|\) input tokens
+and \(|\text{out}(\turn_i)|\) output tokens, the raw per-turn cost is:
 
-\subsection{Empirical observation}
+\begin{equation}
+  \cost(\turn_i, \tier) =
+    \alpha_{\tier} \cdot |\text{ctx}(\turn_i)| \;+\;
+    \beta_{\tier} \cdot |\text{out}(\turn_i)|.
+  \label{eq:perturn}
+\end{equation}
 
-We measure \blackrim's cost split as 99.4\,\% main-thread,
-0.6\,\% dispatch (verified 2026-05-09; see §\ref{sec:eval}). The
-orchestrator dominates spend even after the well-tuned subagent
-advisor (CC-TS) routes dispatched workers to their cost-optimal
-tier. \emph{Main-thread tier-down is the binding lever.}
+Prefix caching introduces a discount \(\rho \in [0,1]\) on the cached
+fraction of the input, so the effective input cost becomes
+\(\alpha_{\tier}\bigl((1-\rho)\,|\text{ctx}(\turn_i)| +
+\rho\,|\text{ctx}(\turn_i)| \cdot r_{\text{cache}}\bigr)\), where
+\(r_{\text{cache}} = 0.10\) is Anthropic's cache-read rate
+relative to the base rate~\cite{anthropic-cache}.  For notational
+convenience we fold this discount into \(\alpha_{\tier}\) and write
+the effective rate \(\hat\alpha_{\tier}(\rho)\).
+
+\subsection{Empirical motivation}
+
+We measure \blackrim's cost split as 99.4\,\% main-thread (Gestalt,
+opus), 0.6\,\% subagent dispatch over a 7-day production window
+(Table~\ref{tab:cost-split}, §\ref{sec:eval}).  The dispatched
+subagents are already routed by an advisor that applies a 16-rule
+role-\(\times\)-signal cascade~\cite{moa1landscape}; the 0.6\,\%
+residual reflects a well-tuned dispatch-side system.  The orchestrator
+itself is the dominant cost lever.
 
 \subsection{Per-turn routing decision}
 
@@ -28,44 +47,70 @@ minimise expected cost subject to a quality-preservation constraint:
 \begin{equation}
   \tier_i^{*} = \arg\min_{\tier \in \tierset}\; \cost(\turn_i, \tier)
   \quad \text{s.t.} \quad
-  \mathbb{E}[\quality(\turn_i, \tier)] \geq \quality_0 - \epsilon
+  \mathbb{E}[\quality(\turn_i, \tier)] \;\geq\; \quality_0 - \epsilon,
   \label{eq:routing}
 \end{equation}
 
-where \(\quality_0\) is the opus-tier baseline and \(\epsilon\) is
-the per-turn quality-loss tolerance. \(\quality\) is observable
-post-hoc through the same three-channel mechanism the subagent
-advisor uses (\cite{moa1landscape}): structured-output correctness,
-tool-use success, eval-suite scores when available.
+where \(\quality_0 = \mathbb{E}[\quality(\turn_i, \text{opus})]\) is
+the opus-tier quality baseline and \(\epsilon\) is the
+per-turn quality-loss tolerance.  In practice \(\quality\) is
+observable post-hoc through three channels~\cite{moa1landscape}:
+structured-output correctness, tool-use success, and eval-suite scores
+when suites exist.  The tier-down condition
+\(\cost(\turn_i, \tier_{\text{low}}) \leq \cost(\turn_i, \tier_{\text{high}})\)
+is always satisfied for any \(\tier_{\text{low}} \prec \tier_{\text{high}}\)
+in the price ordering; the binding constraint is quality.
 
 \subsection{Plan-cache decision}
 
-For each dispatched plan with semantic signature \(\plan\), choose
-between cache-hit (\(\plan \in \planset\)) and cache-miss (compute
-fresh). Cost reduction:
+For each subagent dispatch, the orchestrator emits a \emph{plan}
+with semantic signature \(\plan\) (§\ref{sec:plancache}).  The
+plan-cache decision is whether to reuse a previously computed plan
+output or incur the full plan-composition cost:
 
 \begin{equation}
   \cost_{\text{cached}}(\plan) =
-    \hitrate(\plan) \cdot \cost_{\text{lookup}} +
-    (1 - \hitrate(\plan)) \cdot \cost_{\text{compute}}(\plan)
+    \hitrate(\plan) \cdot \cost_{\text{lookup}} \;+\;
+    \bigl(1 - \hitrate(\plan)\bigr) \cdot \cost_{\text{compose}}(\plan),
   \label{eq:plancache}
 \end{equation}
 
-with \(\hitrate(\plan)\) the empirical hit-rate for plans of
-\(\plan\)'s shape, \(\cost_{\text{lookup}}\) the cache-fetch cost
-(O(1) hash lookup; negligible token cost), and
-\(\cost_{\text{compute}}(\plan)\) the standard compute cost. The
-plan cache stacks on top of prefix caching --- the prefix-cache
-discount applies to whichever path is chosen, since both still pay
-the briefing-composition overhead.
+where \(\hitrate(\plan)\) is the hit rate for plans whose signature
+matches \(\plan\) at threshold, \(\cost_{\text{lookup}}\) is the
+cache-fetch cost (an O(1) hash lookup plus a short
+embedding pass; negligible token cost), and
+\(\cost_{\text{compose}}(\plan)\) is the standard plan-composition
+cost (retrieval, similar-cases lookup, briefing assembly via
+\texttt{gt context budget}).  The cache reuse condition is:
+\(\operatorname{sim}(\plan_{\text{query}}, \plan_{\text{cached}}) > \theta_{\text{hit}}\)
+and \(\hitrate(\plan) > \theta_{\text{conf}}\), where
+\(\theta_{\text{hit}}\) and \(\theta_{\text{conf}}\) are threshold
+parameters calibrated on the evaluation set.
 
-\subsection{Joint optimisation}
+\subsection{Total session cost}
 
-The two primitives are independent in the cost equation: routing
-chooses \(\tier_i\) per turn, plan caching reduces the
-expected-compute term within the chosen tier. Composed savings are
-multiplicative under reasonable independence assumptions.
+Over \(N\) main-thread turns and \(M\) dispatches, the session cost is:
 
-\tothink{Add formal independence assumption + bound on composed
-savings. Discussion of fidelity-preservation constraint enforcement
-deferred to §\ref{sec:routing}.}
+\begin{equation}
+  \cost_{\text{session}} =
+    \underbrace{\sum_{i=1}^{N} \cost(\turn_i, \tier_i)}_{\text{main-thread routing}} \;+\;
+    \underbrace{\sum_{j=1}^{M} \cost_{\text{cached}}(\plan_j)}_{\text{plan-cache dispatch}}.
+  \label{eq:session}
+\end{equation}
+
+The two terms are independently optimised: routing chooses
+\(\tier_i\) per turn on the main thread, while plan caching reduces
+the expected-compute term within each dispatch.
+
+\subsection{Composition and independence}
+
+Under the assumption that routing decisions are independent of plan
+signatures (i.e., tier choice does not systematically correlate with
+plan structure), the two mechanisms contribute additively to cost
+reduction.  In practice the composition is slightly superadditive:
+plan-cache hits bypass the briefing-composition LLM call entirely,
+so they avoid both the creation-side cache-write cost and any
+cache-miss penalty.  This is distinct from prefix-cache savings, which
+operate on the static prefix of already-launched LLM calls.  We
+discuss the composition in §\ref{sec:plancache} and measure it
+empirically in §\ref{sec:eval}.
