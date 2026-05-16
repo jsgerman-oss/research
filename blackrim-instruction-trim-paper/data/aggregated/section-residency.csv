@@ -1,0 +1,10 @@
+section_title,baseline_lines,wave1_lines,wave2_lines,delta_lines,delta_pct,classification,externalised_to
+How It Works,10,10,10,0,0.0,must-resident,
+Delegation discipline,44,44,44,0,0.0,must-resident,
+Skill-Driven Workflow,78,63,63,-15,-19.2,frequency-deciding,
+Background Agents (Gestalt spawning citizens/workers),309,267,205,-104,-33.7,frequency-deciding,
+Human-in-the-Loop Approval (Subagent Tool Denials),56,56,56,0,0.0,must-resident,
+Beads Issue Tracker,41,41,41,0,0.0,must-resident,
+Session Completion,38,38,38,0,0.0,must-resident,
+"Agent System (8 citizens + 7 exoselves, Polis frame)",69,50,50,-19,-27.5,redundant,"agents/citizens/, agents/workers/"
+Customization,28,14,14,-14,-50.0,redundant,mkdocs/operations/customization.md

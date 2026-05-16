@@ -26,7 +26,19 @@ python scripts/aggregate-trim-results.py \
   < data/raw/session-telemetry.json \
   > data/aggregated/trim-results.csv
 
-# 3. Build the PDF
+# 3. Per-section attribution telemetry (TRIM-02)
+#    Reads CLAUDE.md at the baseline, Wave-1, and Wave-2 SHAs discovered in
+#    trim-results.csv and emits one row per top-level section with line counts
+#    and hand-applied classification.  SHAs default to the canonical trim
+#    events; override with --baseline-sha / --wave1-sha / --wave2-sha.
+python scripts/aggregate-section-residency.py \
+  --repo /Users/jayse/Code/blackrim \
+  --baseline-sha 6414995 \
+  --wave1-sha    55ff9e9 \
+  --wave2-sha    6c7f3a0 \
+  > data/aggregated/section-residency.csv
+
+# 4. Build the PDF
 make
 ```
 
@@ -47,6 +59,17 @@ early-morning PDT commits.
   single CSV with absolute sizes plus deltas (`delta_lines_vs_baseline`,
   `delta_pct_lines`, `delta_chars_vs_baseline`, `delta_pct_chars`). The
   baseline is the first commit in the input.
+
+- **`aggregate-section-residency.py`** — reads CLAUDE.md at three git SHAs
+  (baseline, Wave 1, Wave 2) and emits one CSV row per `##`-level section
+  with columns `section_title`, `baseline_lines`, `wave1_lines`,
+  `wave2_lines`, `delta_lines`, `delta_pct`, `classification`, and
+  `externalised_to`.  The `classification` column is hand-applied per the
+  section-5 taxonomy (must-resident / frequency-deciding / redundant);
+  automation is deferred to TRIM-03.  Output:
+  `data/aggregated/section-residency.csv`, cited in section 3
+  (empirical-fit remark) and section 5 (worked examples), and rendered as a
+  longtable in Appendix A.
 
 ## Why no LLM calls
 

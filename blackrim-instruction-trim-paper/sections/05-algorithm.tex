@@ -60,6 +60,38 @@ Both leave instruction-bearing content unchanged in its canonical
 location. No section is rewritten to be terser; redundant statements
 are simply removed.
 
-\tothink{Add a worked example: the Worktree-Isolation section trim
-from 75 lines to 16 lines, with the line-by-line classification of
-must-resident vs externalisable.}
+\subsection{Worked examples from the Blackrim trim}
+\label{sec:worked-examples}
+
+\Cref{tab:section-residency} (Appendix) records per-section line counts at
+baseline, Wave~1, and Wave~2 for the Blackrim \texttt{CLAUDE.md}.
+Three rows illustrate the algorithm's three code paths:
+
+\paragraph{Worktree Isolation — frequency-deciding, externalised.}
+The \textit{Worktree isolation} sub-section of \textsection\,Background
+Agents carried 76~lines at baseline (\emph{frequency-deciding}
+classification).  Its content was already canonical in
+\texttt{mkdocs/operations/worktree-guard.md}; the decision rule
+Eq.\,\eqref{eq:decision} holds because the section is accessed only by
+agents that are actively debugging an isolation failure, not by every
+spawn.  After Wave~2 the sub-section collapsed to 14~lines — a single
+paragraph plus a \texttt{Full reference:} pointer — an 82\% reduction
+with no instruction content removed from its canonical home.
+
+\paragraph{Customization — redundant, dropped.}
+The \textit{Customization} section (28~lines at baseline) duplicated
+content already maintained in \texttt{mkdocs/operations/customization.md}.
+Because the section carried no must-resident directives not covered by
+the external doc, it was classified \emph{redundant} and trimmed to a
+compact 14-line summary by Wave~1, then held stable at Wave~2
+(see \Cref{tab:section-residency}, row ``Customization'').
+
+\paragraph{Delegation discipline — must-resident, kept.}
+The \textit{Delegation discipline} section (44~lines) maps trigger
+conditions to agent types.  Every Gestalt spawn consults it to decide
+whether to self-do or delegate; $\hat{f} \approx 1$.  Applying
+Eq.\,\eqref{eq:decision}: even at $\cachehit = 0.85$ and $\alpha = 0.10$
+the break-even requires $\readsize < 0.235 \times 44 \approx 10$~lines,
+far below the actual on-demand fetch cost.  The algorithm correctly keeps
+it resident across all waves (0~lines removed,
+\Cref{tab:section-residency}, row ``Delegation discipline'').
