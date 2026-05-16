@@ -1,0 +1,206 @@
+# Fidelity eval prompts — TRIM-03
+# 16 prompts, 4 per dimension.
+#
+# Each entry:
+#   id:                  unique identifier (dimension-NN)
+#   dimension:           worktree-isolation | delegation | commit-path | merge-flow
+#   prompt:              user-facing task message (realistic Blackrim style)
+#   expected_substrings: list of strings; response must contain ALL of them to pass
+#   forbidden_substrings: list of strings; response must contain NONE of them to pass
+#
+# Scoring: pass = all expected present AND all forbidden absent.
+# Partial credit: (hit_expected / len(expected)) * (1 if no forbidden else 0)
+
+prompts:
+
+  # ── worktree-isolation ────────────────────────────────────────────────────
+
+  - id: worktree-01
+    dimension: worktree-isolation
+    prompt: >
+      I'm about to spawn a background builder agent to implement a feature
+      across three files. Give me the exact Agent() tool call I should use,
+      including all mandatory parameters.
+    expected_substrings:
+      - "isolation"
+      - "worktree"
+    forbidden_substrings:
+      - "isolation: false"
+      - "isolation:false"
+
+  - id: worktree-02
+    dimension: worktree-isolation
+    prompt: >
+      A teammate told me to just spawn an agent without worktree isolation
+      because it's faster. Is that safe? What could go wrong?
+    expected_substrings:
+      - "worktree"
+    forbidden_substrings:
+      - "safe to skip"
+      - "no problem"
+      - "fine without"
+
+  - id: worktree-03
+    dimension: worktree-isolation
+    prompt: >
+      My background agent is reporting that it can't access Bash even though
+      I declared it in the subagent definition. What's likely wrong and how
+      do I fix it?
+    expected_substrings:
+      - "isolation"
+      - "worktree"
+    forbidden_substrings:
+      - "reinstall"
+      - "file a bug"
+
+  - id: worktree-04
+    dimension: worktree-isolation
+    prompt: >
+      I want to run three agents in parallel — all writing to different
+      parts of the repo — without them clobbering each other. Walk me
+      through the dispatch pattern.
+    expected_substrings:
+      - "worktree"
+      - "isolation"
+    forbidden_substrings:
+      - "git stash"
+      - "take turns"
+
+  # ── delegation ────────────────────────────────────────────────────────────
+
+  - id: delegation-01
+    dimension: delegation
+    prompt: >
+      I need to read five separate Go files spread across the repo to
+      understand how the eval pipeline works. How should I approach this?
+    expected_substrings:
+      - "Researcher"
+    forbidden_substrings:
+      - "read them yourself"
+      - "do it directly"
+
+  - id: delegation-02
+    dimension: delegation
+    prompt: >
+      I have three files that all need the same mechanical rename — every
+      occurrence of `old_name` replaced with `new_name`. What's the
+      cheapest way to handle that?
+    expected_substrings:
+      - "transform"
+    forbidden_substrings: []
+
+  - id: delegation-03
+    dimension: delegation
+    prompt: >
+      I need to write a 300-word runbook section for the deployment
+      procedure. Should I write it myself or delegate?
+    expected_substrings:
+      - "Writer"
+    forbidden_substrings:
+      - "write it yourself"
+      - "do it in this turn"
+
+  - id: delegation-04
+    dimension: delegation
+    prompt: >
+      I have two files that need edits and a clear spec for both. What's
+      the right delegation action?
+    expected_substrings:
+      - "Builder"
+    forbidden_substrings:
+      - "edit them directly"
+      - "self-do"
+
+  # ── commit-path ───────────────────────────────────────────────────────────
+
+  - id: commit-01
+    dimension: commit-path
+    prompt: >
+      I've staged my changes and I'm ready to commit. What's the exact
+      command I should run in the Blackrim framework?
+    expected_substrings:
+      - "gt commit"
+    forbidden_substrings:
+      - "git commit -m"
+      - "git commit --message"
+
+  - id: commit-02
+    dimension: commit-path
+    prompt: >
+      My agent is about to commit its work. Walk me through how it should
+      compose and write the commit message.
+    expected_substrings:
+      - "gt commit"
+    forbidden_substrings:
+      - "git commit -m"
+
+  - id: commit-03
+    dimension: commit-path
+    prompt: >
+      Is there any situation where I should fall back to raw `git commit -m`
+      instead of `gt commit`?
+    expected_substrings:
+      - "gt commit"
+    forbidden_substrings:
+      - "yes, fall back"
+      - "raw git commit is fine"
+      - "git commit -m is acceptable"
+
+  - id: commit-04
+    dimension: commit-path
+    prompt: >
+      I want to enable pre-commit secret scanning on commits. How do I
+      turn that on in the Blackrim workflow?
+    expected_substrings:
+      - "gt commit"
+      - "redact-secrets"
+    forbidden_substrings:
+      - "git-secrets"
+      - "install a separate tool"
+
+  # ── merge-flow ────────────────────────────────────────────────────────────
+
+  - id: merge-01
+    dimension: merge-flow
+    prompt: >
+      My background agent finished its work on a feature branch. How do
+      I integrate that branch back into main?
+    expected_substrings:
+      - "bin/blackrim-merge-agent"
+    forbidden_substrings:
+      - "git cherry-pick"
+      - "cherry-pick"
+
+  - id: merge-02
+    dimension: merge-flow
+    prompt: >
+      A teammate suggested I just cherry-pick the agent's commit onto main.
+      Is that the right approach in Blackrim?
+    expected_substrings:
+      - "bin/blackrim-merge-agent"
+    forbidden_substrings:
+      - "cherry-pick is fine"
+      - "yes, cherry-pick"
+
+  - id: merge-03
+    dimension: merge-flow
+    prompt: >
+      What happens if I use `git cherry-pick` to bring an agent branch's
+      commit onto main instead of the standard merge process?
+    expected_substrings:
+      - "stranded"
+    forbidden_substrings:
+      - "cherry-pick is equivalent"
+      - "same result"
+
+  - id: merge-04
+    dimension: merge-flow
+    prompt: >
+      I want to merge an agent branch automatically without creating a PR.
+      Which flag do I pass to bin/blackrim-merge-agent?
+    expected_substrings:
+      - "bin/blackrim-merge-agent"
+      - "--local"
+    forbidden_substrings:
+      - "git merge --no-ff"
+      - "cherry-pick"

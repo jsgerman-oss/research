@@ -1,0 +1,17 @@
+prompt_id,dimension,prefix_sha,response_chars,hit_expected,total_expected,hit_forbidden,total_forbidden,score,status,notes
+worktree-01,worktree-isolation,README,7,0,2,0,2,0.0,fail,"missing_expected=['isolation', 'worktree']"
+worktree-02,worktree-isolation,README,7,0,1,0,3,0.0,fail,missing_expected=['worktree']
+worktree-03,worktree-isolation,README,7,0,2,0,2,0.0,fail,"missing_expected=['isolation', 'worktree']"
+worktree-04,worktree-isolation,README,7,0,2,0,2,0.0,fail,"missing_expected=['worktree', 'isolation']"
+delegation-01,delegation,README,7,0,1,0,2,0.0,fail,missing_expected=['Researcher']
+delegation-02,delegation,README,7,0,1,0,0,0.0,fail,missing_expected=['transform']
+delegation-03,delegation,README,7,0,1,0,2,0.0,fail,missing_expected=['Writer']
+delegation-04,delegation,README,7,0,1,0,2,0.0,fail,missing_expected=['Builder']
+commit-01,commit-path,README,7,0,1,0,2,0.0,fail,missing_expected=['gt commit']
+commit-02,commit-path,README,7,0,1,0,1,0.0,fail,missing_expected=['gt commit']
+commit-03,commit-path,README,7,0,1,0,3,0.0,fail,missing_expected=['gt commit']
+commit-04,commit-path,README,7,0,2,0,2,0.0,fail,"missing_expected=['gt commit', 'redact-secrets']"
+merge-01,merge-flow,README,7,0,1,0,2,0.0,fail,missing_expected=['bin/blackrim-merge-agent']
+merge-02,merge-flow,README,7,0,1,0,2,0.0,fail,missing_expected=['bin/blackrim-merge-agent']
+merge-03,merge-flow,README,7,0,1,0,2,0.0,fail,missing_expected=['stranded']
+merge-04,merge-flow,README,7,0,2,0,2,0.0,fail,"missing_expected=['bin/blackrim-merge-agent', '--local']"
