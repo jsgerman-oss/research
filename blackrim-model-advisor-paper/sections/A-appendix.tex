@@ -196,8 +196,11 @@ where a baseline policy chose a tier \emph{below} the cc-ts recommendation
 we apply a conservative $5\,\mathrm{pp}$ degradation per tier step down.
 For dispatches at or above the cc-ts tier no penalty is applied.  This
 worst-case model is \textbf{illustrative only}: real quality data requires
-running the held-out eval fixtures (\texttt{eval-fixtures.jsonl}, a
-pipeline TODO), which are not yet available.
+running the held-out eval fixtures (\texttt{eval-fixtures.jsonl}).
+As of 2026-05-16, \texttt{data/raw/eval-fixtures.jsonl} is available
+($96$ rows, $32$ fixtures $\times$ $3$ tiers; see \cref{sec:eval}).
+The illustrative quality model above remains for the baseline-replay
+comparison; the measured per-tier pass rates are reported in Table~\ref{tab:quality-table}.
 
 \paragraph{Results.}
 

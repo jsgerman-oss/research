@@ -1,0 +1,5 @@
+policy,n_pass,n_total,pass_rate,pass_rate_lo95,pass_rate_hi95,net_regression_pp,net_regression_lo95,net_regression_hi95
+opus-default,81,96,0.8438,0.7708,0.9167,0.00,0.00,0.00
+static-fm,72,96,0.7500,0.6667,0.8333,9.38,2.08,17.71
+epsilon-greedy,83,96,0.8646,0.7917,0.9271,-2.08,-5.21,0.00
+cc-ts,78,96,0.8125,0.7292,0.8854,3.12,-2.08,10.42
