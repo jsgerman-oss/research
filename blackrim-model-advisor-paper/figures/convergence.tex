@@ -1,19 +1,26 @@
-% figures/convergence.tex — TODO: render from data/aggregated/convergence-time.csv.
-% Placeholder synthetic CDF.
+% figures/convergence.tex — empirical convergence-time CDF.
+% Generated from data/aggregated/convergence-cdf.csv by
+% scripts/convergence-cdf.py (bootstrap-resampled per-cell trajectories,
+% 200 replicas, length-100, Beta-Bernoulli updates from flat prior).
 \begin{tikzpicture}
 \begin{axis}[
     width=0.85\linewidth, height=5cm,
     xlabel={Dispatches before tier stabilisation},
     ylabel={Cumulative fraction of cells},
-    xmin=0, xmax=120, ymin=0, ymax=1,
+    xmin=0, xmax=80, ymin=-0.02, ymax=1.05,
     grid=major, grid style={dashed, gray!30},
     legend pos=south east, legend style={font=\scriptsize},
 ]
-\addplot[blue, thick, smooth] coordinates {
-    (0,0) (5,0.55) (10,0.78) (20,0.90) (40,0.97) (80,0.99) (120,1.00)
+\addplot[blue, thick, const plot] coordinates {
+    (0,1.0000)
+    (69,1.0000)
 };
-\addplot[red, thick, smooth, dashed] coordinates {
-    (0,0) (10,0.05) (20,0.18) (40,0.42) (60,0.65) (90,0.85) (120,0.95)
+\addplot[red, thick, dashed, const plot] coordinates {
+    (0,0.4000)
+    (16,0.7000)
+    (19,0.8000)
+    (61,0.9000)
+    (69,1.0000)
 };
 \legend{High-confidence prior ($\geq 90\%$), Thin-evidence (OQ-1..OQ-5)}
 \end{axis}

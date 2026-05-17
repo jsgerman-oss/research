@@ -1,0 +1,3 @@
+policy,cost_norm,cost_savings_pct,pass_rate,quality_regression_pp,n_haiku,n_sonnet,n_opus
+cc-ts,0.2297,77.03,0.8125,3.12,63,15,18
+gate-disabled,0.2469,75.31,0.8750,-3.12,54,24,18

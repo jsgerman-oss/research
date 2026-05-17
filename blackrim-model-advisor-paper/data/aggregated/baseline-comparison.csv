@@ -1,5 +1,5 @@
 policy,total_cost_usd,n_haiku,n_sonnet,n_opus,est_quality_score,vs_cc_ts_pct
-cc-ts,1.7885,1,293,1,1.0000,0.00
-static-fm,1.7885,1,293,1,1.0000,0.00
-epsilon-greedy,0.3795,279,10,6,0.9527,78.78
-opus-default,8.8500,0,0,295,1.0000,-394.83
+cc-ts,2.0285,1,333,1,1.0000,0.00
+static-fm,2.0285,1,333,1,1.0000,0.00
+epsilon-greedy,0.4990,314,12,9,0.9531,75.40
+opus-default,10.0500,0,0,335,1.0000,-395.44

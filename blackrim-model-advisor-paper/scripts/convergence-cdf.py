@@ -88,16 +88,19 @@ def _recommend_tier(alpha_beta_by_tier: dict[int, tuple[float, float]],
     return 2
 
 
-def _trajectory_first_flip_free(tier_seq: list[int]) -> int:
-    """First index k such that tier_seq[k..k+WINDOW-1] is constant.
-    If no such window, return len(tier_seq)-1 (final-state stability)."""
+def _trajectory_last_flip(tier_seq: list[int]) -> int:
+    """Dispatch index of the last tier flip — the first dispatch from
+    which the recommendation never changes for the remainder of the
+    trajectory. Returns 0 if no flip ever occurs.
+    """
     n = len(tier_seq)
-    for k in range(n):
-        end = min(n, k + _FLIP_FREE_WINDOW)
-        window = tier_seq[k:end]
-        if all(w == window[0] for w in window):
-            return k
-    return n - 1
+    if n <= 1:
+        return 0
+    last = 0
+    for k in range(1, n):
+        if tier_seq[k] != tier_seq[k - 1]:
+            last = k
+    return last
 
 
 def _high_confidence_convergence() -> list[int]:
@@ -106,12 +109,37 @@ def _high_confidence_convergence() -> list[int]:
     cells: dict = defaultdict(list)
     for r in records:
         cells[(r["agent"], r["shape"])].append(int(r["recommended_tier"]))
-    return [_trajectory_first_flip_free(seq) for seq in cells.values()]
+    return [_trajectory_last_flip(seq) for seq in cells.values()]
+
+
+def _simulate_one_trajectory(obs, rng, length=_SIM_LEN):
+    """Run cc-ts on bootstrap-resampled observations of length `length`.
+
+    Each step draws one observation uniformly with replacement from the
+    real eval-fixture observations for the cell, updates the per-tier
+    Beta posterior, and records the cc-ts recommendation. Returns the
+    dispatch index of the last tier flip.
+    """
+    tol_class = obs[0].get("tolerance_class", "Moderate")
+    tau = _TOL_THRESHOLD.get(tol_class, 0.66)
+    alpha_beta = {0: (1.0, 1.0), 1: (1.0, 1.0), 2: (1.0, 1.0)}
+    tier_seq: list[int] = []
+    for _ in range(length):
+        o = obs[rng.randrange(len(obs))]
+        tier = TIER_RANK[o["tier"]]
+        a, b = alpha_beta[tier]
+        if o["verdict"] == "pass":
+            alpha_beta[tier] = (a + 1.0, b)
+        else:
+            alpha_beta[tier] = (a, b + 1.0)
+        tier_seq.append(_recommend_tier(alpha_beta, tau))
+    return _trajectory_last_flip(tier_seq)
 
 
 def _thin_evidence_convergence() -> list[int]:
-    """Simulate cc-ts on each eval-fixture cell with Beta-Bernoulli updates
-    from a flat prior. Returns one convergence-dispatch count per cell."""
+    """For each eval-fixture cell, run `_N_SIM_RUNS` bootstrap replicas
+    of length `_SIM_LEN`. Per-cell convergence is the median replica.
+    Returns one value per cell."""
     fixtures = _load_jsonl(_FIXTURES)
     cells: dict = defaultdict(list)
     for f in fixtures:
@@ -119,21 +147,9 @@ def _thin_evidence_convergence() -> list[int]:
     out: list[int] = []
     rng = random.Random(_SIM_SEED)
     for cell, obs in cells.items():
-        seq_shuffled = list(obs)
-        rng.shuffle(seq_shuffled)
-        tol_class = seq_shuffled[0].get("tolerance_class", "Moderate")
-        tau = _TOL_THRESHOLD.get(tol_class, 0.66)
-        alpha_beta = {0: (1.0, 1.0), 1: (1.0, 1.0), 2: (1.0, 1.0)}
-        tier_seq: list[int] = []
-        for o in seq_shuffled:
-            tier = TIER_RANK[o["tier"]]
-            a, b = alpha_beta[tier]
-            if o["verdict"] == "pass":
-                alpha_beta[tier] = (a + 1.0, b)
-            else:
-                alpha_beta[tier] = (a, b + 1.0)
-            tier_seq.append(_recommend_tier(alpha_beta, tau))
-        out.append(_trajectory_first_flip_free(tier_seq))
+        runs = [_simulate_one_trajectory(obs, rng) for _ in range(_N_SIM_RUNS)]
+        runs.sort()
+        out.append(runs[len(runs) // 2])  # median
     return out
 
 

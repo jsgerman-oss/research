@@ -24,13 +24,18 @@ underdetermined cells. The conservative property --- never downgrade unless
 the posterior credibly exceeds tolerance --- is preserved through a one-sided
 hypothesis-testing rule with explicit asymmetric loss.
 
-We deploy CC-TS in \blackrim, an open-source multi-agent framework for the
-Claude Code runtime, across $17$ agents and $\approx{170}$ task cells. Over
-$\tothink{N}$ production dispatches, CC-TS yields $\tothink{X\%}$ end-to-end
-cost reduction versus an opus-default policy and $\tothink{Y\%}$ versus a
-heuristic dispatcher, while empirical quality regression remains within
-$\tothink{Z\%}$ of the opus baseline measured on a held-out eval suite of
-$\tothink{M}$ tasks. We discuss limitations --- in particular, the off-policy
+We deploy CC-TS in \blackrim, an open-source multi-agent framework
+for the Claude Code runtime, across a target grid of $17$ agents and
+$\approx{170}$ task cells. Over $335$ production dispatches (across $3$
+active cells) and a held-out eval suite of $96$ fixtures, CC-TS yields
+$79.8\%$ end-to-end cost reduction versus an opus-default policy
+($\$2.03$ vs.\ $\$10.05$ at illustrative prices, see \cref{sec:eval});
+on this trace, where $333/335$ dispatches land in a single high-confidence
+cell, CC-TS and a static-frontmatter dispatcher coincide on cost, with
+the differentiator (active downgrade of thin-evidence cells) materialising
+only as the cell grid populates. Empirical quality regression on the
+eval suite is $+3.12\,\mathrm{pp}$ ($95\%$ bootstrap CI
+$[-2.08,\,+10.42]\,\mathrm{pp}$), within bootstrap error of opus-default. We discuss limitations --- in particular, the off-policy
 evaluation gap when an agent's dispatch policy and reward distribution are
 both non-stationary --- and propose a hierarchical-bandit extension for
 multi-tenant federation.

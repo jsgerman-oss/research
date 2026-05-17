@@ -209,12 +209,12 @@ comparison; the measured per-tier pass rates are reported in Table~\ref{tab:qual
 \noindent
 The replay reveals two key contrasts.  \emph{opus-default} achieves the
 same quality score as cc-ts (no penalty — it always meets or exceeds the
-cc-ts tier) but at nearly $5\times$ the cost (\$8.85 vs.\ \$1.79).
+cc-ts tier) but at nearly $5\times$ the cost (\$10.05 vs.\ \$2.03).
 \emph{static-fm} happens to match cc-ts exactly on this trace because the
-295 records are dominated by Builder (shape \texttt{Bu1}) dispatches that
+335 records are dominated by Builder (shape \texttt{Bu1}) dispatches that
 the static table also routes to sonnet; cost savings versus opus-default
 are identical.  \emph{$\varepsilon$-greedy} achieves the lowest nominal
-cost (\$0.38, a $78.8\%$ reduction vs.\ cc-ts) through aggressive
+cost (\$0.50, a $75.4\%$ reduction vs.\ cc-ts) through aggressive
 exploration toward haiku, but incurs a $4.7\,\mathrm{pp}$ illustrative
 quality penalty — a reminder that raw exploration without the
 conservative-guarantee gate is not free.  These figures must be

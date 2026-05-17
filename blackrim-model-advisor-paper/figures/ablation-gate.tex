@@ -1,25 +1,24 @@
-% figures/ablation-gate.tex — TODO: render from data/aggregated/ablation.csv.
-% Synthetic placeholder showing the conservative-gate Pareto position.
+% figures/ablation-gate.tex — Pareto plot.
+% Generated from data/aggregated/{ablation-gate,quality-comparison,baseline-comparison}.csv.
 \begin{tikzpicture}
 \begin{axis}[
     width=0.85\linewidth, height=5cm,
     xlabel={Cost (normalised to opus-default)},
     ylabel={Quality regression on eval suite},
-    xmin=0.40, xmax=1.05,
-    ymin=-0.01, ymax=0.10,
+    xmin=0.15, xmax=1.05,
+    ymin=-0.07, ymax=0.12,
     grid=major, grid style={dashed, gray!30},
     legend pos=north west, legend style={font=\scriptsize},
-    scatter/use mapped color={draw=black, fill=gray!40},
 ]
 \addplot+[only marks, mark=*, mark size=2.5pt, blue]
-    coordinates {(0.48, 0.01)} node[anchor=south east, font=\scriptsize] {CC-TS};
+    coordinates {(0.230, 0.0312)} node[anchor=south west, font=\scriptsize] {CC-TS};
 \addplot+[only marks, mark=square*, mark size=2.5pt, red]
-    coordinates {(0.47, 0.05)} node[anchor=north west, font=\scriptsize] {gate-disabled};
-\addplot+[only marks, mark=triangle*, mark size=2.5pt, black]
-    coordinates {(0.55, 0.06)} node[anchor=north west, font=\scriptsize] {$\epsilon$-greedy};
+    coordinates {(0.247, -0.0312)} node[anchor=north east, font=\scriptsize] {gate-disabled};
+\addplot+[only marks, mark=triangle*, mark size=2.5pt, black!70]
+    coordinates {(0.050, -0.0208)} node[anchor=south east, font=\scriptsize] {$\varepsilon$-greedy};
 \addplot+[only marks, mark=diamond*, mark size=2.5pt, gray]
-    coordinates {(0.62, 0.03)} node[anchor=north east, font=\scriptsize] {Static};
+    coordinates {(0.202, 0.0938)} node[anchor=south east, font=\scriptsize] {Static};
 \addplot+[only marks, mark=*, mark size=2.5pt, black]
-    coordinates {(1.00, 0.00)} node[anchor=south east, font=\scriptsize] {Opus};
+    coordinates {(1.000, 0.000)} node[anchor=north east, font=\scriptsize] {Opus};
 \end{axis}
 \end{tikzpicture}
