@@ -14,6 +14,49 @@ suite is silent. The consequence is a measurable opportunity cost
 ``leaving money on the table.'' The design choice is to take that hit
 rather than risk silent regression.
 
+\subsection{Interpreting the \texorpdfstring{\S\ref{sec:eval}}{Sec.~6} ablation reversal}
+\label{sec:ablation-interp}
+
+The ablation in \cref{fig:ablation-gate} reports an empirical reversal of
+the conservative-gate narrative: on the $96$-fixture eval suite, the
+gate-disabled variant lands at $-3.12\,\mathrm{pp}$ regression (i.e.\ a
+small quality \emph{improvement} over CC-TS) at slightly higher cost
+($75.3\%$ savings vs.\ CC-TS's $77.0\%$). This deserves an explicit
+unpacking because the design-intent narrative predicts the opposite.
+
+The conservative-gate property proved in \cref{thm:conservative} is
+asymmetric: it is a one-sided guarantee that no \emph{downgrade} commits
+unless the per-cell credibility bound clears tolerance. The ablation
+contrast in this paper is between the gate (cheapest tier whose
+empirical mean clears $\tau$) and pure-mean exploitation (cheapest tier
+whose mean equals the per-cell maximum). The latter is not symmetric to
+the former: when the cheapest tier has empirical mean above $\tau$ but
+below the maximum, the gated rule downgrades while pure-mean does not.
+Concretely: at the writer/W1 cell, haiku passes 2 of 3 fixtures
+($\hat p = 0.67$) while sonnet passes 3 of 3 ($\hat p = 1.0$). The gated
+rule (Moderate $\tau=0.66$) commits to haiku --- a defensible
+cost-aggressive call; pure-mean prefers sonnet. At this evidence scale
+the gate is therefore \emph{more} cost-aggressive than its naive
+counterpart, and the marginal quality cost falls within bootstrap error
+of zero ($+3.12$ pp $[-2.08, +10.42]$).
+
+This is the formal guarantee working as designed. The guarantee binds
+the policy's \emph{downside}: at $\tau=0.66$, the LCB-gated form (the
+production rule, \cref{alg:cc-ts}) refuses to commit to a tier whose
+posterior lower bound is below tolerance, capping the worst-case
+single-cell regression at $1-\tau$. What the eval suite captures with
+only $\approx 3$ trials per cell-tier is the convergence limit of that
+rule, where the LCB and mean coincide. A wider evidence base would
+re-separate them and re-establish the synthetic-narrative ordering:
+pure-mean would downgrade aggressively to whichever tier looks best on
+each draw, accumulating regression on cells where the cheaper tier
+\emph{has} above-mean draws but below-LCB credibility. We expect this
+re-separation to materialise once the cell grid populates beyond the
+current $10$ eval cells. The finding to retain is that the
+conservative-gate guarantee is a property of the LCB rule under
+finite-evidence uncertainty, not a claim of unconditional Pareto
+dominance over every gate-disabled variant.
+
 \subsection{Why static frontmatter persists as a safety hatch}
 
 CC-TS is deployed alongside, not in place of, the static-frontmatter

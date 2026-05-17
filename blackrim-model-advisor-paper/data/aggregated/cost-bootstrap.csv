@@ -1,0 +1,5 @@
+policy,cost_norm,cost_norm_lo95,cost_norm_hi95
+opus-default,1.0000,1.0000,1.0000
+static-fm,0.2018,0.1984,0.2072
+epsilon-greedy,0.0563,0.0363,0.0763
+cc-ts,0.2018,0.1984,0.2072

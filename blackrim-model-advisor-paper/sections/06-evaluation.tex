@@ -65,10 +65,12 @@ construction.
 \centering
 \input{figures/cost-comparison}
 \caption{Total cost across the $335$-record production trace,
-normalised to opus-default. CC-TS matches static-frontmatter on this
-trace ($333/335$ records land in the high-confidence Builder/Bu1 cell
-that both policies route to sonnet); the differentiator appears once
-the thin-evidence cell grid populates.}
+normalised to opus-default. Error bars are bootstrap $95\%$ CIs over
+$1000$ resamples of dispatch records
+(\texttt{scripts/cost-bootstrap.py}). CC-TS and static-frontmatter
+collide on this trace ($333/335$ records land in the high-confidence
+Builder/Bu1 cell, where both policies route to sonnet); the
+differentiator appears once the thin-evidence cell grid populates.}
 \label{fig:cost-comparison}
 \end{figure}
 
@@ -126,26 +128,30 @@ groups of cells: ``high-confidence'' cells where the offline prior already
 encodes a strong recommendation ($\geq 90\%$ confidence in
 \cite{blackrim_moa1b}), and ``thin-evidence'' cells with $\leq 75\%$
 confidence (the OQ-1..OQ-5 cells). High-confidence cells converge
-immediately --- the prior alone is enough. Thin-evidence cells converge
-after $\mathbf{19.7}$ eval-triggered dispatches on average (median $16$, $p_{90}=69$)
-%% Median 16 / mean 19.7 / p90 69 dispatches to convergence on
-%% thin-evidence cells (bootstrap-resampled eval-fixture trajectories;
-%% scripts/convergence-cdf.py). High-confidence cells (Architect/A1,
-%% Builder/Bu1, Researcher/Re1) converged immediately in the production
-%% trace: 335 dispatches, 0 tier flips. Per-cell sample size means the
-%% thin-evidence distribution carries wide error; we report median to
-%% downweight outlier cells (renata/R2 p90 = 69).
-(\texttt{scripts/convergence-cdf.py}: 200 bootstrap-resampled
-trajectories of length 100 per cell, with Beta-Bernoulli updates
-from a flat prior), matching the eval cadence rather than
-production traffic.
+immediately --- the prior alone is enough. Thin-evidence cells converge in median $\mathbf{16}$ eval-triggered
+dispatches under flat $\mathrm{Beta}(1,1)$ priors
+(mean $19.7$, $p_{90}=69$); when seeded with the MOA-1b informative
+priors (loaded from \texttt{data/aggregated/moa1b-cells.json}, converted
+to per-cell Beta pseudocounts via the rule in \cite{blackrim_moa1b}),
+the median drops to $\mathbf{0}$ (mean $14.9$, $p_{90}=69$) --- six of
+the ten eval cells converge immediately, vindicating the design claim
+that the offline prior alone suffices for cells with strong landscape
+evidence.
+%% Flat priors: median 16, mean 19.7, p90 69.
+%% MOA-1b informative priors (9/10 eval cells covered): median 0, mean 14.9, p90 69.
+%% High-confidence cells (Architect/A1, Builder/Bu1, Researcher/Re1)
+%% converged immediately in the production trace: 335 dispatches, 0 tier flips.
+%% Source: scripts/convergence-cdf.py — 200 bootstrap-resampled trajectories of
+%% length 100 per cell, Beta-Bernoulli updates from the seed prior.
+The remaining four cells continue to require eval-cadence updates;
+\cref{fig:convergence} contrasts both prior regimes side-by-side.
 
 \begin{figure}[ht]
 \centering
 \input{figures/convergence}
 \caption{Empirical CDF of cell-level convergence time, by prior-confidence
 group. The high-confidence band converges immediately; the thin-evidence
-band converges in median $16$ eval probes (mean $19.7$, $p_{90}=69$).}
+band converges in median $16$ probes under flat priors and median $0$ under the MOA-1b informative prior (mean $19.7$ vs.\ $14.9$, $p_{90}=69$ either way).}
 \label{fig:convergence}
 \end{figure}
 

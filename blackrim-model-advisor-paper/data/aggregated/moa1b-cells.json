@@ -1,0 +1,332 @@
+{
+  "_comment": "MOA-1b prior cells — derived from docs/research/model-advisor-deep-landscape.md.",
+  "_derivation": "Each cell records (agent, shape, baseline_tier, tolerance, confidence_pct). The advisor's prior_loader.go converts confidence_pct to Beta(alpha, beta) via alpha=max(1, round(c/5)), beta=max(1, round((100-c)/5)). The non-baseline tiers in each cell start at uniform Beta(1, 1) — until evidence lands, the conservative gate (Layer 2) blocks downgrades regardless of the non-baseline prior, so a uniform prior on those tiers is correct.",
+  "_tolerance_classes": "Critical=0, Strict=1, Moderate=2, Lenient=3 — see ccts/posterior.go ToleranceTier.",
+  "_baseline_tiers": "haiku=0, sonnet=1, opus=2 — see ccts/posterior.go ModelTier.",
+  "_sibling_pools": "sibling_pool lists (agent, shape) pairs that contribute pseudocounts via partial pooling. Per spec: cells in the same agent or same structural-simplicity group. Empty pool == no pooling.",
+  "cells": [
+    {
+      "agent": "Yatima",
+      "shape": "Y1",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 72,
+      "sibling_pool": [
+        ["Yatima", "Y3"],
+        ["Yatima", "Y5"]
+      ]
+    },
+    {
+      "agent": "Yatima",
+      "shape": "Y2",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 80,
+      "sibling_pool": [["Reviewer", "Rv1"]]
+    },
+    {
+      "agent": "Yatima",
+      "shape": "Y3",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 68,
+      "sibling_pool": [
+        ["Yatima", "Y1"],
+        ["Yatima", "Y5"]
+      ]
+    },
+    {
+      "agent": "Yatima",
+      "shape": "Y4",
+      "baseline_tier": 1,
+      "tolerance": 1,
+      "confidence_pct": 73,
+      "sibling_pool": [["Paolo", "P4"]]
+    },
+    {
+      "agent": "Yatima",
+      "shape": "Y5",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 78,
+      "sibling_pool": [
+        ["Yatima", "Y1"],
+        ["Yatima", "Y3"]
+      ]
+    },
+
+    {
+      "agent": "Inoshiro",
+      "shape": "I1",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 72,
+      "sibling_pool": [["Yatima", "Y1"]]
+    },
+    {
+      "agent": "Inoshiro",
+      "shape": "I2",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 80,
+      "sibling_pool": []
+    },
+    {
+      "agent": "Inoshiro",
+      "shape": "I3",
+      "baseline_tier": 1,
+      "tolerance": 3,
+      "confidence_pct": 82,
+      "sibling_pool": []
+    },
+
+    {
+      "agent": "Paolo",
+      "shape": "P1",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 71,
+      "sibling_pool": [["Yatima", "Y4"]]
+    },
+    {
+      "agent": "Paolo",
+      "shape": "P4",
+      "baseline_tier": 1,
+      "tolerance": 1,
+      "confidence_pct": 70,
+      "sibling_pool": [["Yatima", "Y4"]]
+    },
+
+    {
+      "agent": "Blanca",
+      "shape": "B1",
+      "baseline_tier": 2,
+      "tolerance": 0,
+      "confidence_pct": 90,
+      "sibling_pool": []
+    },
+    {
+      "agent": "Blanca",
+      "shape": "B2",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 82,
+      "sibling_pool": []
+    },
+    {
+      "agent": "Blanca",
+      "shape": "B4",
+      "baseline_tier": 2,
+      "tolerance": 0,
+      "confidence_pct": 92,
+      "sibling_pool": [["Blanca", "B1"]]
+    },
+
+    {
+      "agent": "Orlando",
+      "shape": "O1",
+      "baseline_tier": 1,
+      "tolerance": 3,
+      "confidence_pct": 70,
+      "sibling_pool": [["Hashim", "H1"]]
+    },
+
+    {
+      "agent": "Renata",
+      "shape": "R1",
+      "baseline_tier": 2,
+      "tolerance": 1,
+      "confidence_pct": 80,
+      "sibling_pool": []
+    },
+    {
+      "agent": "Renata",
+      "shape": "R2",
+      "baseline_tier": 2,
+      "tolerance": 1,
+      "confidence_pct": 78,
+      "sibling_pool": [["Renata", "R1"]]
+    },
+
+    {
+      "agent": "Hashim",
+      "shape": "H1",
+      "baseline_tier": 1,
+      "tolerance": 3,
+      "confidence_pct": 78,
+      "sibling_pool": [["Orlando", "O1"]]
+    },
+
+    {
+      "agent": "Architect",
+      "shape": "A1",
+      "baseline_tier": 2,
+      "tolerance": 0,
+      "confidence_pct": 92,
+      "sibling_pool": []
+    },
+    {
+      "agent": "Architect",
+      "shape": "A2",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 72,
+      "sibling_pool": [["Architect", "A1"]]
+    },
+
+    {
+      "agent": "Builder",
+      "shape": "Bu1",
+      "baseline_tier": 1,
+      "tolerance": 3,
+      "confidence_pct": 95,
+      "sibling_pool": [
+        ["Builder", "Bu2"],
+        ["Builder", "Bu3"]
+      ]
+    },
+    {
+      "agent": "Builder",
+      "shape": "Bu2",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 85,
+      "sibling_pool": [["Builder", "Bu1"]]
+    },
+    {
+      "agent": "Builder",
+      "shape": "Bu3",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 85,
+      "sibling_pool": [["Builder", "Bu2"]]
+    },
+    {
+      "agent": "Builder",
+      "shape": "Bu5",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 80,
+      "sibling_pool": [["Builder", "Bu1"]]
+    },
+
+    {
+      "agent": "Reviewer",
+      "shape": "Rv1",
+      "baseline_tier": 1,
+      "tolerance": 1,
+      "confidence_pct": 90,
+      "sibling_pool": []
+    },
+    {
+      "agent": "Reviewer",
+      "shape": "Rv2",
+      "baseline_tier": 1,
+      "tolerance": 1,
+      "confidence_pct": 79,
+      "sibling_pool": [["Reviewer", "Rv1"]]
+    },
+    {
+      "agent": "Reviewer",
+      "shape": "Rv3",
+      "baseline_tier": 1,
+      "tolerance": 1,
+      "confidence_pct": 83,
+      "sibling_pool": [["Reviewer", "Rv1"]]
+    },
+
+    {
+      "agent": "Tester",
+      "shape": "T1",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 90,
+      "sibling_pool": [["Tester", "T2"]]
+    },
+    {
+      "agent": "Tester",
+      "shape": "T2",
+      "baseline_tier": 1,
+      "tolerance": 2,
+      "confidence_pct": 88,
+      "sibling_pool": [["Tester", "T1"]]
+    },
+
+    {
+      "agent": "Researcher",
+      "shape": "Re1",
+      "baseline_tier": 0,
+      "tolerance": 3,
+      "confidence_pct": 95,
+      "sibling_pool": [["Researcher", "Re2"]]
+    },
+    {
+      "agent": "Researcher",
+      "shape": "Re2",
+      "baseline_tier": 0,
+      "tolerance": 3,
+      "confidence_pct": 95,
+      "sibling_pool": [["Researcher", "Re1"]]
+    },
+    {
+      "agent": "Researcher",
+      "shape": "Re5",
+      "baseline_tier": 1,
+      "tolerance": 3,
+      "confidence_pct": 80,
+      "sibling_pool": [["Researcher", "Re1"]]
+    },
+
+    {
+      "agent": "Writer",
+      "shape": "W1",
+      "baseline_tier": 0,
+      "tolerance": 3,
+      "confidence_pct": 90,
+      "sibling_pool": [["Writer", "W5"]]
+    },
+    {
+      "agent": "Writer",
+      "shape": "W5",
+      "baseline_tier": 1,
+      "tolerance": 3,
+      "confidence_pct": 78,
+      "sibling_pool": [["Writer", "W1"]]
+    },
+
+    {
+      "agent": "Judge",
+      "shape": "J1",
+      "baseline_tier": 0,
+      "tolerance": 3,
+      "confidence_pct": 92,
+      "sibling_pool": [["Judge", "J3"]]
+    },
+    {
+      "agent": "Judge",
+      "shape": "J3",
+      "baseline_tier": 2,
+      "tolerance": 1,
+      "confidence_pct": 88,
+      "sibling_pool": []
+    },
+
+    {
+      "agent": "SpecialistDispatcher",
+      "shape": "SD1",
+      "baseline_tier": 0,
+      "tolerance": 3,
+      "confidence_pct": 98,
+      "sibling_pool": []
+    },
+
+    {
+      "agent": "WebTester",
+      "shape": "WT1",
+      "baseline_tier": 1,
+      "tolerance": 3,
+      "confidence_pct": 90,
+      "sibling_pool": []
+    }
+  ]
+}

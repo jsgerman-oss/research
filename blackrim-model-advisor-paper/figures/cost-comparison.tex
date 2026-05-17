@@ -1,22 +1,27 @@
-% figures/cost-comparison.tex — generated from data/aggregated/baseline-comparison.csv
-% (335-record advisor-decisions trace, illustrative 1200-in/400-out token budget).
+% figures/cost-comparison.tex — generated from
+% data/aggregated/cost-bootstrap.csv (1000 bootstrap resamples of the
+% 335-record advisor-decisions trace; cost normalised to opus-default
+% on each resample).
 \begin{tikzpicture}
 \begin{axis}[
-    width=0.85\linewidth, height=5cm,
+    width=0.85\linewidth, height=5.5cm,
     ybar=4pt, bar width=14pt,
     enlarge x limits=0.18,
     ymin=0, ymax=1.15,
     ylabel={Cost (normalised to opus-default)},
     symbolic x coords={Opus-default,Static,$\epsilon$-greedy,CC-TS},
     xtick=data, xticklabel style={font=\scriptsize},
-    nodes near coords, nodes near coords style={font=\scriptsize},
+    nodes near coords={\pgfmathprintnumber[fixed,precision=3]{\pgfplotspointmeta}},
+    nodes near coords style={font=\scriptsize, /pgf/number format/fixed zerofill=false},
     grid=major, grid style={dashed, gray!30},
+    error bars/y dir=both, error bars/y explicit,
+    error bars/error bar style={black, line width=0.6pt},
 ]
-\addplot[fill=gray!50] coordinates {
-    (Opus-default,1.000)
-    (Static,0.202)
-    ($\epsilon$-greedy,0.050)
-    (CC-TS,0.202)
+\addplot[fill=gray!50, error bars/error mark=-, error bars/error bar style={line cap=round}] coordinates {
+    (Opus-default,1.0000) +- (0.0000, 0.0000)
+    (Static,0.2018) +- (0.0054, 0.0034)
+    ($\epsilon$-greedy,0.0563) +- (0.0200, 0.0200)
+    (CC-TS,0.2018) +- (0.0054, 0.0034)
 };
 \end{axis}
 \end{tikzpicture}

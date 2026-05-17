@@ -30,6 +30,7 @@ import json
 import random
 from collections import defaultdict
 from pathlib import Path
+from typing import Optional
 
 _HERE = Path(__file__).resolve().parent
 _PAPER_ROOT = _HERE.parent
@@ -37,6 +38,7 @@ _DECISIONS = _PAPER_ROOT / "data" / "raw" / "advisor-decisions.jsonl"
 _FIXTURES = _PAPER_ROOT / "data" / "raw" / "eval-fixtures.jsonl"
 _CDF_OUT = _PAPER_ROOT / "data" / "aggregated" / "convergence-cdf.csv"
 _SUM_OUT = _PAPER_ROOT / "data" / "aggregated" / "convergence-summary.csv"
+_PRIORS = _PAPER_ROOT / "data" / "aggregated" / "moa1b-cells.json"
 
 TIER_RANK = {
     "claude-haiku-4-5":  0,
@@ -66,6 +68,39 @@ def _load_jsonl(path: Path) -> list[dict]:
             if line:
                 out.append(json.loads(line))
     return out
+
+
+def _load_moa1b_priors() -> dict:
+    """Load MOA-1b per-cell prior pseudocounts.
+
+    Returns dict keyed (agent_lower, shape) -> {tier: (alpha, beta)} for
+    cells listed in moa1b-cells.json. Conversion follows the spec in the
+    file header: baseline_tier gets Beta(alpha=max(1, round(conf/5)),
+    beta=max(1, round((100-conf)/5))); non-baseline tiers start at
+    Beta(1, 1). Cells not in the file fall back to flat priors per tier.
+    """
+    if not _PRIORS.exists():
+        return {}
+    import json as _json
+    raw = _json.loads(_PRIORS.read_text())
+    out: dict = {}
+    for cell in raw.get("cells", []):
+        agent = cell["agent"].lower()
+        shape = cell["shape"]
+        baseline_tier = cell["baseline_tier"]
+        conf = cell["confidence_pct"]
+        a = max(1.0, round(conf / 5.0))
+        b = max(1.0, round((100 - conf) / 5.0))
+        ab = {0: (1.0, 1.0), 1: (1.0, 1.0), 2: (1.0, 1.0)}
+        ab[baseline_tier] = (a, b)
+        out[(agent, shape)] = ab
+    return out
+
+
+def _prior_for(cell: tuple, priors: dict) -> dict:
+    """Return the per-tier Beta priors for `cell`; fall back to uniform
+    Beta(1, 1) on each tier when the cell is not in the prior table."""
+    return priors.get(cell, {0: (1.0, 1.0), 1: (1.0, 1.0), 2: (1.0, 1.0)})
 
 
 def _beta_lcb(alpha: float, beta_: float) -> float:
@@ -112,8 +147,9 @@ def _high_confidence_convergence() -> list[int]:
     return [_trajectory_last_flip(seq) for seq in cells.values()]
 
 
-def _simulate_one_trajectory(obs, rng, length=_SIM_LEN):
-    """Run cc-ts on bootstrap-resampled observations of length `length`.
+def _simulate_one_trajectory(obs, rng, prior, length=_SIM_LEN):
+    """Run cc-ts on bootstrap-resampled observations of length `length`,
+    seeded from the supplied per-tier prior pseudocounts.
 
     Each step draws one observation uniformly with replacement from the
     real eval-fixture observations for the cell, updates the per-tier
@@ -122,7 +158,7 @@ def _simulate_one_trajectory(obs, rng, length=_SIM_LEN):
     """
     tol_class = obs[0].get("tolerance_class", "Moderate")
     tau = _TOL_THRESHOLD.get(tol_class, 0.66)
-    alpha_beta = {0: (1.0, 1.0), 1: (1.0, 1.0), 2: (1.0, 1.0)}
+    alpha_beta = {t: (a, b) for t, (a, b) in prior.items()}
     tier_seq: list[int] = []
     for _ in range(length):
         o = obs[rng.randrange(len(obs))]
@@ -136,21 +172,25 @@ def _simulate_one_trajectory(obs, rng, length=_SIM_LEN):
     return _trajectory_last_flip(tier_seq)
 
 
-def _thin_evidence_convergence() -> list[int]:
+def _thin_evidence_convergence(use_priors: bool = True) -> tuple[list[int], list[bool]]:
     """For each eval-fixture cell, run `_N_SIM_RUNS` bootstrap replicas
     of length `_SIM_LEN`. Per-cell convergence is the median replica.
-    Returns one value per cell."""
+    Returns (values, has_prior_flags) — one entry per cell."""
     fixtures = _load_jsonl(_FIXTURES)
     cells: dict = defaultdict(list)
     for f in fixtures:
         cells[(f["agent"], f["shape"])].append(f)
+    priors = _load_moa1b_priors() if use_priors else {}
     out: list[int] = []
+    has_prior: list[bool] = []
     rng = random.Random(_SIM_SEED)
     for cell, obs in cells.items():
-        runs = [_simulate_one_trajectory(obs, rng) for _ in range(_N_SIM_RUNS)]
+        prior = _prior_for(cell, priors)
+        runs = [_simulate_one_trajectory(obs, rng, prior) for _ in range(_N_SIM_RUNS)]
         runs.sort()
-        out.append(runs[len(runs) // 2])  # median
-    return out
+        out.append(runs[len(runs) // 2])
+        has_prior.append(cell in priors)
+    return out, has_prior
 
 
 def _empirical_cdf(values: list[int], max_x: int) -> list[tuple[int, float]]:
@@ -166,11 +206,14 @@ def _empirical_cdf(values: list[int], max_x: int) -> list[tuple[int, float]]:
 
 def main() -> int:
     hi = _high_confidence_convergence()
-    thin = _thin_evidence_convergence()
-    max_x = max(max(hi, default=0), max(thin, default=0), 10)
+    thin_flat, _ = _thin_evidence_convergence(use_priors=False)
+    thin_informed, has_prior = _thin_evidence_convergence(use_priors=True)
+    max_x = max(max(hi, default=0), max(thin_flat, default=0),
+                max(thin_informed, default=0), 10)
 
     cdf_hi = _empirical_cdf(hi, max_x)
-    cdf_thin = _empirical_cdf(thin, max_x)
+    cdf_thin_flat = _empirical_cdf(thin_flat, max_x)
+    cdf_thin_informed = _empirical_cdf(thin_informed, max_x)
 
     _CDF_OUT.parent.mkdir(parents=True, exist_ok=True)
     with open(_CDF_OUT, "w", newline="") as fh:
@@ -178,8 +221,10 @@ def main() -> int:
         w.writerow(["group", "dispatches", "cdf"])
         for x, c in cdf_hi:
             w.writerow(["high-confidence", x, f"{c:.4f}"])
-        for x, c in cdf_thin:
-            w.writerow(["thin-evidence", x, f"{c:.4f}"])
+        for x, c in cdf_thin_flat:
+            w.writerow(["thin-evidence-flat", x, f"{c:.4f}"])
+        for x, c in cdf_thin_informed:
+            w.writerow(["thin-evidence-informed", x, f"{c:.4f}"])
 
     def _stats(vals):
         if not vals:
@@ -192,8 +237,9 @@ def main() -> int:
         return (n, mean, median, p90)
 
     rows = [
-        ("high-confidence", *_stats(hi)),
-        ("thin-evidence",   *_stats(thin)),
+        ("high-confidence",          *_stats(hi)),
+        ("thin-evidence-flat",       *_stats(thin_flat)),
+        ("thin-evidence-informed",   *_stats(thin_informed)),
     ]
     with open(_SUM_OUT, "w", newline="") as fh:
         w = csv.writer(fh)
@@ -202,7 +248,9 @@ def main() -> int:
             w.writerow([g, n, f"{m:.2f}", f"{med}", f"{p90}"])
 
     print(f"high-confidence cells: n={len(hi)}, dispatches-to-converge: {hi}")
-    print(f"thin-evidence cells:   n={len(thin)}, dispatches-to-converge: {thin}")
+    print(f"thin-evidence flat priors:     {thin_flat}")
+    print(f"thin-evidence MOA-1b priors:   {thin_informed}")
+    print(f"prior coverage: {sum(has_prior)}/{len(has_prior)} cells")
     print(f"summary: {_SUM_OUT}")
     print(f"cdf:     {_CDF_OUT}")
     return 0
