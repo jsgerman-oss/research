@@ -7,9 +7,11 @@ Both policies are replayed against the 96-fixture eval suite:
   cc-ts          : cheapest tier whose Beta-posterior LCB clears the
                    tolerance-class threshold τ; fallback opus if none.
                    This is the canonical Layer 2 conservative-gated rule.
-  gate-disabled  : cheapest tier whose Beta-posterior MEAN is the
+  greedy-bayes   : cheapest tier whose Beta-posterior MEAN is the
                    maximum across tiers — pure Thompson-style point-
-                   estimate exploitation, with no LCB guard.
+                   estimate decision with no LCB guard. NOT genuine Thompson
+                   Sampling (which would sample from the posterior); see
+                   research-cq0 for the full-TS comparator follow-up.
 
 Cost is computed from the same prices and synthetic representative
 token budget (1200 in / 400 out) as scripts/baselines/replay.py, then
@@ -106,9 +108,12 @@ def _gated_choose(cell_data, tol):
     return 2
 
 
-def _ungated_choose(cell_data):
-    """Pure-mean Thompson exploitation: pick the cheapest tier whose
-    posterior MEAN equals the per-cell maximum. No LCB guard."""
+def _greedy_bayes_choose(cell_data):
+    """Greedy-Bayes: cheapest tier whose posterior MEAN equals the
+    per-cell maximum. Deterministic point-estimate decision; differs
+    from genuine Thompson Sampling which would sample from each
+    posterior and pick argmax sample (preserving exploration). See
+    research-cq0 for the full-TS comparator follow-up."""
     best_mean = -1.0
     best_tier = 2
     for tier in (0, 1, 2):
@@ -134,8 +139,8 @@ def _replay(name, fixtures, cells, rng):
         cell_data = cells[cell]
         if name == "cc-ts":
             chosen = _gated_choose(cell_data, f.get("tolerance_class"))
-        elif name == "gate-disabled":
-            chosen = _ungated_choose(cell_data)
+        elif name == "greedy-bayes":
+            chosen = _greedy_bayes_choose(cell_data)
         elif name == "opus-default":
             chosen = 2
         else:
@@ -160,7 +165,7 @@ def main():
     rng = random.Random(20260517)
     o_opus, _, c_opus = _replay("opus-default", fixtures, cells, rng)
     o_ccts, tc_ccts, c_ccts = _replay("cc-ts", fixtures, cells, rng)
-    o_ung, tc_ung, c_ung = _replay("gate-disabled", fixtures, cells, rng)
+    o_ung, tc_ung, c_ung = _replay("greedy-bayes", fixtures, cells, rng)
 
     n = len(fixtures)
     pass_opus = sum(o_opus) / n
@@ -179,7 +184,7 @@ def main():
             "n_opus": tc_ccts[2],
         },
         {
-            "policy": "gate-disabled",
+            "policy": "greedy-bayes",
             "cost_norm": c_ung / c_opus,
             "cost_savings_pct": (c_opus - c_ung) / c_opus * 100.0,
             "pass_rate": pass_ung,

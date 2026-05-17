@@ -48,8 +48,8 @@ this to Beta pseudocounts via
   \label{eq:prior-from-confidence}
 \end{equation}
 A 95\%-confidence cell maps to $\mathrm{Beta}(19, 1)$ (very informative); a
-65\%-confidence cell maps to $\mathrm{Beta}(13, 7)$ (effectively
-uninformative); a never-evidenced cell maps to $\mathrm{Beta}(1, 1)$, the
+65\%-confidence cell maps to $\mathrm{Beta}(13, 7)$ (moderately
+informative, mean $0.65$, standard deviation $\approx 0.10$); a never-evidenced cell maps to $\mathrm{Beta}(1, 1)$, the
 uniform prior.
 
 \paragraph{Hierarchical partial pooling.}
@@ -69,7 +69,8 @@ error and a global cap $\lambda \leq 0.5$ to prevent pooling from dominating
 own-cell evidence. Full hierarchical Beta-Beta inference is a
 straightforward MOA-9 design choice (Stan \cite{carpenter2017stan} or PyMC
 implementations exist); for the production loop the closed-form
-approximation suffices and is provably no worse asymptotically.
+approximation suffices and is empirically competitive with full
+hierarchical inference in our offline simulations.
 
 \subsection{Layer 2: Conservative posterior-rejection gate}
 \label{sec:layer2}
@@ -111,6 +112,21 @@ $\qtol = 0$ (Critical) admits no downgrade ever, regardless of evidence
 strength; $\qtol < 0.02$ (Strict) admits a downgrade only when the
 conformal LCB exceeds baseline-mean by 2~percentage points; and so on
 through Lenient.
+
+\paragraph{Production approximation.}
+The production implementation in \cite{german2026blackrim} computes
+$\widehat{q}_{\mathrm{lo}}$ as a Wilson-style normal approximation to
+the Beta posterior --- $\widehat{q}_{\mathrm{lo}} = \mu - z_{1-\alpha}
+\sqrt{\sigma^2}$, where $\mu, \sigma^2$ are the Beta posterior moments
+and $z_{1-\alpha}$ is the normal critical value --- because strict
+conformal calibration requires a held-out exchangeable calibration set
+that the early-deployment cells do not yet have. The two coincide
+asymptotically as the calibration set grows; finite-sample coverage of
+the Wilson approximation is liberal at low counts (we cap the lower
+bound at $0$ for sparse cells, which the gate then rejects by default).
+The supplied artefacts \cite{blackrim_paper_repo} use the same Wilson
+LCB; a strict-conformal implementation backed by a rolling calibration
+buffer is tracked separately (see \cref{sec:future}).
 
 \subsection{Layer 3: Asymmetric-loss decision rule}
 \label{sec:layer3}
@@ -251,12 +267,14 @@ the per-arm gap.
 
 The proof is the standard Agrawal--Goyal decomposition; we omit it.
 
-\begin{theorem}[Conservative property]
+\begin{theorem}[Conservative property, asymptotic form]
 \label{thm:conservative}
 Suppose conformal calibration is exchangeable with the production stream
-\cite{vovk2005algorithmic}. Then for any cell $(\agent, \shape)$ and
-tolerance $\qtol$, CC-TS recommends a downgrade
-$\tier \prec \tier^*$ only if
+\cite{vovk2005algorithmic}, and the baseline-tier posterior has
+concentrated so that $\mu^* \to \theta_{\agent,\shape,\tier^*}$
+(equivalently, the number of baseline-tier observations $n^* \to \infty$).
+Then for any cell $(\agent, \shape)$ and tolerance $\qtol$, CC-TS
+recommends a downgrade $\tier \prec \tier^*$ only if
 \begin{equation}
   \Pr\!\big[
     \theta_{\agent,\shape,\tier} \geq \theta_{\agent,\shape,\tier^*} - \qtol
@@ -265,6 +283,11 @@ $\tier \prec \tier^*$ only if
   1 - \alpha.
   \label{eq:conservative}
 \end{equation}
+At finite $n^*$ the inequality carries an additional
+$\mathcal{O}(1/\sqrt{n^*})$ error term from the
+$\mu^* \mapsto \theta^*$ approximation in App~B; the production
+implementation conservatively pads $\mu^*$ by one posterior standard
+error at small $n^*$ to keep the inequality direction safe.
 \end{theorem}
 
 \begin{proof}[Proof sketch.]

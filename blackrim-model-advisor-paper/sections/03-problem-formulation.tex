@@ -20,6 +20,12 @@ $\cost \in \mathbb{R}_{\geq 0}$ is the realised cost in dollars. The
 \emph{quality} $q \in \{0, 1\}$ is a Bernoulli indicator of task success
 (\cref{sec:eval} discusses how $q$ is observed in production: from explicit
 reviewer signals when available, from downstream task closure otherwise).
+The held-out eval suite emits a three-level judge verdict $\{\mathrm{pass},
+\mathrm{fail}, \mathrm{partial}\}$; we conservatively map $\mathrm{partial}
+\to 0$, yielding a Bernoulli indicator that under-counts marginal
+successes. In the data underpinning \cref{sec:eval}, $1$ of $96$ fixture
+verdicts is partial; the conservative mapping does not materially affect
+the reported pass rates.
 
 \subsection{Cost and quality}
 

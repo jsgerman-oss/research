@@ -162,14 +162,19 @@ ablation in which the gate is bypassed --- the policy reduces to plain
 Thompson Sampling with the asymmetric loss minimisation. The result,
 shown in \cref{fig:ablation-gate}, is that the gate contributes most of
 CC-TS's quality-preservation guarantee with negligible cost regression: the
-gate-disabled variant saves $75.3\%$ versus opus-default while CC-TS
-saves $77.0\%$ --- a $1.7\,\mathrm{pp}$ cost deficit. Quality moves in
-the opposite direction: gate-disabled posts a $-3.12\,\mathrm{pp}$
-regression (i.e.\ a $3.12\,\mathrm{pp}$ pass-rate \emph{improvement}
-over CC-TS) on the same 96 fixtures.
+greedy-Bayes comparator (the gate-disabled variant, implemented as
+cheapest-tier-with-max-posterior-mean) saves $75.3\%$ versus
+opus-default while CC-TS saves $77.0\%$ --- a $1.7\,\mathrm{pp}$ cost
+deficit for greedy-Bayes. Quality moves in the opposite direction:
+greedy-Bayes posts a $-3.12\,\mathrm{pp}$ regression (i.e.\ a
+$3.12\,\mathrm{pp}$ pass-rate \emph{improvement} over CC-TS) on the
+same 96 fixtures. Note that greedy-Bayes is a point-estimate
+comparator, not genuine Thompson Sampling (which samples from the
+per-tier posterior and would preserve exploration); the full-TS
+comparator is deferred (\cref{sec:future}).
 %% Ablation: scripts/ablation-gate.py against data/raw/eval-fixtures.jsonl.
 %% cc-ts: 77.03% savings, 81.25% pass, +3.12pp regression, tier-mix 63h/15s/18o.
-%% gate-disabled: 75.31% savings, 87.50% pass, -3.12pp regression, tier-mix 54h/24s/18o.
+%% greedy-bayes: 75.31% savings, 87.50% pass, -3.12pp regression, tier-mix 54h/24s/18o.
 %% Both rules read the same Beta(1+s, 1+f) posteriors per (cell, tier); the gate
 %% applies LCB>=tau before downgrade, the unguarded variant picks the tier with
 %% the highest posterior mean (no LCB floor).
@@ -177,7 +182,8 @@ At this evidence scale the gate's empirical effect is therefore
 cost-enabling --- accepting cheaper tiers whose empirical mean clears
 the per-cell tolerance threshold --- rather than the
 quality-protective trade-off predicted by the conservative-bias design
-intent. We revisit this finding in \cref{sec:discussion}.
+intent against pure exploration. We revisit this finding in
+\cref{sec:discussion}.
 
 \begin{figure}[ht]
 \centering
@@ -185,8 +191,10 @@ intent. We revisit this finding in \cref{sec:discussion}.
 \caption{Ablation: removing the conservative gate. The y-axis is
 quality regression on the eval suite (negative = better than
 opus-default); the x-axis is normalised cost. CC-TS sits to the
-cost-aggressive side of the gate-disabled variant on this trace
---- a sample-scale artefact discussed in \cref{sec:discussion}.}
+cost-aggressive side of the greedy-Bayes comparator on this trace
+--- a sample-scale artefact discussed in \cref{sec:discussion}.
+Greedy-Bayes is a point-estimate stand-in for the gate-disabled
+policy; genuine Thompson Sampling is deferred.}
 \label{fig:ablation-gate}
 \end{figure}
 

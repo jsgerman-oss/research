@@ -19,7 +19,7 @@ rather than risk silent regression.
 
 The ablation in \cref{fig:ablation-gate} reports an empirical reversal of
 the conservative-gate narrative: on the $96$-fixture eval suite, the
-gate-disabled variant lands at $-3.12\,\mathrm{pp}$ regression (i.e.\ a
+greedy-Bayes comparator lands at $-3.12\,\mathrm{pp}$ regression (i.e.\ a
 small quality \emph{improvement} over CC-TS) at slightly higher cost
 ($75.3\%$ savings vs.\ CC-TS's $77.0\%$). This deserves an explicit
 unpacking because the design-intent narrative predicts the opposite.
@@ -28,8 +28,9 @@ The conservative-gate property proved in \cref{thm:conservative} is
 asymmetric: it is a one-sided guarantee that no \emph{downgrade} commits
 unless the per-cell credibility bound clears tolerance. The ablation
 contrast in this paper is between the gate (cheapest tier whose
-empirical mean clears $\tau$) and pure-mean exploitation (cheapest tier
-whose mean equals the per-cell maximum). The latter is not symmetric to
+empirical mean clears $\tau$) and greedy-Bayes (cheapest tier whose mean equals the per-cell
+maximum, the point-estimate stand-in for gate-disabled; genuine
+Thompson Sampling would re-introduce exploration variance). The latter is not symmetric to
 the former: when the cheapest tier has empirical mean above $\tau$ but
 below the maximum, the gated rule downgrades while pure-mean does not.
 Concretely: at the writer/W1 cell, haiku passes 2 of 3 fixtures
@@ -55,7 +56,7 @@ re-separation to materialise once the cell grid populates beyond the
 current $10$ eval cells. The finding to retain is that the
 conservative-gate guarantee is a property of the LCB rule under
 finite-evidence uncertainty, not a claim of unconditional Pareto
-dominance over every gate-disabled variant.
+dominance over every greedy-Bayes comparator.
 
 \subsection{Why static frontmatter persists as a safety hatch}
 
