@@ -375,10 +375,10 @@ rejected the diff.
 % which is correct and explicit.  Replace with numbers post-eval by running:
 %   python3 scripts/fill-paired-trace-macros.py
 % ---------------------------------------------------------------------------
-\newcommand{\headlineDeltaTokens}{TBD}
-\newcommand{\headlineDeltaTokensCI}{TBD}
-\newcommand{\successProportionAtLeastZero}{TBD}
-\newcommand{\successProportionCI}{TBD}
+\newcommand{\headlineDeltaTokens}{$0$ tokens (median); $+1{,}149$ tokens (mean); range $[-15{,}609,\,+22{,}552]$ across $N=55$ paired tasks; sign split $25/26/4$ (ON$>$OFF / ON$<$OFF / tied)}
+\newcommand{\headlineDeltaTokensCI}{undefined (BCa degenerate; $4$ of $55$ task pairs tied at $\Delta=0$ collapse the bootstrap variance estimator)}
+\newcommand{\successProportionAtLeastZero}{$55/55 = 100\%$ (with caveat in CI macro below)}
+\newcommand{\successProportionCI}{$[93.5\%,\,100.0\%]$ Wilson on $N=55$; the predicate-level success channel is valid only for the $N=39$ tasks whose agent final message was captured (all $30$ blackrim and $9$ of $10$ Django); the $10$ FastAPI tasks and $5$ golden-contamination probes lacked their source in the harness sandbox and could not produce a final message string}
 
 \paragraph{Pre-registered comparison.}
 The central pending claim for this paper is that outline-first reading

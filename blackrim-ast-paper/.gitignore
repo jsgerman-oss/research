@@ -36,3 +36,4 @@ data/raw/*.jsonl
 .venv/
 __pycache__/
 *.pyc
+main.bbl-SAVE-ERROR
