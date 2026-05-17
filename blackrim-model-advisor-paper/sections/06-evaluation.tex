@@ -128,17 +128,20 @@ groups of cells: ``high-confidence'' cells where the offline prior already
 encodes a strong recommendation ($\geq 90\%$ confidence in
 \cite{blackrim_moa1b}), and ``thin-evidence'' cells with $\leq 75\%$
 confidence (the OQ-1..OQ-5 cells). High-confidence cells converge
-immediately --- the prior alone is enough. Thin-evidence cells converge in median $\mathbf{16}$ eval-triggered
+immediately --- the prior alone is enough. Thin-evidence cells converge in median $\mathbf{19}$ eval-triggered
 dispatches under flat $\mathrm{Beta}(1,1)$ priors
-(mean $19.7$, $p_{90}=69$); when seeded with the MOA-1b informative
+(mean $22.6$, $p_{90}=81$); when seeded with the MOA-1b informative
 priors (loaded from \texttt{data/aggregated/moa1b-cells.json}, converted
 to per-cell Beta pseudocounts via the rule in \cite{blackrim_moa1b}),
-the median drops to $\mathbf{0}$ (mean $14.9$, $p_{90}=69$) --- six of
+the median drops to $\mathbf{0}$ (mean $16.8$, $p_{90}=80$) --- six of
 the ten eval cells converge immediately, vindicating the design claim
 that the offline prior alone suffices for cells with strong landscape
-evidence.
-%% Flat priors: median 16, mean 19.7, p90 69.
-%% MOA-1b informative priors (9/10 eval cells covered): median 0, mean 14.9, p90 69.
+evidence. Convergence counts use the exact $\mathrm{Beta}$ inverse-CDF
+LCB (\texttt{scipy.stats.beta.ppf}); an earlier revision using a Wald
+approximation reported median $16$ / $0$, biased low at small counts.
+%% Flat priors: median 19, mean 22.6, p90 81.
+%% MOA-1b informative priors (9/10 eval cells covered): median 0, mean 16.8, p90 80.
+%% Exact Beta inverse-CDF LCB (scipy.stats.beta.ppf), Wald approximation removed.
 %% High-confidence cells (Architect/A1, Builder/Bu1, Researcher/Re1)
 %% converged immediately in the production trace: 335 dispatches, 0 tier flips.
 %% Source: scripts/convergence-cdf.py — 200 bootstrap-resampled trajectories of
@@ -151,7 +154,7 @@ The remaining four cells continue to require eval-cadence updates;
 \input{figures/convergence}
 \caption{Empirical CDF of cell-level convergence time, by prior-confidence
 group. The high-confidence band converges immediately; the thin-evidence
-band converges in median $16$ probes under flat priors and median $0$ under the MOA-1b informative prior (mean $19.7$ vs.\ $14.9$, $p_{90}=69$ either way).}
+band converges in median $19$ probes under flat priors and median $0$ under the MOA-1b informative prior (mean $22.6$ vs.\ $16.8$, $p_{90}=81$ vs.\ $80$).}
 \label{fig:convergence}
 \end{figure}
 
@@ -162,22 +165,30 @@ ablation in which the gate is bypassed --- the policy reduces to plain
 Thompson Sampling with the asymmetric loss minimisation. The result,
 shown in \cref{fig:ablation-gate}, is that the gate contributes most of
 CC-TS's quality-preservation guarantee with negligible cost regression: the
-greedy-Bayes comparator (the gate-disabled variant, implemented as
-cheapest-tier-with-max-posterior-mean) saves $75.3\%$ versus
-opus-default while CC-TS saves $77.0\%$ --- a $1.7\,\mathrm{pp}$ cost
-deficit for greedy-Bayes. Quality moves in the opposite direction:
-greedy-Bayes posts a $-3.12\,\mathrm{pp}$ regression (i.e.\ a
-$3.12\,\mathrm{pp}$ pass-rate \emph{improvement} over CC-TS) on the
-same 96 fixtures. Note that greedy-Bayes is a point-estimate
-comparator, not genuine Thompson Sampling (which samples from the
-per-tier posterior and would preserve exploration); the full-TS
-comparator is deferred (\cref{sec:future}).
+gate-disabled variant resolves into two distinct policies depending
+on the sampling mechanism. The \emph{greedy-Bayes} variant
+(cheapest-tier-with-max-posterior-mean) saves $75.3\%$ versus
+opus-default while CC-TS saves $77.0\%$ --- a $1.7\,\mathrm{pp}$
+cost deficit for greedy-Bayes, with a $-3.12\,\mathrm{pp}$ regression
+(quality \emph{improvement} of $3.12$ pp over CC-TS) on the same
+$96$ fixtures. The \emph{genuine Thompson Sampling} variant (one
+sample drawn from each tier's Beta posterior per dispatch, average
+over $200$ stochastic replicas) saves only $49.0\%$ --- $28\,\mathrm{pp}$
+less than CC-TS --- because the per-tier posteriors are wide at
+small counts and TS routinely samples a higher tier even when the
+lower tier's mean is competitive. Its quality regression is
+$-0.26\,\mathrm{pp}$, statistically indistinguishable from
+opus-default. The three-way ordering on this trace is therefore
+\emph{cc-ts $\succ$ greedy-Bayes $\succ$ Thompson Sampling}
+on cost and \emph{greedy-Bayes $\succ$ TS $\approx$ opus-default
+$\succ$ cc-ts} on quality.
 %% Ablation: scripts/ablation-gate.py against data/raw/eval-fixtures.jsonl.
-%% cc-ts: 77.03% savings, 81.25% pass, +3.12pp regression, tier-mix 63h/15s/18o.
-%% greedy-bayes: 75.31% savings, 87.50% pass, -3.12pp regression, tier-mix 54h/24s/18o.
-%% Both rules read the same Beta(1+s, 1+f) posteriors per (cell, tier); the gate
-%% applies LCB>=tau before downgrade, the unguarded variant picks the tier with
-%% the highest posterior mean (no LCB floor).
+%% cc-ts:              77.03% savings, 81.25% pass, +3.12pp regression, 63h/15s/18o.
+%% greedy-bayes:       75.31% savings, 87.50% pass, -3.12pp regression, 54h/24s/18o.
+%% thompson-sampling:  48.98% savings, 84.64% pass, -0.26pp regression, 24h/29s/43o (avg over 200 replicas).
+%% Three rules read the same Beta(1+s, 1+f) posteriors per (cell, tier);
+%% cc-ts requires beta.ppf(0.05) LCB >= tau; greedy-bayes picks argmax mean
+%% (no LCB floor); thompson-sampling draws one Beta sample per tier and picks argmax sample.
 At this evidence scale the gate's empirical effect is therefore
 cost-enabling --- accepting cheaper tiers whose empirical mean clears
 the per-cell tolerance threshold --- rather than the
@@ -188,13 +199,15 @@ intent against pure exploration. We revisit this finding in
 \begin{figure}[ht]
 \centering
 \input{figures/ablation-gate}
-\caption{Ablation: removing the conservative gate. The y-axis is
-quality regression on the eval suite (negative = better than
-opus-default); the x-axis is normalised cost. CC-TS sits to the
-cost-aggressive side of the greedy-Bayes comparator on this trace
---- a sample-scale artefact discussed in \cref{sec:discussion}.
-Greedy-Bayes is a point-estimate stand-in for the gate-disabled
-policy; genuine Thompson Sampling is deferred.}
+\caption{Ablation: three policies on the same $96$-fixture eval suite. The
+y-axis is quality regression vs.\ opus-default (negative = better);
+the x-axis is normalised cost. CC-TS dominates on cost
+($77.0\%$ savings) at the price of a $+3.12\,\mathrm{pp}$ quality
+regression. Greedy-Bayes (cheapest tier with max posterior mean)
+slightly under-saves but improves quality. Genuine Thompson
+Sampling (one Beta sample per tier per dispatch, $200$-replica
+average) is the most quality-preserving but routes $43$ of $96$
+fixtures to opus, cutting savings to $49\%$.}
 \label{fig:ablation-gate}
 \end{figure}
 

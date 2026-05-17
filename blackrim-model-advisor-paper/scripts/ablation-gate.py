@@ -65,10 +65,12 @@ def _dispatch_cost(tier: int) -> float:
 
 
 def _beta_lcb(alpha: float, beta_: float) -> float:
-    mean = alpha / (alpha + beta_)
-    var = (alpha * beta_) / ((alpha + beta_) ** 2 * (alpha + beta_ + 1))
-    sd = var ** 0.5
-    return max(0.0, mean - 1.645 * sd)
+    """Exact lower 5%% credible bound of Beta(α, β) via scipy.stats.
+    Replaces the normal-approximation Wald LCB used in earlier
+    revisions; the exact bound is materially different at small
+    counts (e.g. Beta(2,1) Wald = 0.17 vs exact = 0.224)."""
+    from scipy.stats import beta as _beta
+    return float(_beta.ppf(0.05, alpha, beta_))
 
 
 def _load_fixtures():
@@ -129,6 +131,28 @@ def _greedy_bayes_choose(cell_data):
     return best_tier
 
 
+def _thompson_sample_choose(cell_data, rng):
+    """Genuine Thompson Sampling: for each tier, draw one sample from
+    Beta(1+s, 1+f); pick the cheapest tier whose sampled value clears
+    the per-cell maximum sample (i.e. argmax over tier samples,
+    cheaper-tier tiebreaker). Preserves exploration because the
+    sampled values vary across replicas."""
+    samples = {}
+    for tier in (0, 1, 2):
+        rows = cell_data.get(tier, [])
+        n_pass = sum(1 for _, p in rows if p)
+        n_fail = len(rows) - n_pass
+        a = 1 + n_pass
+        b = 1 + n_fail
+        # Sample from Beta(a, b) using the rng's beta sampler
+        samples[tier] = rng.betavariate(a, b)
+    best = max(samples.values())
+    for tier in (0, 1, 2):
+        if samples[tier] == best:
+            return tier
+    return 2
+
+
 def _replay(name, fixtures, cells, rng):
     """Return (outcomes, tier_counts, cost_total)."""
     outcomes = []
@@ -141,6 +165,8 @@ def _replay(name, fixtures, cells, rng):
             chosen = _gated_choose(cell_data, f.get("tolerance_class"))
         elif name == "greedy-bayes":
             chosen = _greedy_bayes_choose(cell_data)
+        elif name == "thompson-sampling":
+            chosen = _thompson_sample_choose(cell_data, rng)
         elif name == "opus-default":
             chosen = 2
         else:
@@ -158,6 +184,9 @@ def _replay(name, fixtures, cells, rng):
     return outcomes, tier_counts, cost
 
 
+_N_TS_ITERS = 200
+
+
 def main():
     fixtures = _load_fixtures()
     cells = _build_cell_matrix(fixtures)
@@ -166,6 +195,20 @@ def main():
     o_opus, _, c_opus = _replay("opus-default", fixtures, cells, rng)
     o_ccts, tc_ccts, c_ccts = _replay("cc-ts", fixtures, cells, rng)
     o_ung, tc_ung, c_ung = _replay("greedy-bayes", fixtures, cells, rng)
+
+    # Thompson Sampling: stochastic — average N_TS_ITERS replicas.
+    ts_costs, ts_passes, ts_tc = [], [], [{0: 0, 1: 0, 2: 0} for _ in range(_N_TS_ITERS)]
+    ts_outcomes_all = []
+    for i in range(_N_TS_ITERS):
+        ts_rng = random.Random(20260517 + i)
+        o_ts, tc_ts_i, c_ts = _replay("thompson-sampling", fixtures, cells, ts_rng)
+        ts_costs.append(c_ts)
+        ts_passes.append(sum(o_ts) / len(o_ts))
+        ts_tc[i] = tc_ts_i
+        ts_outcomes_all.append(o_ts)
+    c_ts_avg = sum(ts_costs) / len(ts_costs)
+    pass_ts_avg = sum(ts_passes) / len(ts_passes)
+    tc_ts_avg = {k: int(round(sum(t[k] for t in ts_tc) / len(ts_tc))) for k in (0, 1, 2)}
 
     n = len(fixtures)
     pass_opus = sum(o_opus) / n
@@ -192,6 +235,16 @@ def main():
             "n_haiku": tc_ung[0],
             "n_sonnet": tc_ung[1],
             "n_opus": tc_ung[2],
+        },
+        {
+            "policy": "thompson-sampling",
+            "cost_norm": c_ts_avg / c_opus,
+            "cost_savings_pct": (c_opus - c_ts_avg) / c_opus * 100.0,
+            "pass_rate": pass_ts_avg,
+            "quality_regression_pp": (pass_opus - pass_ts_avg) * 100.0,
+            "n_haiku": tc_ts_avg[0],
+            "n_sonnet": tc_ts_avg[1],
+            "n_opus": tc_ts_avg[2],
         },
     ]
 

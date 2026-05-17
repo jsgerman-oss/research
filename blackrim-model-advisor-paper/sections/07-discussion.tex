@@ -53,10 +53,18 @@ pure-mean would downgrade aggressively to whichever tier looks best on
 each draw, accumulating regression on cells where the cheaper tier
 \emph{has} above-mean draws but below-LCB credibility. We expect this
 re-separation to materialise once the cell grid populates beyond the
-current $10$ eval cells. The finding to retain is that the
-conservative-gate guarantee is a property of the LCB rule under
-finite-evidence uncertainty, not a claim of unconditional Pareto
-dominance over every greedy-Bayes comparator.
+current $10$ eval cells. The genuine-Thompson-Sampling ablation row
+in \cref{fig:ablation-gate} reinforces the point from a different
+angle: TS draws stochastically from the per-tier posterior, so at
+small per-cell counts it samples opus often enough to halve CC-TS's
+cost savings ($49\%$ vs.\ $77\%$). The conservative gate, by
+committing to the cheapest tier whose LCB clears tolerance, captures
+the exploitation-side savings that pure exploration leaves on the
+table, while preserving the LCB coverage guarantee that greedy-Bayes
+discards. The finding to retain is that the conservative-gate
+guarantee is a property of the LCB rule under finite-evidence
+uncertainty, not a claim of unconditional Pareto dominance over every
+gate-disabled comparator.
 
 \subsection{Why static frontmatter persists as a safety hatch}
 

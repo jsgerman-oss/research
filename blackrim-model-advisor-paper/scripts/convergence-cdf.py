@@ -104,13 +104,12 @@ def _prior_for(cell: tuple, priors: dict) -> dict:
 
 
 def _beta_lcb(alpha: float, beta_: float) -> float:
-    """Approximate lower 5% credible bound of Beta(α, β) via normal
-    approximation (mean − 1.645 · sd). Sufficient for tier-comparison
-    in this paper; production code uses scipy.stats.beta.ppf."""
-    mean = alpha / (alpha + beta_)
-    var = (alpha * beta_) / ((alpha + beta_) ** 2 * (alpha + beta_ + 1))
-    sd = var ** 0.5
-    return max(0.0, mean - 1.645 * sd)
+    """Exact lower 5%% credible bound of Beta(α, β) via scipy.stats.
+    Replaces the normal-approximation Wald LCB used in earlier
+    revisions; the exact bound is materially different at small
+    counts (e.g. Beta(2,1) Wald = 0.17 vs exact = 0.224)."""
+    from scipy.stats import beta as _beta
+    return float(_beta.ppf(0.05, alpha, beta_))
 
 
 def _recommend_tier(alpha_beta_by_tier: dict[int, tuple[float, float]],
